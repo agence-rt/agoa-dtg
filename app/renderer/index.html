@@ -68,6 +68,11 @@ button{ cursor:pointer; }
 .hidden{ display:none !important; }
 
 /* sources view */
+.home{ max-width:980px; margin:0 auto; }
+.home .hhead{ text-align:center; margin:18px 0 26px; } .home h1{ margin:0; font-size:30px; letter-spacing:.28em; padding-left:.28em; } .home h1 b{ color:#b3261e; } .home .hhead p{ margin:8px 0 0; color:var(--muted); }
+.hcards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:16px; }
+.hcard{ border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:20px 22px; } .hcard h2{ margin:0 0 6px; font-size:19px; } .hcard p{ margin:0 0 14px; color:var(--muted); font-size:14.5px; }
+.home .rtitle{ font-size:17px; color:var(--ink); margin:30px 0 8px; }
 .sources{ max-width:1080px; margin:0 auto; padding:28px 22px 80px; }
 .step{ display:grid; grid-template-columns:44px 1fr; gap:0 14px; margin-bottom:30px; }
 .step .num{ width:34px; height:34px; border-radius:50%; border:1.5px solid var(--ink); display:grid; place-items:center; font-weight:600; }
@@ -1358,6 +1363,7 @@ async function renderSources() {
   if (recentCache === null) { recentCache = []; Store.listDossiers().then(l => { recentCache = l; if (!S.d) renderSources(); }); }
   const localHint = d?.src?.rvDisplay ? ("…\\T&K Dropbox" + d.src.rvDisplay.replace(/^\/Agence T&K/i, "\\Agence T&K").replace(/\//g, "\\")) : "";
   v.innerHTML = `<div class="sources">
+${d ? `
   <div class="step ${d ? "done" : ""}"><div class="num">1</div><div>
     <h2>Dossier</h2>
     <p class="lead">Saisissez la référence du dossier (code travaux + indice), par exemple GRACIEUSE11-13-B. L’atelier retrouve le dossier dans la Dropbox et le dossier de visite RV1.</p>
@@ -1369,6 +1375,24 @@ async function renderSources() {
     ${d ? `<div class="row" style="margin-top:10px"><span class="path" id="lastSavedSrc">${S.lastSaved ? "Dernière sauvegarde : " + fmtWhen(S.lastSaved) : ""}</span><span class="spacer"></span><button class="btn small primary" data-save-dtg title="Enregistrer le dossier dans un fichier .dtg (s’ouvre par double-clic avec l’application Atelier DTG)">Enregistrer le fichier .dtg</button><button class="btn small" data-close-dossier>Changer de dossier</button></div>` : `<div class="row" style="margin-top:10px"><label class="btn small" for="dtgpick">Ouvrir un fichier .dtg</label><span class="hint">Fichier .dtg (ou .dtg.zip) enregistré depuis l’atelier ou l’application Windows.</span></div>`}
     ${Store.local && Store.db === null ? `<div class="banner warn"><b>Enregistrement local</b>Le stockage partagé n’est pas disponible : le travail est enregistré dans ce navigateur uniquement.</div>` : ""}
   </div></div>
+` : `
+  <div class="home">
+    <div class="hhead"><h1>AGOA <b>DTG</b></h1><p>Diagnostic technique global et PPPT</p></div>
+    ${SAMPLE ? "" : `<div class="banner warn"><b>Assistant IA indisponible</b>Ouvrez l’atelier depuis claude.ai pour utiliser la rédaction automatique. La rédaction manuelle reste possible.</div>`}
+    <div class="hcards">
+      <section class="hcard"><h2>Créer un DTG</h2>
+        <p>Saisissez la référence du dossier (code travaux + indice), par exemple GRACIEUSE11-13-B. L’atelier retrouve le dossier dans la Dropbox et le dossier de visite RV1.</p>
+        <div class="row"><input id="refIn" class="field-in big" placeholder="CODE-INDICE" aria-label="Référence du dossier" ${busy ? "disabled" : ""}>
+        <button class="btn primary" id="btnOpen" ${busy ? "disabled" : ""}>${busy === "open" ? '<span class="spin"></span> Recherche…' : "Créer le DTG"}</button></div></section>
+      <section class="hcard"><h2>Ouvrir un DTG</h2>
+        <p>Ouvrez un fichier <b>.dtg</b> enregistré depuis l’atelier ou l’application Windows (double-clic possible dans l’application).</p>
+        <div class="row"><label class="btn primary" for="dtgpick">Ouvrir un fichier .dtg…</label></div></section>
+    </div>
+    <h2 class="rtitle">DTG récents</h2>
+    ${recentCache?.length ? `<div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : `<p class="hint">${recentCache === null ? "Chargement…" : "Aucun DTG récent pour le moment."}</p>`}
+    ${Store.local && Store.db === null ? `<div class="banner warn"><b>Enregistrement local</b>Le stockage partagé n’est pas disponible : le travail est enregistré dans ce navigateur uniquement.</div>` : ""}
+  </div>
+`}
 
   ${d?.src ? `
   <div class="step done"><div class="num">2</div><div>

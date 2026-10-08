@@ -74,7 +74,8 @@ function rememberPath(ref, p) { cfg.lastPaths = cfg.lastPaths || {}; cfg.lastPat
 const G = require("./google");
 function googleClient() {
   let f = {}; try { f = JSON.parse(fs.readFileSync(path.join(__dirname, "google-client.json"), "utf8")); } catch {}
-  return { clientId: cfg.googleClientId || f.clientId || "", clientSecret: cfg.googleClientSecret || f.clientSecret || "", domain: (cfg.googleDomain || "remithollet.fr").replace(/^@/, "") };
+  let pg = {}; try { pg = (JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8")).agoa || {}).google || {}; } catch {}   // même convention que les autres applications AGOA
+  return { clientId: cfg.googleClientId || f.clientId || pg.clientId || "", clientSecret: cfg.googleClientSecret || f.clientSecret || pg.clientSecret || "", domain: (cfg.googleDomain || "remithollet.fr").replace(/^@/, "") };
 }
 const googleSigned = () => { const c = googleClient(); return !!(cfg.google && cfg.google.email && cfg.google.refresh && (!c.domain || cfg.google.email.toLowerCase().endsWith("@" + c.domain))); };
 let loginWin = null, loginDone = null;

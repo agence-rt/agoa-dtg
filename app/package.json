@@ -1,7 +1,7 @@
 {
   "name": "atelier-dtg",
   "productName": "AGOA DTG",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "AGOA DTG - Rémi Thollet Architecte",
   "author": "Agence Rémi Thollet Architecte",
   "main": "main.js",
@@ -83,5 +83,11 @@
         "releaseType": "release"
       }
     ]
+  },
+  "agoa": {
+    "google": {
+      "clientId": "253318887290-luk51sg4fnsg7552foru42v8v8nmrnfj.apps.googleusercontent.com",
+      "clientSecret": ""
+    }
   }
 }

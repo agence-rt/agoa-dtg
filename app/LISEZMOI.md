@@ -1,10 +1,10 @@
-# AGOA DTG — application Windows (version de test 0.1.6)
+# AGOA DTG — application Windows (version de test 0.1.7)
 
 Agence Rémi Thollet Architecte. Application de bureau qui reprend l'interface de l'atelier DTG
 publiée sur claude.ai, en local sur chaque poste.
 
 ## Installation
-1. Lancer `AGOA-DTG-Setup-0.1.6.exe` (installation pour l'utilisateur courant, sans droits administrateur).
+1. Lancer `AGOA-DTG-Setup-0.1.7.exe` (installation pour l'utilisateur courant, sans droits administrateur).
    Windows SmartScreen peut afficher « éditeur inconnu » : l'application n'est pas encore signée
    (« Informations complémentaires » › « Exécuter quand même »).
 2. Au premier lancement, la fenêtre **Paramètres** s'ouvre :
@@ -59,10 +59,10 @@ Au premier démarrage, une fenêtre propose « Se connecter avec Google » : le 
 `@remithollet.fr` (autre domaine refusé). La session est mémorisée (jeton chiffré par Windows) ; menu **Aide › Changer de compte Google**
 pour se déconnecter. Cette connexion donne aussi accès à Google Agenda (lecture seule) pour retrouver la date de visite.
 
-Configuration à faire une seule fois (Google Cloud Console, avec le compte Workspace de l'agence) :
-1. Créer un projet, activer l'API **Google Calendar**.
-2. Écran de consentement OAuth : type **Interne** (réservé à l'organisation), portées `openid`, `email`, `profile`, `calendar.readonly`.
-3. Identifiants › Créer des identifiants › **ID client OAuth** › type **Application de bureau**.
-4. Renseigner l'identifiant et le code secret : soit dans **Paramètres › Google** sur chaque poste, soit dans un fichier
-   `app/google-client.json` du dépôt (`{ "clientId": "...", "clientSecret": "..." }`) avant de publier une version.
-Tant que l'identifiant n'est pas renseigné, la fenêtre l'indique et permet de continuer sans connexion.
+Configuration : comme les autres applications AGOA, l'identifiant client OAuth est dans `package.json` › `agoa.google.clientId`,
+et le code secret est le secret GitHub Actions `GOOGLE_CLIENT_SECRET` du dépôt (injecté à la fabrication de l'installateur).
+Il peut aussi être saisi dans **Paramètres › Google** d'un poste. Les portées demandées sont `openid`, `email`, `profile`
+et `calendar.readonly` (l'écran de consentement du client doit les autoriser).
+
+## Écran d'accueil (0.1.7)
+Sans dossier ouvert : **Créer un DTG** (saisie de la référence), **Ouvrir un DTG** (fichier `.dtg`) et **DTG récents**.
