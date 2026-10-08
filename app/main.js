@@ -89,9 +89,10 @@ function showLogin() {
     loginWin.on("closed", () => { loginWin = null; if (loginDone) { const d = loginDone; loginDone = null; d(false); } });
   });
 }
-ipcMain.handle("google:state", () => ({ configured: !!googleClient().clientId, version: app.getVersion() }));
+const googleConfigured = () => { const c = googleClient(); return !!(c.clientId && c.clientSecret); };   // un client « application de bureau » exige son code secret
+ipcMain.handle("google:state", () => ({ configured: googleConfigured(), version: app.getVersion() }));
 ipcMain.handle("google:settings", () => { openSettings(true); });
-ipcMain.handle("google:skip", () => { if (googleClient().clientId) return; if (loginDone) { const d = loginDone; loginDone = null; d("skip"); loginWin && loginWin.close(); } });
+ipcMain.handle("google:skip", () => { if (googleConfigured()) return; if (loginDone) { const d = loginDone; loginDone = null; d("skip"); loginWin && loginWin.close(); } });
 ipcMain.handle("google:login", async () => {
   const c = googleClient();
   try {

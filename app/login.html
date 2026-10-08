@@ -27,7 +27,7 @@ const { ipcRenderer } = require("electron"), $ = s => document.getElementById(s)
 (async () => {
   const st = await ipcRenderer.invoke("google:state");
   $("ver").textContent = "v" + st.version;
-  if (!st.configured) { $("msg").className = ""; $("msg").textContent = "La connexion Google n'est pas encore configurée sur ce poste (identifiant client OAuth manquant)."; $("go").disabled = true; $("set").hidden = false; $("skip").hidden = false; }
+  if (!st.configured) { $("msg").className = ""; $("msg").textContent = "La connexion Google n'est pas encore configurée sur ce poste (identifiant ou code secret du client OAuth manquant)."; $("go").disabled = true; $("set").hidden = false; $("skip").hidden = false; }
 })();
 $("go").onclick = async () => {
   $("go").disabled = true; $("msg").className = "inf"; $("msg").textContent = "Terminez la connexion dans votre navigateur…";

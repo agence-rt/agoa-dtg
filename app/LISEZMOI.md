@@ -60,7 +60,7 @@ Au premier démarrage, une fenêtre propose « Se connecter avec Google » : le 
 pour se déconnecter. Cette connexion donne aussi accès à Google Agenda (lecture seule) pour retrouver la date de visite.
 
 Configuration : comme les autres applications AGOA, l'identifiant client OAuth est dans `package.json` › `agoa.google.clientId`,
-et le code secret est le secret GitHub Actions `GOOGLE_CLIENT_SECRET` du dépôt (injecté à la fabrication de l'installateur).
+et le code secret doit être saisi dans **Paramètres › Google** (ou fourni dans `google-client.json`) ; sans code secret, la connexion reste désactivée.
 Il peut aussi être saisi dans **Paramètres › Google** d'un poste. Les portées demandées sont `openid`, `email`, `profile`
 et `calendar.readonly` (l'écran de consentement du client doit les autoriser).
 
