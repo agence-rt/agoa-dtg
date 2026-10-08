@@ -1,10 +1,10 @@
-# AGOA DTG — application Windows (version de test 0.1.5)
+# AGOA DTG — application Windows (version de test 0.1.6)
 
 Agence Rémi Thollet Architecte. Application de bureau qui reprend l'interface de l'atelier DTG
 publiée sur claude.ai, en local sur chaque poste.
 
 ## Installation
-1. Lancer `AGOA-DTG-Setup-0.1.5.exe` (installation pour l'utilisateur courant, sans droits administrateur).
+1. Lancer `AGOA-DTG-Setup-0.1.6.exe` (installation pour l'utilisateur courant, sans droits administrateur).
    Windows SmartScreen peut afficher « éditeur inconnu » : l'application n'est pas encore signée
    (« Informations complémentaires » › « Exécuter quand même »).
 2. Au premier lancement, la fenêtre **Paramètres** s'ouvre :
@@ -53,3 +53,16 @@ Lancer en développement : `npm start`.
 - L'installateur propose le choix du dossier d'installation, puis une case « Créer un raccourci sur le Bureau ».
 - Publier une version : monter `version` dans `app/package.json`, pousser, puis lancer la procédure « Installateur Windows »
   (onglet Actions) : elle crée la Release `v<version>` avec l'installateur et `latest.yml` (nécessaire à la mise à jour automatique).
+
+## Identification Google (0.1.6)
+Au premier démarrage, une fenêtre propose « Se connecter avec Google » : le navigateur s'ouvre, le compte doit être en
+`@remithollet.fr` (autre domaine refusé). La session est mémorisée (jeton chiffré par Windows) ; menu **Aide › Changer de compte Google**
+pour se déconnecter. Cette connexion donne aussi accès à Google Agenda (lecture seule) pour retrouver la date de visite.
+
+Configuration à faire une seule fois (Google Cloud Console, avec le compte Workspace de l'agence) :
+1. Créer un projet, activer l'API **Google Calendar**.
+2. Écran de consentement OAuth : type **Interne** (réservé à l'organisation), portées `openid`, `email`, `profile`, `calendar.readonly`.
+3. Identifiants › Créer des identifiants › **ID client OAuth** › type **Application de bureau**.
+4. Renseigner l'identifiant et le code secret : soit dans **Paramètres › Google** sur chaque poste, soit dans un fichier
+   `app/google-client.json` du dépôt (`{ "clientId": "...", "clientSecret": "..." }`) avant de publier une version.
+Tant que l'identifiant n'est pas renseigné, la fenêtre l'indique et permet de continuer sans connexion.

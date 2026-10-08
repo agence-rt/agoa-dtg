@@ -12,12 +12,12 @@ const CFG_FILE = path.join(USER, "parametres.json");
 let win = null, settingsWin = null, pendingOpen = [], pageReady = false;
 
 /* ---------- paramètres ---------- */
-const DEFAULTS = { dropboxRoot: path.join(os.homedir(), "T&K Dropbox"), model: "claude-sonnet-5-5", ragicHost: "eu2.ragic.com", ragicAp: "agoa", ragicSheet: "/agoa/3", anthropicKey: "", ragicKey: "", lastPaths: {} };
+const DEFAULTS = { dropboxRoot: path.join(os.homedir(), "T&K Dropbox"), model: "claude-sonnet-5-5", ragicHost: "eu2.ragic.com", ragicAp: "agoa", ragicSheet: "/agoa/3", anthropicKey: "", ragicKey: "", lastPaths: {}, googleClientId: "", googleClientSecret: "", googleDomain: "remithollet.fr", google: null };
 function enc(s) { if (!s) return ""; try { return safeStorage.isEncryptionAvailable() ? "enc:" + safeStorage.encryptString(s).toString("base64") : s; } catch { return s; } }
 function dec(s) { if (!s) return ""; if (!String(s).startsWith("enc:")) return s; try { return safeStorage.decryptString(Buffer.from(s.slice(4), "base64")); } catch { return ""; } }
 const cleanHost = h => String(h || "").trim().replace(/^https?:\/\//i, "").replace(/\/.*$/, "") || "eu2.ragic.com";
-function loadCfg() { let c = {}; try { c = JSON.parse(fs.readFileSync(CFG_FILE, "utf8")); } catch {} c = { ...DEFAULTS, ...c }; if (!c.ragicHost || c.ragicHost === "www.ragic.com") c.ragicHost = "eu2.ragic.com"; c.ragicHost = cleanHost(c.ragicHost); c.anthropicKey = dec(c.anthropicKey); c.ragicKey = dec(c.ragicKey); return c; }
-function saveCfg(c) { const o = { ...c, anthropicKey: enc(c.anthropicKey), ragicKey: enc(c.ragicKey) }; fs.mkdirSync(USER, { recursive: true }); fs.writeFileSync(CFG_FILE, JSON.stringify(o, null, 2)); }
+function loadCfg() { let c = {}; try { c = JSON.parse(fs.readFileSync(CFG_FILE, "utf8")); } catch {} c = { ...DEFAULTS, ...c }; if (!c.ragicHost || c.ragicHost === "www.ragic.com") c.ragicHost = "eu2.ragic.com"; c.ragicHost = cleanHost(c.ragicHost); c.anthropicKey = dec(c.anthropicKey); c.ragicKey = dec(c.ragicKey); c.googleClientSecret = dec(c.googleClientSecret); if (c.google) c.google = { ...c.google, refresh: dec(c.google.refresh) }; return c; }
+function saveCfg(c) { const o = { ...c, anthropicKey: enc(c.anthropicKey), ragicKey: enc(c.ragicKey), googleClientSecret: enc(c.googleClientSecret), google: c.google ? { email: c.google.email, name: c.google.name, refresh: enc(c.google.refresh) } : null }; fs.mkdirSync(USER, { recursive: true }); fs.writeFileSync(CFG_FILE, JSON.stringify(o, null, 2)); }
 let cfg = loadCfg();
 
 /* ---------- fenêtre ---------- */
@@ -35,7 +35,7 @@ function createWindow() {
 }
 function openSettings() {
   if (settingsWin) { settingsWin.focus(); return; }
-  settingsWin = new BrowserWindow({ width: 640, height: 640, parent: win, modal: false, title: "Paramètres — AGOA DTG", icon: path.join(__dirname, "build", "app.ico"), webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: false, nodeIntegration: false, sandbox: false } });
+  settingsWin = new BrowserWindow({ width: 640, height: 640, parent: win || undefined, modal: false, title: "Paramètres — AGOA DTG", icon: path.join(__dirname, "build", "app.ico"), webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: false, nodeIntegration: false, sandbox: false } });
   settingsWin.setMenuBarVisibility(false);
   settingsWin.loadFile(path.join(__dirname, "settings.html"));
   settingsWin.on("closed", () => { settingsWin = null; });
@@ -52,7 +52,7 @@ function buildMenu() {
     ] },
     { label: "Édition", submenu: [{ role: "undo", label: "Annuler" }, { role: "redo", label: "Rétablir" }, { type: "separator" }, { role: "cut", label: "Couper" }, { role: "copy", label: "Copier" }, { role: "paste", label: "Coller" }, { role: "selectAll", label: "Tout sélectionner" }] },
     { label: "Affichage", submenu: [{ role: "reload", label: "Recharger" }, { role: "zoomIn", label: "Zoom +" }, { role: "zoomOut", label: "Zoom −" }, { role: "resetZoom", label: "Taille normale" }, { type: "separator" }, { role: "toggleDevTools", label: "Outils de développement" }] },
-    { label: "Aide", submenu: [{ label: "AGOA DTG v" + app.getVersion(), enabled: false }, { label: "Dossier des données de l'application", click: () => shell.openPath(USER) }] }
+    { label: "Aide", submenu: [{ label: "AGOA DTG v" + app.getVersion(), enabled: false }, { label: cfg.google ? "Connecté : " + cfg.google.email : "Non connecté à Google", enabled: false }, { label: "Changer de compte Google…", click: googleSignOut }, { type: "separator" }, { label: "Dossier des données de l'application", click: () => shell.openPath(USER) }] }
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(tpl));
 }
@@ -70,14 +70,53 @@ function flushOpen() {
 }
 function rememberPath(ref, p) { cfg.lastPaths = cfg.lastPaths || {}; cfg.lastPaths[ref.toUpperCase()] = p; saveCfg(cfg); }
 
+/* ---------- identification Google + Google Agenda ---------- */
+const G = require("./google");
+function googleClient() {
+  let f = {}; try { f = JSON.parse(fs.readFileSync(path.join(__dirname, "google-client.json"), "utf8")); } catch {}
+  return { clientId: cfg.googleClientId || f.clientId || "", clientSecret: cfg.googleClientSecret || f.clientSecret || "", domain: (cfg.googleDomain || "remithollet.fr").replace(/^@/, "") };
+}
+const googleSigned = () => { const c = googleClient(); return !!(cfg.google && cfg.google.email && cfg.google.refresh && (!c.domain || cfg.google.email.toLowerCase().endsWith("@" + c.domain))); };
+let loginWin = null, loginDone = null;
+let gSess = null;   // jeton d'accès en mémoire
+function showLogin() {
+  return new Promise(resolve => {
+    loginDone = resolve;
+    loginWin = new BrowserWindow({ width: 520, height: 400, frame: false, resizable: false, center: true, show: false, title: "Connexion — AGOA DTG", icon: path.join(__dirname, "build", "app.ico"), backgroundColor: "#ffffff", webPreferences: { nodeIntegration: true, contextIsolation: false, sandbox: false } });
+    loginWin.loadFile(path.join(__dirname, "login.html"));
+    loginWin.once("ready-to-show", () => loginWin.show());
+    loginWin.on("closed", () => { loginWin = null; if (loginDone) { const d = loginDone; loginDone = null; d(false); } });
+  });
+}
+ipcMain.handle("google:state", () => ({ configured: !!googleClient().clientId, version: app.getVersion() }));
+ipcMain.handle("google:settings", () => { openSettings(true); });
+ipcMain.handle("google:skip", () => { if (googleClient().clientId) return; if (loginDone) { const d = loginDone; loginDone = null; d("skip"); loginWin && loginWin.close(); } });
+ipcMain.handle("google:login", async () => {
+  const c = googleClient();
+  try {
+    const s = await G.login({ ...c, openUrl: u => shell.openExternal(u) });
+    cfg.google = { email: s.email, name: s.name, refresh: s.refresh }; saveCfg(cfg); gSess = { access: s.access, expiry: s.expiry, refresh: s.refresh };
+    if (loginDone) { const d = loginDone; loginDone = null; d(true); setTimeout(() => loginWin && loginWin.close(), 700); }
+    return { ok: true, email: s.email };
+  } catch (e) { return { ok: false, code: e.code, message: e.message }; }
+});
+async function googleCalendar(tool, input) {
+  if (tool !== "list_events") throw { code: "tool_error", message: "Outil Google Agenda inconnu : " + tool };
+  if (!googleSigned()) throw { code: "server_not_connected", message: "Connexion Google nécessaire (menu Aide › Changer de compte Google)." };
+  const c = googleClient(); gSess = gSess || { refresh: cfg.google.refresh };
+  try { return await G.listEvents(await G.accessToken(gSess, c), input); }
+  catch (e) { if (e.code === "relogin") { gSess = null; throw { code: "server_not_connected", message: "Connexion Google expirée : menu Aide › Changer de compte Google." }; } throw { code: e.code || "tool_error", message: e.message }; }
+}
+function googleSignOut() { cfg.google = null; gSess = null; saveCfg(cfg); app.relaunch(); app.quit(); }
+
 /* ---------- écran de démarrage + mise à jour automatique ---------- */
-let splash = null;
+let splash = null, splashHidden = false;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 function createSplash() {
   splash = new BrowserWindow({ width: 520, height: 330, frame: false, resizable: false, movable: true, show: false, center: true, alwaysOnTop: false, skipTaskbar: false, title: "AGOA DTG", icon: path.join(__dirname, "build", "app.ico"), backgroundColor: "#ffffff", webPreferences: { nodeIntegration: true, contextIsolation: false, sandbox: false } });
   splash.loadFile(path.join(__dirname, "splash.html"));
-  splash.on("closed", () => { if (!win) app.quit(); });
-  splash.webContents.on("did-finish-load", () => { splashSet({ version: app.getVersion(), text: "Recherche de mise à jour…" }); splash.show(); });
+  splash.on("closed", () => { if (!win && !loginWin && !loginDone) app.quit(); });
+  splash.webContents.on("did-finish-load", () => { splashSet({ version: app.getVersion(), text: "Recherche de mise à jour…" }); if (!splashHidden) splash.show(); });
 }
 function splashSet(o) { try { if (splash && !splash.isDestroyed()) splash.webContents.send("splash", o); } catch {} }
 function closeSplash() { try { if (splash && !splash.isDestroyed()) splash.close(); } catch {} splash = null; }
@@ -101,6 +140,12 @@ async function startup() {
   let updating = false;
   if (app.isPackaged && !process.env.AGOA_NO_UPDATE) { try { updating = await checkAndUpdate(); } catch {} }
   if (updating) return;
+  if (!googleSigned()) {
+    splashSet({ text: "Identification…" }); splashHidden = true; if (splash && !splash.isDestroyed()) splash.hide();
+    const ok = await showLogin();
+    if (!ok) { closeSplash(); app.quit(); return; }
+    splashHidden = false; if (splash && !splash.isDestroyed()) splash.show();
+  }
   splashSet({ text: "Démarrage…", pct: 100 });
   await wait(Math.max(0, 1800 - (Date.now() - t0)));
   createWindow();
@@ -110,7 +155,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on("second-instance", (e, argv) => { const f = dtgArg(argv); if (win) { if (win.isMinimized()) win.restore(); win.focus(); } if (f) queueOpen(f); });
   app.whenReady().then(() => { const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
-  app.on("window-all-closed", () => { if (!splash) app.quit(); });
+  app.on("window-all-closed", () => { if (!splash && !loginWin) app.quit(); });
 }
 
 /* ---------- utilitaires ---------- */
@@ -131,8 +176,8 @@ ipcMain.handle("store:load", wrap(async () => { try { return JSON.parse(fs.readF
 ipcMain.handle("store:save", wrap(async (data) => { fs.mkdirSync(USER, { recursive: true }); const tmp = STORE_FILE + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(data)); fs.renameSync(tmp, STORE_FILE); return true; }));
 
 /* ---------- paramètres ---------- */
-ipcMain.handle("cfg:get", wrap(async () => ({ ...cfg, anthropicKey: cfg.anthropicKey ? "••••" + cfg.anthropicKey.slice(-4) : "", ragicKey: cfg.ragicKey ? "••••" + cfg.ragicKey.slice(-4) : "", dropboxExists: fs.existsSync(cfg.dropboxRoot) })));
-ipcMain.handle("cfg:set", wrap(async (c) => { for (const k of ["dropboxRoot", "model", "ragicHost", "ragicAp", "ragicSheet"]) if (c[k] !== undefined) cfg[k] = k === "ragicHost" ? cleanHost(c[k]) : c[k]; if (c.anthropicKey && !c.anthropicKey.startsWith("••••")) cfg.anthropicKey = c.anthropicKey.trim(); if (c.ragicKey && !c.ragicKey.startsWith("••••")) cfg.ragicKey = c.ragicKey.trim(); saveCfg(cfg); return true; }));
+ipcMain.handle("cfg:get", wrap(async () => ({ ...cfg, anthropicKey: cfg.anthropicKey ? "••••" + cfg.anthropicKey.slice(-4) : "", ragicKey: cfg.ragicKey ? "••••" + cfg.ragicKey.slice(-4) : "", googleClientSecret: cfg.googleClientSecret ? "••••" + cfg.googleClientSecret.slice(-4) : "", google: cfg.google ? { email: cfg.google.email, name: cfg.google.name } : null, dropboxExists: fs.existsSync(cfg.dropboxRoot) })));
+ipcMain.handle("cfg:set", wrap(async (c) => { if (c.googleClientSecret && !c.googleClientSecret.startsWith("••••")) cfg.googleClientSecret = c.googleClientSecret.trim(); for (const k of ["dropboxRoot", "model", "ragicHost", "ragicAp", "ragicSheet", "googleClientId", "googleDomain"]) if (c[k] !== undefined) cfg[k] = k === "ragicHost" ? cleanHost(c[k]) : (typeof c[k] === "string" ? c[k].trim() : c[k]); if (c.anthropicKey && !c.anthropicKey.startsWith("••••")) cfg.anthropicKey = c.anthropicKey.trim(); if (c.ragicKey && !c.ragicKey.startsWith("••••")) cfg.ragicKey = c.ragicKey.trim(); saveCfg(cfg); return true; }));
 ipcMain.handle("cfg:pickDropbox", wrap(async () => { const r = await dialog.showOpenDialog(settingsWin || win, { properties: ["openDirectory"], defaultPath: cfg.dropboxRoot, title: "Dossier racine de la Dropbox (celui qui contient « Agence T&K »)" }); return r.canceled ? null : r.filePaths[0]; }));
 ipcMain.handle("cfg:testAI", wrap(async () => { const t = await aiComplete({ prompt: "Réponds simplement : OK", maxTokens: 20 }); return t; }));
 
@@ -209,7 +254,7 @@ async function ragic(tool, input) {
 ipcMain.handle("mcp:call", wrap(async ({ server, tool, input }) => {
   if (server === "Dropbox") return dbx(tool, input || {});
   if (server === "Ragic") return ragic(tool, input || {});
-  if (server === "Google Calendar") throw { code: "server_not_connected", message: "Google Agenda n'est pas encore relié dans la version de test : saisissez la date de visite." };
+  if (server === "Google Calendar") return googleCalendar(tool, input || {});
   throw { code: "server_not_connected", message: "Connecteur inconnu : " + server };
 }));
 
