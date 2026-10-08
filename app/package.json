@@ -1,0 +1,47 @@
+{
+  "name": "atelier-dtg",
+  "productName": "Atelier DTG",
+  "version": "0.1.4",
+  "description": "Atelier DTG - Rémi Thollet Architecte (version de test)",
+  "author": "Agence Rémi Thollet Architecte",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64",
+    "pack": "electron-builder --win dir --x64"
+  },
+  "dependencies": {
+    "mammoth": "1.8.0",
+    "pdf-parse": "1.1.1"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "fr.remithollet.atelierdtg",
+    "productName": "Atelier DTG",
+    "copyright": "Agence Rémi Thollet Architecte",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "settings.html", "renderer/**/*", "build/app.ico", "build/dtg-file.ico", "package.json"],
+    "fileAssociations": [
+      { "ext": "dtg", "name": "Dossier DTG", "description": "Dossier de l'Atelier DTG", "icon": "build/dtg-file.ico", "role": "Editor" }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/app.ico",
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Atelier DTG",
+      "installerIcon": "build/app.ico",
+      "uninstallerIcon": "build/app.ico",
+      "artifactName": "Atelier-DTG-Setup-${version}.${ext}"
+    }
+  }
+}

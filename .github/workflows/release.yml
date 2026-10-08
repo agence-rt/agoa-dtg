@@ -1,0 +1,32 @@
+name: Installateur Windows
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run dist
+      - name: Publier l'installateur dans la release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: gh release create "$GITHUB_REF_NAME" dist/Atelier-DTG-Setup-*.exe --title "Atelier DTG ${GITHUB_REF_NAME#v}" --notes "Import d'un DTG existant (PDF) ; liaison Ragic sur eu2.ragic.com." || gh release upload "$GITHUB_REF_NAME" dist/Atelier-DTG-Setup-*.exe --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Atelier-DTG-Setup
+          path: app/dist/Atelier-DTG-Setup-*.exe
