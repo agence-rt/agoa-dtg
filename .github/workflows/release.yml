@@ -25,10 +25,10 @@ jobs:
         working-directory: app
         run: |
           V=$(node -p "require('./package.json').version")
-          gh release create "v$V" dist/Atelier-DTG-Setup-*.exe --target "$GITHUB_SHA" --title "Atelier DTG $V" --notes "Installateur Windows de l'Atelier DTG $V." || gh release upload "v$V" dist/Atelier-DTG-Setup-*.exe --clobber
+          gh release create "v$V" dist/AGOA-DTG-Setup-*.exe dist/*.blockmap dist/latest.yml --target "$GITHUB_SHA" --title "Atelier DTG $V" --notes "Installateur Windows AGOA DTG $V." || gh release upload "v$V" dist/AGOA-DTG-Setup-*.exe dist/*.blockmap dist/latest.yml --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: Atelier-DTG-Setup
-          path: app/dist/Atelier-DTG-Setup-*.exe
+          path: app/dist/AGOA-DTG-Setup-*.exe

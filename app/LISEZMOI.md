@@ -1,10 +1,10 @@
-# Atelier DTG — application Windows (version de test 0.1.4)
+# AGOA DTG — application Windows (version de test 0.1.5)
 
 Agence Rémi Thollet Architecte. Application de bureau qui reprend l'interface de l'atelier DTG
 publiée sur claude.ai, en local sur chaque poste.
 
 ## Installation
-1. Lancer `Atelier-DTG-Setup-0.1.4.exe` (installation pour l'utilisateur courant, sans droits administrateur).
+1. Lancer `AGOA-DTG-Setup-0.1.5.exe` (installation pour l'utilisateur courant, sans droits administrateur).
    Windows SmartScreen peut afficher « éditeur inconnu » : l'application n'est pas encore signée
    (« Informations complémentaires » › « Exécuter quand même »).
 2. Au premier lancement, la fenêtre **Paramètres** s'ouvre :
@@ -45,3 +45,11 @@ Prérequis : Node.js 20+. Sous Windows : `npm install` puis `npm run dist` → `
 Mettre à jour l'interface : `python scripts/prepare.py chemin\vers\dtg-redaction.html` (copie la page et remplace
 les bibliothèques en ligne par les copies de `renderer/vendor`).
 Lancer en développement : `npm start`.
+
+## Démarrage, mise à jour et installation (0.1.5)
+- Écran de démarrage AGOA DTG ; pendant ce temps l'application cherche une mise à jour dans les Releases GitHub
+  `agence-rt/agoa-dtg`. Si une version plus récente existe, elle est téléchargée (progression affichée),
+  installée silencieusement, puis l'application redémarre. Sans réseau, elle démarre normalement après quelques secondes.
+- L'installateur propose le choix du dossier d'installation, puis une case « Créer un raccourci sur le Bureau ».
+- Publier une version : monter `version` dans `app/package.json`, pousser, puis lancer la procédure « Installateur Windows »
+  (onglet Actions) : elle crée la Release `v<version>` avec l'installateur et `latest.yml` (nécessaire à la mise à jour automatique).

@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
+app.setPath("userData", path.join(app.getPath("appData"), "Atelier DTG"));   // dossier des données conservé d'une version à l'autre
 const USER = app.getPath("userData");
 const STORE_FILE = path.join(USER, "atelier-store.json");
 const CFG_FILE = path.join(USER, "parametres.json");
@@ -22,19 +23,19 @@ let cfg = loadCfg();
 /* ---------- fenêtre ---------- */
 function createWindow() {
   win = new BrowserWindow({
-    width: 1500, height: 950, minWidth: 1100, minHeight: 700, title: "Atelier DTG " + app.getVersion() + " (test)", icon: path.join(__dirname, "build", "app.ico"),
+    width: 1500, height: 950, minWidth: 1100, minHeight: 700, title: "AGOA DTG " + app.getVersion(), show: false, icon: path.join(__dirname, "build", "app.ico"),
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: false, nodeIntegration: false, sandbox: false, spellcheck: true }
   });
   win.webContents.session.setSpellCheckerLanguages(["fr"]);
   pageReady = false; win.loadFile(path.join(__dirname, "renderer", "index.html"));
-  win.webContents.on("did-finish-load", () => { pageReady = true; flushOpen(); if (!cfg.anthropicKey || !fs.existsSync(cfg.dropboxRoot)) openSettings(); });
+  win.webContents.on("did-finish-load", () => { if (win && !win.isVisible()) { win.show(); } closeSplash(); pageReady = true; flushOpen(); if (!cfg.anthropicKey || !fs.existsSync(cfg.dropboxRoot)) openSettings(); });
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (e, url) => { if (/^https?:/.test(url)) { e.preventDefault(); shell.openExternal(url); } });
   buildMenu();
 }
 function openSettings() {
   if (settingsWin) { settingsWin.focus(); return; }
-  settingsWin = new BrowserWindow({ width: 640, height: 640, parent: win, modal: false, title: "Paramètres — Atelier DTG", icon: path.join(__dirname, "build", "app.ico"), webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: false, nodeIntegration: false, sandbox: false } });
+  settingsWin = new BrowserWindow({ width: 640, height: 640, parent: win, modal: false, title: "Paramètres — AGOA DTG", icon: path.join(__dirname, "build", "app.ico"), webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: false, nodeIntegration: false, sandbox: false } });
   settingsWin.setMenuBarVisibility(false);
   settingsWin.loadFile(path.join(__dirname, "settings.html"));
   settingsWin.on("closed", () => { settingsWin = null; });
@@ -51,7 +52,7 @@ function buildMenu() {
     ] },
     { label: "Édition", submenu: [{ role: "undo", label: "Annuler" }, { role: "redo", label: "Rétablir" }, { type: "separator" }, { role: "cut", label: "Couper" }, { role: "copy", label: "Copier" }, { role: "paste", label: "Coller" }, { role: "selectAll", label: "Tout sélectionner" }] },
     { label: "Affichage", submenu: [{ role: "reload", label: "Recharger" }, { role: "zoomIn", label: "Zoom +" }, { role: "zoomOut", label: "Zoom −" }, { role: "resetZoom", label: "Taille normale" }, { type: "separator" }, { role: "toggleDevTools", label: "Outils de développement" }] },
-    { label: "Aide", submenu: [{ label: "Version de test " + app.getVersion(), enabled: false }, { label: "Dossier des données de l'application", click: () => shell.openPath(USER) }] }
+    { label: "Aide", submenu: [{ label: "AGOA DTG v" + app.getVersion(), enabled: false }, { label: "Dossier des données de l'application", click: () => shell.openPath(USER) }] }
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(tpl));
 }
@@ -64,16 +65,52 @@ function flushOpen() {
   while (pendingOpen.length) {
     const p = pendingOpen.shift();
     try { const buf = fs.readFileSync(p); win.webContents.send("open-dtg", { name: path.basename(p), path: p, buf }); }
-    catch (e) { dialog.showErrorBox("Atelier DTG", "Impossible d'ouvrir " + p + "\n" + e.message); }
+    catch (e) { dialog.showErrorBox("AGOA DTG", "Impossible d'ouvrir " + p + "\n" + e.message); }
   }
 }
 function rememberPath(ref, p) { cfg.lastPaths = cfg.lastPaths || {}; cfg.lastPaths[ref.toUpperCase()] = p; saveCfg(cfg); }
 
+/* ---------- écran de démarrage + mise à jour automatique ---------- */
+let splash = null;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function createSplash() {
+  splash = new BrowserWindow({ width: 520, height: 330, frame: false, resizable: false, movable: true, show: false, center: true, alwaysOnTop: false, skipTaskbar: false, title: "AGOA DTG", icon: path.join(__dirname, "build", "app.ico"), backgroundColor: "#ffffff", webPreferences: { nodeIntegration: true, contextIsolation: false, sandbox: false } });
+  splash.loadFile(path.join(__dirname, "splash.html"));
+  splash.on("closed", () => { if (!win) app.quit(); });
+  splash.webContents.on("did-finish-load", () => { splashSet({ version: app.getVersion(), text: "Recherche de mise à jour…" }); splash.show(); });
+}
+function splashSet(o) { try { if (splash && !splash.isDestroyed()) splash.webContents.send("splash", o); } catch {} }
+function closeSplash() { try { if (splash && !splash.isDestroyed()) splash.close(); } catch {} splash = null; }
+// Vérifie les mises à jour (publiées dans les Releases GitHub). Renvoie true si une mise à jour est en cours d'installation.
+function checkAndUpdate() {
+  return new Promise(resolve => {
+    let autoUpdater; try { autoUpdater = require("electron-updater").autoUpdater; } catch { return resolve(false); }
+    autoUpdater.autoDownload = true; autoUpdater.autoInstallOnAppQuit = false; autoUpdater.logger = null;
+    let done = false; const fin = v => { if (!done) { done = true; clearTimeout(to); resolve(v); } };
+    let to = setTimeout(() => fin(false), 12000);                       // pas de réseau : on démarre quand même
+    autoUpdater.on("update-available", i => { clearTimeout(to); splashSet({ text: "Mise à jour " + i.version + " : téléchargement…", pct: 0 }); });
+    autoUpdater.on("download-progress", p => splashSet({ text: "Téléchargement de la mise à jour… " + Math.round(p.percent) + " %", pct: p.percent }));
+    autoUpdater.on("update-not-available", () => fin(false));
+    autoUpdater.on("error", () => fin(false));
+    autoUpdater.on("update-downloaded", () => { splashSet({ text: "Installation de la mise à jour…", pct: 100 }); fin(true); setTimeout(() => autoUpdater.quitAndInstall(true, true), 900); });
+    autoUpdater.checkForUpdates().catch(() => fin(false));
+  });
+}
+async function startup() {
+  createSplash(); const t0 = Date.now();
+  let updating = false;
+  if (app.isPackaged && !process.env.AGOA_NO_UPDATE) { try { updating = await checkAndUpdate(); } catch {} }
+  if (updating) return;
+  splashSet({ text: "Démarrage…", pct: 100 });
+  await wait(Math.max(0, 1800 - (Date.now() - t0)));
+  createWindow();
+}
+
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on("second-instance", (e, argv) => { const f = dtgArg(argv); if (win) { if (win.isMinimized()) win.restore(); win.focus(); } if (f) queueOpen(f); });
-  app.whenReady().then(() => { const f = dtgArg(process.argv); if (f) pendingOpen.push(f); createWindow(); });
-  app.on("window-all-closed", () => app.quit());
+  app.whenReady().then(() => { const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
+  app.on("window-all-closed", () => { if (!splash) app.quit(); });
 }
 
 /* ---------- utilitaires ---------- */

@@ -1,17 +1,18 @@
 {
   "name": "atelier-dtg",
-  "productName": "Atelier DTG",
-  "version": "0.1.4",
-  "description": "Atelier DTG - Rémi Thollet Architecte (version de test)",
+  "productName": "AGOA DTG",
+  "version": "0.1.5",
+  "description": "AGOA DTG - Rémi Thollet Architecte",
   "author": "Agence Rémi Thollet Architecte",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis --x64",
+    "dist": "electron-builder --win nsis --x64 --publish never",
     "pack": "electron-builder --win dir --x64"
   },
   "dependencies": {
+    "electron-updater": "6.3.9",
     "mammoth": "1.8.0",
     "pdf-parse": "1.1.1"
   },
@@ -21,15 +22,41 @@
   },
   "build": {
     "appId": "fr.remithollet.atelierdtg",
-    "productName": "Atelier DTG",
+    "productName": "AGOA DTG",
     "copyright": "Agence Rémi Thollet Architecte",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "settings.html", "renderer/**/*", "build/app.ico", "build/dtg-file.ico", "package.json"],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "settings.html",
+      "splash.html",
+      "renderer/**/*",
+      "build/app.ico",
+      "build/dtg-file.ico",
+      "build/logo.png",
+      "package.json"
+    ],
     "fileAssociations": [
-      { "ext": "dtg", "name": "Dossier DTG", "description": "Dossier de l'Atelier DTG", "icon": "build/dtg-file.ico", "role": "Editor" }
+      {
+        "ext": "dtg",
+        "name": "Dossier DTG",
+        "description": "Dossier de l'Atelier DTG",
+        "icon": "build/dtg-file.ico",
+        "role": "Editor"
+      }
     ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/app.ico",
       "signAndEditExecutable": true
     },
@@ -37,11 +64,21 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "shortcutName": "Atelier DTG",
+      "createDesktopShortcut": false,
+      "shortcutName": "AGOA DTG",
       "installerIcon": "build/app.ico",
       "uninstallerIcon": "build/app.ico",
-      "artifactName": "Atelier-DTG-Setup-${version}.${ext}"
-    }
+      "artifactName": "AGOA-DTG-Setup-${version}.${ext}",
+      "include": "build/installer.nsh",
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "agence-rt",
+        "repo": "agoa-dtg",
+        "releaseType": "release"
+      }
+    ]
   }
 }
