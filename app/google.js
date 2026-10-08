@@ -10,7 +10,10 @@ const b64u = b => Buffer.from(b).toString("base64").replace(/\+/g, "-").replace(
 const fail = (code, message) => Object.assign(new Error(message), { code, message });
 
 function idClaims(idt) { try { return JSON.parse(Buffer.from(idt.split(".")[1], "base64").toString("utf8")); } catch { return {}; } }
-const domainOk = (claims, domain) => !domain || (claims.email_verified !== false && (claims.hd === domain || String(claims.email || "").toLowerCase().endsWith("@" + domain)));
+const sha256 = s => crypto.createHash("sha256").update(String(s)).digest("hex");
+// Comptes autorisés : liste d'empreintes SHA-256 d'adresses e-mail (même convention que les autres applications AGOA) ; à défaut, un domaine.
+const emailAllowed = (email, allowed, domain) => { const e = String(email || "").trim().toLowerCase(); if (allowed && allowed.length) return allowed.includes(sha256(e)); return !domain || e.endsWith("@" + domain); };
+const domainOk = (claims, allowed, domain) => claims.email_verified !== false && emailAllowed(claims.email, allowed, domain);
 
 async function tokenCall(params) {
   const r = await fetch(TOKEN_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(params) });
@@ -20,7 +23,7 @@ async function tokenCall(params) {
 }
 
 // Ouvre le navigateur, attend le retour sur 127.0.0.1, échange le code. Renvoie { email, name, refresh, access, expiry }.
-async function login({ clientId, clientSecret, domain, openUrl, timeoutMs = 5 * 60 * 1000 }) {
+async function login({ clientId, clientSecret, domain, allowed, openUrl, timeoutMs = 5 * 60 * 1000 }) {
   if (!clientId) throw fail("no_client", "Client OAuth Google non configuré.");
   const verifier = b64u(crypto.randomBytes(32)), challenge = b64u(crypto.createHash("sha256").update(verifier).digest()), state = b64u(crypto.randomBytes(16));
   let server; const codeP = new Promise((resolve, reject) => {
@@ -41,13 +44,13 @@ async function login({ clientId, clientSecret, domain, openUrl, timeoutMs = 5 * 
   const redirect = "http://127.0.0.1:" + server.address().port + "/";
   try {
     const q = new URLSearchParams({ client_id: clientId, redirect_uri: redirect, response_type: "code", scope: SCOPES, code_challenge: challenge, code_challenge_method: "S256", state, access_type: "offline", prompt: "select_account consent" });
-    if (domain) q.set("hd", domain);
+    if (!(allowed && allowed.length) && domain) q.set("hd", domain);
     await openUrl(AUTH_URL + "?" + q);
     const code = await codeP;
     const t = await tokenCall({ code, client_id: clientId, client_secret: clientSecret || "", redirect_uri: redirect, grant_type: "authorization_code", code_verifier: verifier });
     const c = idClaims(t.id_token || "");
     if (!c.email) throw fail("google_error", "Google n'a pas fourni l'adresse e-mail.");
-    if (!domainOk(c, domain)) throw fail("domain", "Ce compte (" + c.email + ") n'est pas autorisé : utilisez un compte @" + domain + ".");
+    if (!domainOk(c, allowed, domain)) throw fail("domain", "Ce compte (" + c.email + ") n'est pas autorisé à utiliser cette application.");
     if (!t.refresh_token) throw fail("google_error", "Google n'a pas fourni d'autorisation durable : réessayez.");
     return { email: c.email, name: c.name || c.email, refresh: t.refresh_token, access: t.access_token, expiry: Date.now() + (t.expires_in || 3600) * 1000 - 60000 };
   } finally { try { server.close(); } catch {} }
@@ -76,4 +79,4 @@ async function listEvents(token, input) {
   return { events: ev.slice(0, input.pageSize || 25) };
 }
 
-module.exports = { login, accessToken, listEvents, domainOk, idClaims };
+module.exports = { login, accessToken, listEvents, domainOk, emailAllowed, idClaims };

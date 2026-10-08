@@ -12,7 +12,7 @@ const CFG_FILE = path.join(USER, "parametres.json");
 let win = null, settingsWin = null, pendingOpen = [], pageReady = false;
 
 /* ---------- paramètres ---------- */
-const DEFAULTS = { dropboxRoot: path.join(os.homedir(), "T&K Dropbox"), model: "claude-sonnet-5-5", ragicHost: "eu2.ragic.com", ragicAp: "agoa", ragicSheet: "/agoa/3", anthropicKey: "", ragicKey: "", lastPaths: {}, googleClientId: "", googleClientSecret: "", googleDomain: "remithollet.fr", google: null };
+const DEFAULTS = { dropboxRoot: path.join(os.homedir(), "T&K Dropbox"), model: "claude-sonnet-5-5", ragicHost: "eu2.ragic.com", ragicAp: "agoa", ragicSheet: "/agoa/3", anthropicKey: "", ragicKey: "", lastPaths: {}, googleClientId: "", googleClientSecret: "", googleDomain: "", google: null };
 function enc(s) { if (!s) return ""; try { return safeStorage.isEncryptionAvailable() ? "enc:" + safeStorage.encryptString(s).toString("base64") : s; } catch { return s; } }
 function dec(s) { if (!s) return ""; if (!String(s).startsWith("enc:")) return s; try { return safeStorage.decryptString(Buffer.from(s.slice(4), "base64")); } catch { return ""; } }
 const cleanHost = h => String(h || "").trim().replace(/^https?:\/\//i, "").replace(/\/.*$/, "") || "eu2.ragic.com";
@@ -75,9 +75,9 @@ const G = require("./google");
 function googleClient() {
   let f = {}; try { f = JSON.parse(fs.readFileSync(path.join(__dirname, "google-client.json"), "utf8")); } catch {}
   let pg = {}; try { pg = (JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8")).agoa || {}).google || {}; } catch {}   // même convention que les autres applications AGOA
-  return { clientId: cfg.googleClientId || f.clientId || pg.clientId || "", clientSecret: cfg.googleClientSecret || f.clientSecret || pg.clientSecret || "", domain: (cfg.googleDomain || "remithollet.fr").replace(/^@/, "") };
+  return { clientId: cfg.googleClientId || f.clientId || pg.clientId || "", clientSecret: cfg.googleClientSecret || f.clientSecret || pg.clientSecret || "", domain: (cfg.googleDomain || "").replace(/^@/, ""), allowed: Array.isArray(pg.allowed) ? pg.allowed : [] };
 }
-const googleSigned = () => { const c = googleClient(); return !!(cfg.google && cfg.google.email && cfg.google.refresh && (!c.domain || cfg.google.email.toLowerCase().endsWith("@" + c.domain))); };
+const googleSigned = () => { const c = googleClient(); return !!(cfg.google && cfg.google.email && cfg.google.refresh && G.emailAllowed(cfg.google.email, c.allowed, c.domain)); };
 let loginWin = null, loginDone = null;
 let gSess = null;   // jeton d'accès en mémoire
 function showLogin() {

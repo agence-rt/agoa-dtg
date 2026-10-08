@@ -32,16 +32,15 @@ button.p{ background:#1F4E79; color:#fff; border-color:#1F4E79; }
   <div id="gSt" class="hint"></div>
   <label for="gi">Identifiant client OAuth (application de bureau)</label><input id="gi" autocomplete="off" placeholder="xxxxxxxx.apps.googleusercontent.com">
   <label for="gs">Code secret client</label><input id="gs" type="password" autocomplete="off">
-  <label for="gd">Domaine autorisé</label><input id="gd" placeholder="remithollet.fr">
 </fieldset>
 <div class="bar"><button id="cancel">Fermer</button><button class="p" id="save">Enregistrer</button></div>
 </main>
 <script>
 const D = window.dtgDesktop, $ = s => document.querySelector(s);
-async function load() { const c = await D.cfgGet(); $("#root").value = c.dropboxRoot; $("#ak").value = c.anthropicKey; $("#model").value = c.model; $("#rk").value = c.ragicKey; $("#rh").value = c.ragicHost; $("#ra").value = c.ragicAp; $("#rs").value = c.ragicSheet; $("#gi").value = c.googleClientId || ""; $("#gs").value = c.googleClientSecret || ""; $("#gd").value = c.googleDomain || "remithollet.fr"; $("#gSt").textContent = c.google ? "Connecté : " + c.google.email : "Non connecté.";
+async function load() { const c = await D.cfgGet(); $("#root").value = c.dropboxRoot; $("#ak").value = c.anthropicKey; $("#model").value = c.model; $("#rk").value = c.ragicKey; $("#rh").value = c.ragicHost; $("#ra").value = c.ragicAp; $("#rs").value = c.ragicSheet; $("#gi").value = c.googleClientId || ""; $("#gs").value = c.googleClientSecret || ""; $("#gSt").textContent = c.google ? "Connecté : " + c.google.email : "Non connecté.";
   $("#rootSt").innerHTML = c.dropboxExists ? '<span class="ok">Dossier trouvé.</span>' : '<span class="er">Dossier introuvable : indiquez le dossier Dropbox de ce poste.</span>'; }
 $("#pick").onclick = async () => { const p = await D.pickDropbox(); if (p) $("#root").value = p; };
-const vals = () => ({ dropboxRoot: $("#root").value.trim(), anthropicKey: $("#ak").value, model: $("#model").value.trim(), ragicKey: $("#rk").value, ragicHost: $("#rh").value.trim(), ragicAp: $("#ra").value.trim(), ragicSheet: $("#rs").value.trim(), googleClientId: $("#gi").value.trim(), googleClientSecret: $("#gs").value, googleDomain: $("#gd").value.trim() });
+const vals = () => ({ dropboxRoot: $("#root").value.trim(), anthropicKey: $("#ak").value, model: $("#model").value.trim(), ragicKey: $("#rk").value, ragicHost: $("#rh").value.trim(), ragicAp: $("#ra").value.trim(), ragicSheet: $("#rs").value.trim(), googleClientId: $("#gi").value.trim(), googleClientSecret: $("#gs").value });
 $("#save").onclick = async () => { await D.cfgSet(vals()); await load(); $("#save").textContent = "Enregistré ✓"; setTimeout(() => $("#save").textContent = "Enregistrer", 1500); };
 $("#test").onclick = async () => { await D.cfgSet(vals()); $("#aiSt").textContent = "Test en cours…"; try { await D.testAI(); $("#aiSt").innerHTML = '<span class="ok">Connexion à l’IA réussie.</span>'; } catch (e) { $("#aiSt").innerHTML = '<span class="er">' + e.message + "</span>"; } };
 $("#cancel").onclick = () => window.close();

@@ -1,10 +1,10 @@
-# AGOA DTG — application Windows (version de test 0.1.7)
+# AGOA DTG — application Windows (version de test 0.1.8)
 
 Agence Rémi Thollet Architecte. Application de bureau qui reprend l'interface de l'atelier DTG
 publiée sur claude.ai, en local sur chaque poste.
 
 ## Installation
-1. Lancer `AGOA-DTG-Setup-0.1.7.exe` (installation pour l'utilisateur courant, sans droits administrateur).
+1. Lancer `AGOA-DTG-Setup-0.1.8.exe` (installation pour l'utilisateur courant, sans droits administrateur).
    Windows SmartScreen peut afficher « éditeur inconnu » : l'application n'est pas encore signée
    (« Informations complémentaires » › « Exécuter quand même »).
 2. Au premier lancement, la fenêtre **Paramètres** s'ouvre :
@@ -56,7 +56,7 @@ Lancer en développement : `npm start`.
 
 ## Identification Google (0.1.6)
 Au premier démarrage, une fenêtre propose « Se connecter avec Google » : le navigateur s'ouvre, le compte doit être en
-`@remithollet.fr` (autre domaine refusé). La session est mémorisée (jeton chiffré par Windows) ; menu **Aide › Changer de compte Google**
+`agence@remithollet.fr` (seule adresse autorisée, comme les autres applications AGOA : liste d'empreintes SHA-256 dans `package.json` › `agoa.google.allowed`). La session est mémorisée (jeton chiffré par Windows) ; menu **Aide › Changer de compte Google**
 pour se déconnecter. Cette connexion donne aussi accès à Google Agenda (lecture seule) pour retrouver la date de visite.
 
 Configuration : comme les autres applications AGOA, l'identifiant client OAuth est dans `package.json` › `agoa.google.clientId`,

@@ -439,7 +439,7 @@ a.btn{ text-decoration:none; color:inherit; display:inline-flex; align-items:cen
     <div id="refchip" class="refchip hidden"></div>
     <button class="btn small ghost hidden" id="btnClose" title="Revenir au choix du dossier">← Changer de dossier</button>
     <nav class="tabs" role="tablist">
-      <button role="tab" data-tab="sources" aria-selected="true">Sources</button>
+      <button role="tab" data-tab="sources" aria-selected="true">Options</button>
       <button role="tab" data-tab="redac" aria-selected="false">Rédaction</button>
       <button role="tab" data-tab="pppt" aria-selected="false">PPPT</button>
       <button role="tab" data-tab="photos" aria-selected="false">Photos</button>
@@ -485,7 +485,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.7";
+const APP_VERSION = "0.1.8";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -938,7 +938,7 @@ async function loadStyleRefs(force) {
       const r = await dbx("search", { query: "DTG", search_mode: "title_only", file_extensions: ["docx"], max_results: 100 });
       const cands = (r?.results || []).filter(x => /-DTG/i.test(x.title) && !/^--/.test(x.title) && x.size && x.size <= 5 * 1024 * 1024);
       if (cands[0]) { const p = await dbx("fetch", { id: cands[0].id }); st.oldText = (p?.text || "").slice(0, 60000); st.oldSource = cands[0].path_display; logLine("Ancien DTG lu : " + cands[0].title, "ok"); }
-      else logLine(DESKTOP ? "Anciens DTG : déposez-en depuis l’onglet Sources pour caler le style." : "Les anciens DTG de la Dropbox sont trop volumineux pour être lus automatiquement (photos intégrées).", "er");
+      else logLine(DESKTOP ? "Anciens DTG : déposez-en depuis l’onglet Options pour caler le style." : "Les anciens DTG de la Dropbox sont trop volumineux pour être lus automatiquement (photos intégrées).", "er");
     } catch (e) { logLine(mcpMessage(e), "er"); }
   }
   st.updatedAt = Date.now(); S.style = st;
@@ -1504,7 +1504,7 @@ $("#oldpick").addEventListener("change", async e => {
 /* ============ render: tree ============ */
 function renderTree() {
   const t = $("#tree"); if (!t) return;
-  if (!S.d) { t.innerHTML = `<div class="empty">Ouvrez un dossier dans l’onglet Sources.</div>`; return; }
+  if (!S.d) { t.innerHTML = `<div class="empty">Ouvrez un dossier dans l’onglet Options.</div>`; return; }
   const pi = photoIndex();
   const allIds = S.d.buildings.flatMap(b => b.chapters); const g = progressOf(allIds);
   t.innerHTML = `<div class="prog"><div class="row"><b>Avancement de la rédaction</b><span>${pct(g)}</span></div>${bar(g, true)}<div class="hint" style="margin-top:6px">${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.filter(fieldFilled).length || 0), 0)} rubriques renseignées sur ${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.length || 0), 0)}</div></div><h3>Bâtiments et chapitres</h3>` + S.d.buildings.map((b, bi) => `
@@ -1973,7 +1973,7 @@ function chapterOptions(sel) {
 }
 function renderPhotos() {
   const v = $("#v-photos");
-  if (!S.d) { v.innerHTML = `<div class="empty">Ouvrez un dossier dans l’onglet Sources.</div>`; return; }
+  if (!S.d) { v.innerHTML = `<div class="empty">Ouvrez un dossier dans l’onglet Options.</div>`; return; }
   ensurePhotoEntries();
   const pi = photoIndex();
   const all = [...S.photos.values()].sort((a, b) => a.rel.localeCompare(b.rel, "fr", { numeric: true }));
@@ -2034,7 +2034,7 @@ function arrowsSvg(arrows) {
 }
 
 async function refreshPhotosFromDropbox() {
-  if (!S.d?.src?.rvPath) return toast("Dossier Dropbox inconnu : ouvrez le dossier depuis l’onglet Sources.");
+  if (!S.d?.src?.rvPath) return toast("Dossier Dropbox inconnu : ouvrez le dossier depuis l’onglet Options.");
   const btn = $("#btnPRefresh"); if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Actualisation…'; }
   try {
     const before = new Set((S.d.inv || []).filter(x => x.k === "img").map(x => photoKey(x.r)));
@@ -2388,25 +2388,33 @@ ${lead}`, { modelTier: "default" });
   return (j?.sections || []).filter(s => +s.de && +s.a && s.titre);
 }
 function dtgImportPrompt(bname, title, type, text) {
-  const T = TYPES[type] || TYPES.LIBRE; const labels = newChapter(type, title).fields.map(f => f.label);
-  return `Tu reprends le texte d'un chapitre d'un Diagnostic Technique Global (DTG) DÉJÀ RÉDIGÉ (extrait d'un PDF) pour le ressaisir dans l'outil, rubrique par rubrique.
+  const labels = newChapter(type, title).fields.map(f => f.label);
+  return `Tu reprends le contenu d'un chapitre d'un Diagnostic Technique Global (DTG) DÉJÀ RÉDIGÉ (texte extrait d'un PDF) pour le ressaisir dans l'outil. Il faut tout récupérer : aucun point rédigé ne doit être oublié.
 Chapitre : ${bname} — ${title}
 
-Rubriques de l'outil (clés exactes) :
+Rubriques habituelles de l'outil (pour information) :
 ${labels.map(l => "- " + l).join("\n")}
 
 Règles :
-- Recopie FIDÈLEMENT les phrases du PDF : aucune reformulation, aucun ajout, aucune invention. Place chaque passage dans la rubrique qui correspond à son intitulé dans le PDF (les intitulés peuvent différer légèrement ; les rubriques sans texte dans le PDF restent "").
-- Un passage qui ne correspond à aucune rubrique va dans "autres" avec son intitulé d'origine.
-- Un paragraphe par ligne (\\n). Pas de puces ni de markdown. Ignore en-têtes, pieds de page, numéros de page, légendes de photos et libellés « Qualité architecturale / thermique / Confort d'été ».
+- "points" : TOUS les passages rédigés du chapitre, dans l'ordre du PDF. Pour chacun : "titre" = intitulé exact tel qu'il figure dans le PDF (sous-titre, rubrique), "texte" = texte complet recopié mot pour mot (aucune reformulation, aucun résumé, aucun ajout, aucune invention). Un paragraphe par ligne (\n), sans puces ni markdown. Un intitulé du PDF qui correspond à une rubrique habituelle garde son intitulé tel quel.
+- Inclus aussi les préconisations, recommandations et travaux à prévoir écrits dans le chapitre (titre « Préconisations » s'il n'y en a pas d'autre).
+- Ignore uniquement : en-têtes et pieds de page, numéros de page, légendes de photos isolées, libellés « Qualité architecturale / Qualité thermique / Confort d'été ».
 - "etat" : état d'entretien général du chapitre s'il est écrit ("bon", "moyen", "mauvais" ou "degrade"), sinon null.
-- "couts" : lignes du tableau de coûts de travaux du chapitre s'il y en a (sinon []). Montants en nombres (euros HT) ; "terme" = "court", "moyen" ou "long" (sinon "") ; "scen" = "Projet 1", "Projet 2" ou "Projet 3" si indiqué (sinon "").
+- "couts" : toutes les lignes de tableaux de coûts de travaux du chapitre (sinon []). Montants en nombres (euros), "terme" = "court", "moyen" ou "long" (sinon ""), "scen" = "Projet 1", "Projet 2" ou "Projet 3" si indiqué (sinon "").
 
 JSON uniquement :
-{"etat":null,"rubriques":{"${labels[0]}":"…"},"autres":[{"titre":"…","texte":"…"}],"couts":[{"des":"…","qte":null,"unite":"m²","pu":null,"total":null,"terme":"","gain":"","scen":""}]}
+{"etat":null,"points":[{"titre":"…","texte":"…"}],"couts":[{"des":"…","qte":null,"unite":"m²","pu":null,"total":null,"terme":"","gain":"","scen":""}]}
 
 Texte du PDF :
-${text.slice(0, 26000)}`;
+${text.slice(0, 70000)}`;
+}
+function dtgPpptPrompt(txt) {
+  return `Voici des pages de synthèse / PPPT (plan pluriannuel de travaux) d'un Diagnostic Technique Global déjà rédigé. Extrais TOUTES les lignes de travaux et préconisations chiffrées ou non (tableaux par bâtiment, ouvrage et priorité), sans rien inventer ni reformuler.
+JSON uniquement :
+{"travaux":[{"batiment":"BATIMENT A","ouvrage":"TOITURE","des":"description des travaux, recopiée","qte":null,"unite":"m²","pu":null,"total":null,"terme":"court, moyen ou long (sinon vide)","gain":"","scen":"Projet 1, 2 ou 3 si indiqué (sinon vide)"}]}
+"batiment" et "ouvrage" : tels qu'ils figurent dans le PDF (vide si non indiqués). Montants en nombres (euros).
+
+${txt}`;
 }
 function dtgHeadPrompt(head, tail) {
   const tx = [...head, ...tail.slice(0, 12)].map(p => "[page " + p.n + "]\n" + pageText(p)).join("\n").slice(0, 36000);
@@ -2419,6 +2427,14 @@ JSON uniquement :
 
 ${tx}`;
 }
+function dtgPpptChunks(tail) {
+  const pg = tail.filter(p => /€|euro|court terme|moyen terme|long terme|priorit|travaux|projet \d/i.test(p.lines.join(" ")));
+  const out = []; let cur = "";
+  for (const p of pg) { const t = "[page " + p.n + "]\n" + pageText(p) + "\n"; if (cur && (cur + t).length > 30000) { out.push(cur); cur = ""; } cur += t; }
+  if (cur) out.push(cur); return out.slice(0, 6);
+}
+const mkCost = l => { const q = +l.qte || "", p = +l.pu || ""; return { id: "k" + uid(), des: String(l.des || ""), qte: q, unite: UNITES.includes(l.unite) ? l.unite : "m²", pu: p, base: "", manual: (q && p) ? "" : (+l.total || ""), terme: ({ court: "court", moyen: "moyen", long: "long" })[String(l.terme || "").toLowerCase().replace(/[^a-z]/g, "").replace(/terme.*/, "")] || "", gain: String(l.gain || ""), scen: ["Projet 1", "Projet 2", "Projet 3"].includes(l.scen) ? l.scen : "" }; };
+const costKey = l => norm(l.des).slice(0, 40) + "|" + lineTotal(l);
 async function importDtgPdf(file) {
   if (!S.d) return toast("Ouvrez d’abord un dossier (étape 1).");
   if (!SAMPLE) return toast("Assistant IA indisponible dans cette vue : ouvrez l’atelier depuis claude.ai.");
@@ -2454,7 +2470,8 @@ async function importDtgPdf(file) {
       <div class="card" style="margin-bottom:8px"><b>Destination</b>
         <label style="display:block;margin:6px 0"><input type="radio" name="impmode" value="replace" ${hasStruct ? "checked" : "checked"}> Remplacer la structure actuelle ${hasStruct ? "(les bâtiments existants vont dans la corbeille, avec leurs photos)" : "(le dossier est vide)"}</label>
         ${hasStruct ? `<label style="display:block;margin:6px 0"><input type="radio" name="impmode" value="add"> Ajouter aux bâtiments existants (chapitres ajoutés à la suite)</label>` : ""}
-        <label style="display:block;margin:6px 0"><input type="checkbox" id="impHead" checked> Reprendre aussi les informations générales (fiche, bâtiments, DPE, scénarios) — sans écraser les champs déjà renseignés</label></div>
+        <label style="display:block;margin:6px 0"><input type="checkbox" id="impHead" checked> Reprendre aussi les informations générales (fiche, bâtiments, DPE, scénarios) — sans écraser les champs déjà renseignés</label>
+        <label style="display:block;margin:6px 0"><input type="checkbox" id="impPppt" checked> Reprendre aussi les préconisations et les lignes de travaux de la synthèse / du PPPT (rattachées au bon bâtiment et au bon chapitre)</label></div>
       <p class="hint">Non repris depuis un PDF : cotations (étoiles, flammes, soleils), photos, couleurs du texte (rouge / violet). À compléter dans l’atelier. L’import utilise l’IA : compter environ 20 à 60 s par tranche de quelques chapitres.</p>
       <div class="row" style="justify-content:flex-end"><button class="btn" id="impX">Annuler</button><button class="btn primary" id="impGo">Importer ${plan.secs.filter(s => s.inc).length} chapitre(s)</button></div>`);
     $$("[data-i]", m).forEach(el => el.onchange = () => { const s = plan.secs[+el.dataset.i], k = el.dataset.k; if (k === "inc") s.inc = el.checked; else { s[k] = el.value; if (k === "title" && !el.dataset.t) { } } if (k === "type") { /* garde le titre */ } $("#impGo", m).textContent = "Importer " + plan.secs.filter(x => x.inc).length + " chapitre(s)"; });
@@ -2462,17 +2479,18 @@ async function importDtgPdf(file) {
     $("#impGo", m).onclick = run;
   };
   const run = async () => {
-    const mode = $("input[name=impmode]:checked", m)?.value || "replace"; const withHead = $("#impHead", m)?.checked;
+    const mode = $("input[name=impmode]:checked", m)?.value || "replace"; const withHead = $("#impHead", m)?.checked, withPppt = $("#impPppt", m)?.checked && plan.tail.length > 0;
     const list = plan.secs.filter(s => s.inc); if (!list.length) return toast("Aucun chapitre sélectionné.");
-    let done = 0; const total = list.length + (withHead ? 1 : 0); const logs = [];
+    let done = 0; const pppt = withPppt ? dtgPpptChunks(plan.tail) : []; const total = list.length + (withHead ? 1 : 0) + pppt.length; const logs = [];
     const show = () => body(`<h3 style="margin:0 0 8px">Import en cours…</h3><p><span class="spin"></span> ${done} / ${total} terminé(s)</p><div class="log" style="max-height:260px;overflow:auto">${logs.map(l => `<div class="${l[1]}">${esc(l[0])}</div>`).join("")}</div><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn danger" id="impX">Arrêter</button></div>`) || ($("#impX", m).onclick = () => { ctl.abort(); close(); });
     show();
-    const res = new Map(); let headJ = null;
+    const res = new Map(); let headJ = null; const ppptLines = [];
     const jobs = list.map(s => async () => {
       try { const j = await SAMPLE.json(dtgImportPrompt(s.bname, s.title, s.type, s.txt), { signal: ctl.signal, modelTier: "default" }); res.set(s, j || {}); logs.push([s.bname + " › " + s.title, "ok"]); }
       catch (e) { if (ctl.signal.aborted) throw e; res.set(s, null); logs.push([s.bname + " › " + s.title + " : " + sampleError(e), "er"]); }
       done++; if (!ctl.signal.aborted) show();
     });
+    pppt.forEach((txt, i) => jobs.push(async () => { try { const j = await SAMPLE.json(dtgPpptPrompt(txt), { signal: ctl.signal, modelTier: "default" }); ppptLines.push(...(Array.isArray(j?.travaux) ? j.travaux : [])); logs.push(["Synthèse / PPPT (" + (i + 1) + "/" + pppt.length + ")", "ok"]); } catch (e) { if (ctl.signal.aborted) throw e; logs.push(["Synthèse / PPPT : " + sampleError(e), "er"]); } done++; if (!ctl.signal.aborted) show(); }));
     if (withHead) jobs.push(async () => { try { headJ = await SAMPLE.json(dtgHeadPrompt(plan.head, plan.tail), { signal: ctl.signal, modelTier: "default" }); logs.push(["Informations générales", "ok"]); } catch (e) { if (ctl.signal.aborted) throw e; logs.push(["Informations générales : " + sampleError(e), "er"]); } done++; if (!ctl.signal.aborted) show(); });
     try { const q = jobs.slice(); await Promise.all(Array.from({ length: 3 }, async () => { while (q.length) await q.shift()(); })); }
     catch (e) { if (ctl.signal.aborted) return; }
@@ -2490,14 +2508,32 @@ async function importDtgPdf(file) {
         if (!b) { b = { id: "b" + uid(), name: s.bname, chapters: [] }; S.d.buildings.push(b); }
         const c = newChapter(s.type, s.title); const j = res.get(s);
         if (j) {
-          const rub = j.rubriques || {}; const keys = Object.keys(rub); const nk = keys.map(norm);
-          for (const f of c.fields) { const k = keys[nk.indexOf(norm(f.label))]; if (k !== undefined && typeof rub[k] === "string" && rub[k].trim()) f.paras = markedToParas(rub[k]); }
-          for (const a of (Array.isArray(j.autres) ? j.autres : [])) if (a && a.texte && String(a.texte).trim()) c.fields.push({ id: "f" + uid(), label: String(a.titre || "Autres observations"), kind: "std", paras: markedToParas(String(a.texte)) });
+          const pts = Array.isArray(j.points) ? j.points : Object.entries(j.rubriques || {}).map(([titre, texte]) => ({ titre, texte })).concat(Array.isArray(j.autres) ? j.autres : []);
+          for (const p of pts) {
+            const txt = String(p?.texte || "").trim(); if (!txt) continue; const t = String(p.titre || "").trim(); const n = norm(t);
+            let fl = n ? (c.fields.find(x => norm(x.label) === n) || c.fields.find(x => { const m = norm(x.label); return n.length >= 6 && m.length >= 6 && (m.includes(n) || n.includes(m)); })) : null;
+            if (!fl) { fl = { id: "f" + uid(), label: t || "Autres observations", kind: "std", paras: [] }; c.fields.push(fl); }
+            fl.paras = fl.paras.length ? fl.paras.concat(markedToParas(txt)) : markedToParas(txt);
+          }
           if (ETATS.some(e => e[0] === j.etat)) c.etatGen = j.etat;
-          c.costs = (Array.isArray(j.couts) ? j.couts : []).filter(l => l && (l.des || l.total || l.pu)).map(l => { const q = +l.qte || "", p = +l.pu || ""; return { id: "k" + uid(), des: String(l.des || ""), qte: q, unite: UNITES.includes(l.unite) ? l.unite : "m²", pu: p, base: "", manual: (q && p) ? "" : (+l.total || ""), terme: TERMES[l.terme] ? l.terme : "", gain: String(l.gain || ""), scen: ["Projet 1", "Projet 2", "Projet 3"].includes(l.scen) ? l.scen : "" }; });
+          c.costs = (Array.isArray(j.couts) ? j.couts : []).filter(l => l && (l.des || l.total || l.pu)).map(mkCost);
           c.state = "ia";
         }
         S.chaps[c.id] = c; b.chapters.push(c.id); queueSave(c.id); nCh++; firstId = firstId || c.id;
+      }
+      if (ppptLines.length) {
+        let nL = 0;
+        for (const l of ppptLines) {
+          if (!l || !(l.des || l.total || l.pu)) continue;
+          const bn = norm(l.batiment || ""); let b = (bn && S.d.buildings.find(x => norm(x.name) === bn || norm(x.name).includes(bn) || bn.includes(norm(x.name)))) || (S.d.buildings.length === 1 ? S.d.buildings[0] : null) || S.d.buildings[0]; if (!b) continue;
+          const ou = norm(l.ouvrage || ""); const ty = l.ouvrage ? typeOfTitle(l.ouvrage) : "";
+          const cs = b.chapters.map(id => S.chaps[id]).filter(Boolean);
+          let c = ou && (cs.find(x => norm(x.title) === ou) || cs.find(x => norm(x.title).includes(ou) || ou.includes(norm(x.title))) || (ty && ty !== "LIBRE" ? cs.find(x => x.type === ty) : null));
+          if (!c) { c = cs.find(x => x.title === "PRÉCONISATIONS (PPPT)"); if (!c) { c = newChapter("LIBRE", "PRÉCONISATIONS (PPPT)"); S.chaps[c.id] = c; b.chapters.push(c.id); c.state = "ia"; } }
+          c.costs = c.costs || []; const ln = mkCost(l); if (c.costs.some(x => costKey(x) === costKey(ln))) continue;
+          c.costs.push(ln); nL++; queueSave(c.id);
+        }
+        logLine("PPPT : " + nL + " ligne(s) de travaux rattachée(s) aux chapitres.", "ok");
       }
       if (headJ) {
         const meta = S.d.meta; const hm = headJ.meta || {};
@@ -2665,7 +2701,7 @@ function ppptData() {
 }
 function renderPPPT() {
   const v = $("#v-pppt");
-  if (!S.d) { v.innerHTML = `<div class="empty">Ouvrez un dossier dans l’onglet Sources.</div>`; return; }
+  if (!S.d) { v.innerHTML = `<div class="empty">Ouvrez un dossier dans l’onglet Options.</div>`; return; }
   const P = ppptData();
   const cols = ["court", "moyen", "long"].concat(P.hasNP ? [""] : []);
   const colL = { court: "Court terme", moyen: "Moyen terme", long: "Long terme", "": "Non planifié" };
