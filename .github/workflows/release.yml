@@ -18,6 +18,16 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: app/package-lock.json
+      - name: Secret Google (identification)
+        shell: bash
+        env:
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          node -e "
+          const fs = require('fs'); const p = JSON.parse(fs.readFileSync('package.json', 'utf8')); const g = (p.agoa || {}).google || {};
+          if (g.clientId && process.env.GOOGLE_CLIENT_SECRET) { g.clientSecret = process.env.GOOGLE_CLIENT_SECRET; fs.writeFileSync('package.json', JSON.stringify(p, null, 2)); console.log('Secret Google injecté pour la fabrication (non enregistré dans le dépôt).'); }
+          else console.log('::warning::Secret GOOGLE_CLIENT_SECRET absent : connexion Google désactivée dans cette version.');
+          "
       - run: npm ci
       - run: npm run dist
       - name: Publier l'installateur dans la release
