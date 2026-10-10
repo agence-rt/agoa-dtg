@@ -192,6 +192,7 @@ ipcMain.handle("cfg:pickDropbox", wrap(async () => { const r = await dialog.show
 const cleanKey = k => String(k || "").replace(/[\s"'`]+/g, "");
 ipcMain.handle("cfg:testRagic", wrap(async () => { const r = await ragic("full_text_search", { query: "a" }); const n = (r.hits || r.results || []).length; return { host: cfg.ragicHost, ap: cfg.ragicAp, n }; }));
 ipcMain.handle("cfg:testAI", wrap(async () => { const t = await aiComplete({ prompt: "Réponds simplement : OK", maxTokens: 20 }); return t; }));
+ipcMain.handle("pdf:render", wrap(async (html) => require("./pdf").renderPdf(String(html || ""))));
 ipcMain.handle("app:openSettings", wrap(async () => { openSettings(); return true; }));
 ipcMain.handle("google:info", wrap(async () => ({ configured: googleConfigured(), signed: googleSigned(), email: (cfg.google && cfg.google.email) || "" })));
 ipcMain.handle("google:switch", wrap(async () => { googleSignOut(); return true; }));

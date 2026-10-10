@@ -80,7 +80,7 @@ window.dtgDesktop = {
   version: (() => { try { return ipcRenderer.sendSync("app:version"); } catch { return ""; } })(),
   readFile: p => call("file:readDropbox", p),
   saveDtg: (fname, buf, opDisplay) => call("dtg:save", { fname, buf, opDisplay }),
-  cfgGet: () => call("cfg:get"), cfgSet: c => call("cfg:set", c), pickDropbox: () => call("cfg:pickDropbox"), testAI: () => call("cfg:testAI"), testRagic: () => call("cfg:testRagic"), openSettings: () => call("app:openSettings"), googleInfo: () => call("google:info"), googleSwitch: () => call("google:switch")
+  cfgGet: () => call("cfg:get"), cfgSet: c => call("cfg:set", c), pickDropbox: () => call("cfg:pickDropbox"), testAI: () => call("cfg:testAI"), testRagic: () => call("cfg:testRagic"), pdfFromHtml: html => call("pdf:render", html), openSettings: () => call("app:openSettings"), googleInfo: () => call("google:info"), googleSwitch: () => call("google:switch")
 };
 
 /* ---------- ouverture d'un .dtg par double-clic ---------- */

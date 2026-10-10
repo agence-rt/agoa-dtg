@@ -183,7 +183,7 @@ button{ cursor:pointer; }
 .fld.th{ background:var(--th-bg); border-color:var(--th-line); } .fld.th .fld-h .lbl{ color:var(--ink); }
 .fld-h .tools{ display:flex; gap:2px; opacity:.55; transition:opacity .15s; }
 .fld:hover .fld-h .tools, .fld:focus-within .fld-h .tools{ opacity:1; }
-.ed{ font:10.5pt/1.6 "Montserrat", Arial, sans-serif; min-height:2.2em; padding:6px 2px 2px; outline:none; white-space:pre-wrap; }
+.ed{ font:10pt/1.55 Arial, Helvetica, sans-serif; min-height:2.2em; padding:6px 2px 2px; outline:none; white-space:pre-wrap; }
 .ed:focus{ background:transparent; }
 .fld.th .ed{ color:var(--ink); }
 .ed:empty::before{ content:attr(data-ph); color:var(--muted); font-style:italic; }
@@ -367,41 +367,41 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .tc{ color:#D0201A; } .tm{ color:#1F6FC5; } .tl{ color:#2C7A4B; }
 /* ---- pages PDF (hors écran) ---- */
 .pdfhost{ position:fixed; left:0; top:0; z-index:-5; width:794px; pointer-events:none; }
-.pdfpage{ width:794px; height:1123px; background:#fff; color:#151515; position:relative; overflow:hidden; font:12px/1.55 "Montserrat", Arial, sans-serif; }
+.pdfpage{ width:794px; height:1123px; background:#fff; color:#151515; position:relative; overflow:hidden; font:10pt/1.5 Arial, Helvetica, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 .pdfpage *{ box-sizing:border-box; }
-.pdfpage .ph-h{ position:absolute; left:60px; right:56px; top:40px; display:flex; justify-content:space-between; font-size:9.5px; font-weight:700; line-height:1.4; }
-.pdfpage .ph-h b{ display:block; color:#C00000; font-size:11.5px; }
+.pdfpage .ph-h{ position:absolute; left:60px; right:56px; top:40px; display:flex; justify-content:space-between; font-size:7.5pt; font-weight:700; line-height:1.4; }
+.pdfpage .ph-h b{ display:block; color:#C00000; font-size:9pt; }
 .pdfpage .ph-h .r{ text-align:right; } .pdfpage .ph-h .r span{ color:#8A8A8A; }
 .pdfpage .pb{ position:absolute; left:76px; right:76px; top:104px; bottom:84px; overflow:hidden; }
-.pdfpage .pf{ position:absolute; right:110px; bottom:38px; font-size:12px; letter-spacing:2px; }
+.pdfpage .pf{ position:absolute; right:110px; bottom:38px; font-size:9pt; letter-spacing:1px; }
 .pdfpage .pl{ position:absolute; left:0; right:0; bottom:24px; height:2px; background:#C00000; }
-.pdfpage .pbt{ color:#3A5F8C; font-size:24px; font-weight:700; margin:0 0 16px; }
+.pdfpage .pbt{ color:#3A5F8C; font-size:18pt; font-weight:700; margin:0 0 14px; line-height:1.2; }
 .pdfpage .chead{ display:flex; gap:18px; align-items:center; margin:0 0 14px; }
 .pdfpage .ccov{ width:118px; height:118px; border-radius:18px; object-fit:cover; display:block; }
-.pdfpage .pct{ font-size:22px; font-weight:700; margin:0 0 8px; color:#111; }
-.pdfpage .pcot{ display:flex; gap:30px; } .pdfpage .pcot div{ text-align:center; font-size:13px; line-height:1.5; } .pdfpage .pcot img{ margin:0 1px; vertical-align:middle; }
+.pdfpage .pct{ font-size:15pt; font-weight:700; margin:0 0 8px; color:#111; line-height:1.2; }
+.pdfpage .pcot{ display:flex; gap:30px; } .pdfpage .pcot div{ text-align:center; font-size:9pt; line-height:1.5; } .pdfpage .pcot img{ margin:0 1px; vertical-align:middle; }
 .pdfpage .pfld{ background:#F7F7F7; border-radius:12px; padding:10px 14px 9px; margin:0 0 12px; }
 .pdfpage .pfld.etat{ background:#EAF2FB; } .pdfpage .pfld.th{ background:#F4ECFB; }
-.pdfpage .pfld .lb{ font-weight:700; font-size:13px; margin-bottom:5px; }
-.pdfpage .pfld.etat .lb, .pdfpage .pfld.th .lb{ text-transform:uppercase; font-size:10px; letter-spacing:.3px; }
+.pdfpage .pfld .lb{ font-weight:700; font-size:11pt; margin-bottom:5px; color:#1F4E79; }
+.pdfpage .pfld.etat .lb, .pdfpage .pfld.th .lb{ text-transform:uppercase; font-size:9pt; letter-spacing:.3px; }
 .pdfpage .pfld p{ margin:0 0 5px; text-align:justify; }
-.pdfpage .psec{ font-weight:700; color:#1F4E79; font-size:12.5px; margin:16px 0 8px; }
-.pdfpage .ptbl{ width:100%; border-collapse:separate; border-spacing:0; font-size:10px; line-height:1.4; border:1px solid #D3DAE3; border-radius:10px; overflow:hidden; margin:0 0 8px; }
-.pdfpage .ptbl caption{ text-align:left; font-size:10px; color:#777; padding-bottom:3px; }
+.pdfpage .psec{ font-weight:700; color:#1F4E79; font-size:12pt; margin:16px 0 8px; }
+.pdfpage .ptbl{ width:100%; border-collapse:separate; border-spacing:0; font-size:8.5pt; line-height:1.4; border:1px solid #D3DAE3; border-radius:10px; overflow:hidden; margin:0 0 8px; }
+.pdfpage .ptbl caption{ text-align:left; font-size:8.5pt; color:#777; padding-bottom:3px; }
 .pdfpage .ptbl th{ background:#DCE6F1; text-align:left; padding:6px 7px; font-weight:700; }
 .pdfpage .ptbl td{ padding:5px 7px; border-top:1px solid #E5E9EF; vertical-align:top; }
-.pdfpage .ptbl .n{ text-align:right; white-space:nowrap; } .pdfpage .ptbl .th, .pdfpage .ptbl .sc{ color:#7030A0; } .pdfpage .ptbl .gain{ color:#7030A0; font-weight:800; font-size:12px; }
+.pdfpage .ptbl .n{ text-align:right; white-space:nowrap; } .pdfpage .ptbl .th, .pdfpage .ptbl .sc{ color:#7030A0; } .pdfpage .ptbl .gain{ color:#7030A0; font-weight:800; font-size:10pt; }
 .pdfpage .ptbl tr.gap td{ height:7px; padding:0; background:#F3F5F8; }
 .pdfpage .ptbl tr.sub td{ font-weight:700; background:#FAFAFA; } .pdfpage .ptbl tr.tot td{ font-weight:800; background:#F0F2F5; } .pdfpage .ptbl tr.grp td{ font-weight:700; color:#1F4E79; background:#EAF2FB; }
-.pdfpage .pnote{ font-size:9.5px; font-style:italic; color:#7F7F7F; }
+.pdfpage .pnote{ font-size:8pt; font-style:italic; color:#7F7F7F; }
 .pdfpage .pkv{ border-collapse:collapse; width:100%; } .pdfpage .pkv td{ padding:3px 6px 3px 0; vertical-align:top; } .pdfpage .pkv td.k{ font-weight:700; color:#1F4E79; width:38%; }
 .pdfpage .pimgs{ display:flex; gap:22px; justify-content:center; margin:6px 0 14px; } .pdfpage figure{ margin:0; text-align:center; }
 .pdfpage .pimgs img{ border-radius:12px; display:block; margin:0 auto; object-fit:cover; }
 .pdfpage .pphoto img{ border-radius:0; display:block; margin:0 auto; }
-.pdfpage figcaption{ font-size:10.5px; font-style:italic; color:#444; margin-top:5px; }
+.pdfpage figcaption{ font-size:8.5pt; font-style:italic; color:#444; margin-top:5px; }
 .pdfpage .pdpe .lb{ font-weight:700; color:#1F4E79; margin-bottom:6px; }
 .pdfpage .pphotos{ display:grid; grid-template-columns:repeat(3, 1fr); gap:14px 10px; margin-top:10px; align-items:start; }
-.pdfpage .pphoto{ width:auto; } .pdfpage .pphoto figcaption{ font-size:9.5px; }
+.pdfpage .pphoto{ width:auto; } .pdfpage .pphoto figcaption{ font-size:8pt; }
 .pdfpage.cover .cbg{ position:absolute; inset:0; width:794px; height:1123px; }
 .pdfpage.cover .ctxt{ position:absolute; left:520px; right:26px; top:470px; color:#fff; }
 .pdfpage.cover .big{ font-size:50px; font-weight:800; line-height:1.15; text-align:center; margin-bottom:18px; }
@@ -487,7 +487,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.16";
+const APP_VERSION = "0.1.17";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3282,6 +3282,11 @@ async function coverCanvasUrl(photoUrl) {
   return cv.toDataURL("image/jpeg", 0.9);
 }
 const runHtml = (r, base) => { const c = r.c || (r.r ? "r" : null); let s = esc(r.t); if (r.u) s = `<u>${s}</u>`; if (r.i) s = `<i>${s}</i>`; if (r.b) s = `<b>${s}</b>`; const col = c === "r" ? "#D0201A" : c === "v" ? "#7030A0" : c === "k" ? "#111" : base; return col ? `<span style="color:${col}">${s}</span>` : s; };
+function pdfCss() {
+  let out = "";
+  for (const sh of document.styleSheets) { let rules; try { rules = sh.cssRules; } catch { continue; } for (const r of rules) if (r.cssText && /\.pdfpage|\.pdfhost/.test(r.selectorText || "")) out += r.cssText + "\n"; }
+  return out;
+}
 async function exportPDF(only) {
   if (!S.d) return;
   const opt = "all";   // export direct, sans question
@@ -3404,12 +3409,22 @@ async function exportPDF(only) {
     const N = pages.length; pages.forEach((pg, i) => { const f = $(".pf", pg); if (f) f.textContent = "Page " + (i + 1) + " | " + N; });
     await Promise.all([...host.querySelectorAll("img")].map(i => i.decode ? i.decode().catch(() => {}) : null));
     if (only) { showPdfPreview(pages, host, only); return; }
+    if (DESKTOP && window.dtgDesktop.pdfFromHtml) {   // PDF vectoriel : texte net et sélectionnable
+      try {
+        btn.innerHTML = '<span class="spin"></span> PDF vectoriel…';
+        const css = pdfCss(); const body = pages.map(p => p.outerHTML).join("");
+        const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>@page{size:210mm 297mm;margin:0} html,body{margin:0;padding:0;background:#fff} ${css} .pdfpage{ width:210mm !important; height:297mm !important; break-after:page; page-break-after:always; overflow:hidden; } .pdfpage:last-child{ break-after:auto; page-break-after:auto; }</style></head><body>${body}</body></html>`;
+        const u8 = await window.dtgDesktop.pdfFromHtml(html);
+        await saveBlob(new Blob([u8], { type: "application/pdf" }), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
+        host.remove(); btn.disabled = !S.d; btn.textContent = "Exporter PDF"; return;
+      } catch (e) { console.warn("PDF vectoriel indisponible, export en image", e); }
+    }
     const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
     for (let i = 0; i < N; i++) {
       btn.innerHTML = `<span class="spin"></span> PDF ${i + 1}/${N}`;
-      const canvas = await window.html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: false, width: 794, height: 1123, windowWidth: 1200 });
+      const canvas = await window.html2canvas(pages[i], { scale: 3.5, backgroundColor: "#ffffff", logging: false, useCORS: false, width: 794, height: 1123, windowWidth: 1200 });
       if (i) pdf.addPage("a4", "portrait");
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.86), "JPEG", 0, 0, 210, 297, undefined, "FAST");
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, 210, 297, undefined, "SLOW");
     }
     await saveBlob(pdf.output("blob"), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
   } catch (e) { console.error(e); toast("Erreur pendant l’export PDF : " + (e?.message || e)); if (only) host.remove(); }
