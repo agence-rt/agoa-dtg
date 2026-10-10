@@ -182,6 +182,9 @@ ipcMain.handle("cfg:get", wrap(async () => ({ ...cfg, anthropicKey: cfg.anthropi
 ipcMain.handle("cfg:set", wrap(async (c) => { if (c.googleClientSecret && !c.googleClientSecret.startsWith("••••")) cfg.googleClientSecret = c.googleClientSecret.trim(); for (const k of ["dropboxRoot", "model", "ragicHost", "ragicAp", "ragicSheet", "googleClientId", "googleDomain"]) if (c[k] !== undefined) cfg[k] = k === "ragicHost" ? cleanHost(c[k]) : (typeof c[k] === "string" ? c[k].trim() : c[k]); if (c.anthropicKey && !c.anthropicKey.startsWith("••••")) cfg.anthropicKey = c.anthropicKey.trim(); if (c.ragicKey && !c.ragicKey.startsWith("••••")) cfg.ragicKey = c.ragicKey.trim(); saveCfg(cfg); return true; }));
 ipcMain.handle("cfg:pickDropbox", wrap(async () => { const r = await dialog.showOpenDialog(settingsWin || win, { properties: ["openDirectory"], defaultPath: cfg.dropboxRoot, title: "Dossier racine de la Dropbox (celui qui contient « Agence T&K »)" }); return r.canceled ? null : r.filePaths[0]; }));
 ipcMain.handle("cfg:testAI", wrap(async () => { const t = await aiComplete({ prompt: "Réponds simplement : OK", maxTokens: 20 }); return t; }));
+ipcMain.handle("app:openSettings", wrap(async () => { openSettings(); return true; }));
+ipcMain.handle("google:info", wrap(async () => ({ configured: googleConfigured(), signed: googleSigned(), email: (cfg.google && cfg.google.email) || "" })));
+ipcMain.handle("google:switch", wrap(async () => { googleSignOut(); return true; }));
 
 /* ---------- fichiers ---------- */
 ipcMain.handle("dtg:remember", wrap(async ({ ref, path: p }) => { if (ref && p) rememberPath(String(ref), p); return true; }));

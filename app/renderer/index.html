@@ -194,6 +194,7 @@ button{ cursor:pointer; }
 .btn.wand{ color:var(--violet); padding:2px 6px; } .btn.wand:hover{ background:var(--violet-soft); }
 .csq{ width:15px; height:15px; border:0; border-radius:3px; padding:0; margin:0 3px; align-self:center; box-shadow:0 0 0 1px var(--line); }
 .csq:hover{ transform:scale(1.2); }
+.lrow{ display:grid; grid-template-columns:200px 1fr auto; gap:10px; align-items:center; padding:7px 0; border-top:1px solid var(--line); } .lrow:first-of-type{ border-top:0; } .lname{ display:flex; flex-direction:column; } .lst{ font-size:13.5px; color:var(--muted,#5A6570); } .lst.ok{ color:#1e7a3c; } .lst.er{ color:var(--red,#c0392b); } @media (max-width:700px){ .lrow{ grid-template-columns:1fr; } }
 .fmt.u{ text-decoration:underline; } .fmt.b{ font-weight:800; } .fmt.i{ font-style:italic; font-family:var(--doc); }
 .fmt.v{ color:var(--violet); border-color:var(--violet) !important; }
 .sw{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
@@ -485,7 +486,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.12";
+const APP_VERSION = "0.1.13";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1400,6 +1401,17 @@ async function createDtg(f) {
   } catch (e) { logLine(e?.code === "nf" ? e.message : (e?.message || String(e)), "er"); }
   S.busy = null; renderAll();
 }
+async function linkDropboxVisit() {
+  const ref = S.d.ref; S.busy = "open"; renderSources();
+  try {
+    const loc = await locateDossier(ref); S.d.ref = ref;
+    S.d.src = { root: loc.root.path_display, op: loc.opFolder.path_display || "", rvPath: loc.chosen.path, rvDisplay: loc.chosen.path_display || "", rvName: loc.chosen.name, rvs: loc.rvs.map(r => ({ name: r.name, path: r.path, disp: r.path_display || "" })) };
+    S.d.inv = (await scanRV(loc.chosen.path)).map(({ r, k, s, i }) => ({ r, k, s, i }));
+    S.d.docSel = S.d.inv.filter(x => x.k === "doc" && x.s && x.s <= MAXDOC && !/DTG/i.test(x.r)).map(x => x.r);
+    queueSave("d"); logLine("Dossier de visite lié : " + (S.d.src.rvDisplay || ""), "ok");
+  } catch (e) { logLine(e?.code === "nf" ? e.message : mcpMessage(e), "er"); S.d.ref = ref; }
+  S.busy = null; renderAll();
+}
 async function rescan(rvPath) {
   S.busy = "open"; renderSources();
   try {
@@ -1473,6 +1485,13 @@ ${d ? `
     </tbody></table></div>
     <div class="row" style="margin-top:10px"><button class="btn small" id="btnRescan" ${busy ? "disabled" : ""}>Actualiser l’inventaire</button><span class="path">Dossier local à sélectionner pour les photos : <code>${esc(localHint)}</code></span></div></div>
   </div></div>
+  ` : d ? `
+  <div class="step"><div class="num">2</div><div>
+    <h2>Fichiers de la visite</h2>
+    <p class="path">Aucun dossier de visite lié (facultatif). Il permet d’utiliser les photos, vidéos et transcriptions du dossier RV1.</p>
+    <div class="row"><button class="btn small" id="btnLinkDbx" ${busy ? "disabled" : ""}>${busy === "open" ? '<span class="spin"></span> Recherche…' : "Retrouver le dossier de visite dans la Dropbox"}</button></div>
+  </div></div>` : ""}
+  ${d ? `
 
   <div class="step"><div class="num">3</div><div>
     <h2>Fiche et références</h2>
@@ -1489,6 +1508,7 @@ ${d ? `
       ${S.calHits ? `<span></span><div class="calhits">${S.calHits.length ? S.calHits.map((e, i) => `<button type="button" class="calhit ${e.dtg ? "dtg" : ""}" data-cal="${i}"><b>${esc(e.dateLabel)}</b> ${esc(e.summary)}${e.location ? ` <small class="muted">· ${esc(e.location)}</small>` : ""}</button>`).join("") : '<span class="hint">Aucun rendez-vous trouvé dans l’agenda pour ce dossier.</span>'}</div>` : ""}
       <label for="mVer">Version</label><input id="mVer" class="field-in" value="${esc(d.meta.version)}" style="max-width:80px">
     </div></div>
+    ${liaisonsCardHtml()}
     <div class="card" style="margin-top:10px">
       <div><b>Style de l’agence</b></div>
       <p class="path" style="margin:4px 0">${S.style?.refText ? "Textes de référence : <code>" + esc(S.style.refSource || "DTG-REF") + "</code>" : "DTG-REF non trouvé dans la Dropbox : la version intégrée à l’atelier est utilisée."}</p>
@@ -1526,6 +1546,10 @@ ${d ? `
   $("#btnNew", v)?.addEventListener("click", () => newDtgDialog());
   $$(".recent [data-ref]", v).forEach(b => b.onclick = () => openDossier(b.dataset.ref));
   if (Store.db) $$("[data-rimg]", v).forEach(async sp => { const x = recentCache.find(r => (r.slug || slugOf(r.ref)) === sp.dataset.rimg); if (!x?.meta?.thumb || x.meta.thumb.length > 9000) return; try { const s = await Store.db.doc("dossiers/" + sp.dataset.rimg + "/images/dossier_photo").get(); const u = s.exists ? (s.data() || {}).data : null; if (u) sp.innerHTML = `<img src="${u}" alt="">`; } catch {} });
+  $("#btnLinkDbx", v)?.addEventListener("click", linkDropboxVisit);
+  $$("[data-link]", v).forEach(b => b.onclick = () => testLink(b.dataset.link));
+  $("#lnkSettings", v)?.addEventListener("click", () => window.dtgDesktop.openSettings().catch(() => {}));
+  $("#lnkGoogleSw", v)?.addEventListener("click", async () => { if (await ask("Se déconnecter de Google et redémarrer l’application pour choisir un autre compte ?", [["Changer de compte", "y"], ["Annuler", "n"]]) === "y") window.dtgDesktop.googleSwitch().catch(() => {}); });
   $("#btnRescan", v)?.addEventListener("click", () => rescan());
   $("#rvSel", v)?.addEventListener("change", e => rescan(e.target.value));
   const bindMeta = (id, k) => $(id, v)?.addEventListener("input", e => { S.d.meta[k] = e.target.value; queueSave("d"); });
@@ -2333,6 +2357,49 @@ async function importRagic(input) {
     queueSave("d"); logLine("Fiche Ragic importée : " + (rec._index_title_ || input) + " — " + (m.adresse || ""), "ok"); toast("Informations récupérées depuis Ragic.");
   } catch (e) { const msg = e?.code === "nf" ? e.message : ragicMsg(e); S.ragicErr = msg; logLine(msg, "er"); toast(msg, 6000); }
   S.busy = null; renderSources();
+}
+
+
+/* ============ liaisons : test Ragic / Google / Anthropic ============ */
+S.link = S.link || {};
+function liaisonsCardHtml() {
+  const L = S.link, row = (k, name, hint) => {
+    const r = L[k] || {};
+    return `<div class="lrow"><div class="lname"><b>${name}</b><span class="path">${hint}</span></div>
+      <div class="lst ${r.cls || ""}">${r.busy ? '<span class="spin"></span> Test en cours…' : esc(r.msg || "Non testé")}</div>
+      <button class="btn small" data-link="${k}" ${r.busy ? "disabled" : ""}>Tester</button></div>`;
+  };
+  return `<div class="card" style="margin-top:10px" id="liaisons"><div class="row" style="margin-bottom:6px"><b>Liaisons</b><span class="spacer"></span>${DESKTOP ? `<button class="btn small" id="lnkSettings">Réglages (clés, serveur, Google)…</button><button class="btn small ghost" id="lnkGoogleSw" title="Se déconnecter et choisir un autre compte Google">Changer de compte Google</button>` : ""}</div>
+    ${row("ragic", "Ragic", DESKTOP ? "Serveur eu2.ragic.com — clé API dans les réglages" : "Connecteur Ragic de claude.ai")}
+    ${row("google", "Google Agenda", DESKTOP ? "Compte Google de l’agence (identification)" : "Connecteur Google Agenda de claude.ai")}
+    ${row("ai", "Anthropic (IA)", DESKTOP ? "Clé API Anthropic — baguette magique et rédaction" : "Assistant IA de claude.ai")}
+  </div>`;
+}
+async function testLink(k) {
+  S.link[k] = { busy: true }; renderSources();
+  const done = (cls, msg) => { S.link[k] = { cls, msg }; renderSources(); };
+  try {
+    if (k === "ragic") {
+      const q = ragicCodeOf(S.d.ref) || S.d.ref;
+      const res = await ragicCall("full_text_search", { apname: RAGIC_AP, query: q, limit: 5 });
+      const hits = res?.hits || res?.results || [];
+      done("ok", "Liaison OK — " + hits.length + " fiche(s) trouvée(s) pour « " + q + " »" + (hits.length ? "" : " (liaison valide, mais code non trouvé)"));
+    } else if (k === "google") {
+      const mcp = await CAP.mcp; if (!mcp) throw { code: "no_mcp" };
+      let who = ""; if (DESKTOP && window.dtgDesktop.googleInfo) { const g = await window.dtgDesktop.googleInfo().catch(() => null); if (g) { if (!g.configured) throw { message: "Connexion Google non configurée sur ce poste (identifiant ou code secret du client OAuth manquant — voir les réglages)." }; if (!g.signed) throw { message: "Non connecté à Google : utilisez « Changer de compte Google »." }; who = g.email; } }
+      const now = Date.now();
+      const r = await mcp.callTool("Google Calendar", "list_events", { startTime: new Date(now - 30 * 864e5).toISOString(), endTime: new Date(now + 30 * 864e5).toISOString(), pageSize: 5 });
+      let pl = r?.payload; if (typeof pl === "string") { try { pl = JSON.parse(pl); } catch {} }
+      done("ok", "Liaison OK" + (who ? " — " + who : "") + " — " + (pl?.events || []).length + " événement(s) lus sur ±30 jours");
+    } else if (k === "ai") {
+      if (DESKTOP && window.dtgDesktop.testAI) { const t = await window.dtgDesktop.testAI(); done("ok", "Liaison OK — réponse : « " + String(t).trim().slice(0, 40) + " »"); }
+      else { if (!SAMPLE) throw { message: "Assistant IA indisponible : ouvrez l’atelier depuis claude.ai." }; const r = await SAMPLE("Réponds simplement : OK", { maxTokens: 20, cache: false }); done("ok", "Liaison OK — réponse : « " + String(r?.text || "").trim().slice(0, 40) + " »"); }
+    }
+  } catch (e) {
+    let m = e?.message || "";
+    if (k === "ragic") m = ragicMsg(e); else if (k === "google" && e?.code) m = mcpMessage(e).replace(/Dropbox/g, "Google Agenda"); else if (k === "ai" && e?.code) m = sampleError(e);
+    done("er", "Échec — " + (m || String(e)));
+  }
 }
 
 /* ============ étude thermique (BET) ============ */
