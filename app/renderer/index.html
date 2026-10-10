@@ -485,7 +485,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.8";
+const APP_VERSION = "0.1.11";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1333,6 +1333,70 @@ async function openDossier(ref) {
   } catch (e) { logLine(e?.code === "nf" ? e.message : mcpMessage(e), "er"); if (!S.d?.src) { S.slug = null; S.d = null; } }
   S.busy = null; recentCache = null; renderAll();
 }
+
+/* ============ création d'un nouveau DTG (fichier .dtg + saisie + Ragic facultatif) ============ */
+function newDtgDialog() {
+  const m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="dlg small" role="dialog" aria-modal="true" style="max-width:560px"><h3>Nouveau DTG</h3>
+    <div class="kv" style="grid-template-columns:150px 1fr">
+      <label for="nRef">Référence *</label><input id="nRef" class="field-in" placeholder="CODE-INDICE (ex. GRACIEUSE11-13-B)" autocomplete="off">
+      <label for="nAdr">Adresse</label><input id="nAdr" class="field-in" placeholder="Adresse de l’immeuble">
+      <label for="nBat">Bâtiments</label><input id="nBat" class="field-in" placeholder="ex. A, B, C (un seul par défaut)">
+      <label for="nDate">Date de visite</label><input id="nDate" class="field-in" type="date" style="max-width:200px">
+      <label for="nVer">Version</label><input id="nVer" class="field-in" value="1" style="max-width:80px">
+    </div>
+    <div class="card" style="margin:12px 0 6px"><b>Recherche Ragic <span class="muted" style="font-weight:400">(facultatif)</span></b>
+      <p class="path" style="margin:4px 0 8px">Pré-remplit l’adresse, le syndic, le nombre de lots, etc. d’après la fiche « Immeubles ».</p>
+      <input id="nRagic" class="field-in" style="width:100%" placeholder="Code immeuble (ex. GRACIEUSE11/13) ou lien de la fiche — vide : déduit de la référence">
+      <label class="row" style="gap:6px;margin-top:8px"><input type="checkbox" id="nUseRagic" checked> Rechercher dans Ragic à la création</label>
+      <label class="row" style="gap:6px;margin-top:4px"><input type="checkbox" id="nUseDbx"> Retrouver aussi le dossier de visite (RV1) dans la Dropbox</label>
+    </div>
+    <p class="path" id="nErr" style="color:var(--red,#c0392b);min-height:18px;margin:4px 0"></p>
+    <div class="row" style="justify-content:flex-end"><button class="btn" id="nCancel">Annuler</button><button class="btn primary" id="nGo">Créer et enregistrer le .dtg</button></div></div>`;
+  document.body.append(m);
+  const $m = q => m.querySelector(q); $m("#nRef").focus();
+  $m("#nCancel").onclick = () => m.remove();
+  m.addEventListener("click", e => { if (e.target === m) m.remove(); });
+  $m("#nGo").onclick = async () => {
+    const ref = $m("#nRef").value.trim().toUpperCase();
+    if (!ref) { $m("#nErr").textContent = "La référence du dossier est obligatoire."; return; }
+    const f = { ref, adresse: $m("#nAdr").value.trim(), bats: $m("#nBat").value.trim(), date: $m("#nDate").value, version: $m("#nVer").value.trim() || "1", ragic: $m("#nRagic").value.trim(), useRagic: $m("#nUseRagic").checked, useDbx: $m("#nUseDbx").checked };
+    try { if (await Store.load(slugOf(ref)).then(g => g?.d).catch(() => null)) { if (await ask("Un dossier « " + ref + " » existe déjà. L’ouvrir à la place ?", [["Ouvrir", "y"], ["Annuler", "n"]]) === "y") { m.remove(); openDossier(ref); } return; } } catch {}
+    m.remove(); createDtg(f);
+  };
+  m.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "checkbox") $m("#nGo").click(); if (e.key === "Escape") m.remove(); });
+}
+async function createDtg(f) {
+  S.busy = "open"; S.log = []; renderSources();
+  S.imgs = {}; S.calHits = null; S.betProposal = null; S.chaps = {}; S.transcripts = {}; S.docs = {}; S.photos = new Map(); S.selPhotos.clear();
+  try {
+    const slug = slugOf(f.ref); S.slug = slug;
+    S.d = { ref: f.ref, slug, meta: { adresse: f.adresse, date: f.date, version: f.version }, buildings: [], inv: [], docSel: [], src: null };
+    const names = f.bats ? f.bats.split(/[,;]+/).map(x => x.trim()).filter(Boolean) : [];
+    const list = names.length ? names.map(n => /^bat/i.test(n) ? n.toUpperCase() : "BATIMENT " + n.toUpperCase()) : ["BATIMENT A"];
+    for (const name of list) {
+      const b = { id: "b" + uid(), name, chapters: [] }; S.d.buildings.push(b);
+      for (const t of V7_CHAPTERS) { const c = newChapter(t); S.chaps[c.id] = c; b.chapters.push(c.id); }
+    }
+    logLine("Dossier créé : " + f.ref, "ok");
+    if (f.useDbx) {
+      try {
+        const loc = await locateDossier(f.ref); S.d.ref = f.ref;
+        S.d.src = { root: loc.root.path_display, op: loc.opFolder.path_display || "", rvPath: loc.chosen.path, rvDisplay: loc.chosen.path_display || "", rvName: loc.chosen.name, rvs: loc.rvs.map(r => ({ name: r.name, path: r.path, disp: r.path_display || "" })) };
+        S.d.inv = (await scanRV(loc.chosen.path)).map(({ r, k, s, i }) => ({ r, k, s, i }));
+        S.d.docSel = S.d.inv.filter(x => x.k === "doc" && x.s && x.s <= MAXDOC && !/DTG/i.test(x.r)).map(x => x.r);
+      } catch (e) { logLine("Dossier de visite non retrouvé (" + (e?.code === "nf" ? e.message : mcpMessage(e)) + ") — vous pourrez le chercher plus tard.", "er"); S.d.ref = f.ref; }
+    }
+    queueSave("d"); Object.keys(S.chaps).forEach(id => queueSave(id));
+    S.sel = S.d.buildings[0]?.chapters[0] || null;
+    S.lastSaved = null; migrateTx();
+    S.busy = null; recentCache = null; renderAll();
+    if (f.useRagic) await importRagic(f.ragic || ragicCodeOf(f.ref));
+    loadStyleRefs(false).then(renderSources); refreshTrashCount();
+    await saveDtgFile();
+  } catch (e) { logLine(e?.code === "nf" ? e.message : (e?.message || String(e)), "er"); }
+  S.busy = null; renderAll();
+}
 async function rescan(rvPath) {
   S.busy = "open"; renderSources();
   try {
@@ -1381,9 +1445,8 @@ ${d ? `
     ${SAMPLE ? "" : `<div class="banner warn"><b>Assistant IA indisponible</b>Ouvrez l’atelier depuis claude.ai pour utiliser la rédaction automatique. La rédaction manuelle reste possible.</div>`}
     <div class="hcards">
       <section class="hcard"><h2>Créer un DTG</h2>
-        <p>Saisissez la référence du dossier (code travaux + indice), par exemple GRACIEUSE11-13-B. L’atelier retrouve le dossier dans la Dropbox et le dossier de visite RV1.</p>
-        <div class="row"><input id="refIn" class="field-in big" placeholder="CODE-INDICE" aria-label="Référence du dossier" ${busy ? "disabled" : ""}>
-        <button class="btn primary" id="btnOpen" ${busy ? "disabled" : ""}>${busy === "open" ? '<span class="spin"></span> Recherche…' : "Créer le DTG"}</button></div></section>
+        <p>Créez un nouveau dossier : saisissez la référence, l’adresse et les informations de l’immeuble (recherche Ragic possible, non obligatoire). Un fichier <b>.dtg</b> est créé et enregistré.</p>
+        <div class="row"><button class="btn primary" id="btnNew">Nouveau DTG…</button></div></section>
       <section class="hcard"><h2>Ouvrir un DTG</h2>
         <p>Ouvrez un fichier <b>.dtg</b> enregistré depuis l’atelier ou l’application Windows (double-clic possible dans l’application).</p>
         <div class="row"><label class="btn primary" for="dtgpick">Ouvrir un fichier .dtg…</label></div></section>
@@ -1457,6 +1520,7 @@ ${d ? `
   const ri = $("#refIn", v);
   ri?.addEventListener("keydown", e => { if (e.key === "Enter") openDossier(ri.value); });
   $("#btnOpen", v)?.addEventListener("click", () => openDossier(ri.value));
+  $("#btnNew", v)?.addEventListener("click", () => newDtgDialog());
   $$(".recent [data-ref]", v).forEach(b => b.onclick = () => openDossier(b.dataset.ref));
   if (Store.db) $$("[data-rimg]", v).forEach(async sp => { const x = recentCache.find(r => (r.slug || slugOf(r.ref)) === sp.dataset.rimg); if (!x?.meta?.thumb || x.meta.thumb.length > 9000) return; try { const s = await Store.db.doc("dossiers/" + sp.dataset.rimg + "/images/dossier_photo").get(); const u = s.exists ? (s.data() || {}).data : null; if (u) sp.innerHTML = `<img src="${u}" alt="">`; } catch {} });
   $("#btnRescan", v)?.addEventListener("click", () => rescan());
