@@ -487,7 +487,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.17";
+const APP_VERSION = "0.1.18";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3288,6 +3288,7 @@ function pdfCss() {
   return out;
 }
 async function exportPDF(only) {
+  if (typeof only !== "string") only = undefined;
   if (!S.d) return;
   const opt = "all";   // export direct, sans question
   const btn = $("#btnPdf"); if (!only) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> PDF…'; }
@@ -3461,7 +3462,7 @@ function setTab(t) {
   if (t === "sources") renderSources(); if (t === "redac") { renderTree(); renderEditor(); } else renderDrawer(); if (t === "photos") renderPhotos(); if (t === "pppt") renderPPPT();
 }
 $$(".tabs [data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
-$("#btnPdf").onclick = exportPDF;
+$("#btnPdf").onclick = () => exportPDF();
 $("#btnSaveDtg").onclick = () => saveDtgFile();
 async function closeDossier() {
   if (pending.c.size || pending.d) { clearTimeout(pending.t); await flushSave(); }
