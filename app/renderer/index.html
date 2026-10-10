@@ -194,7 +194,7 @@ button{ cursor:pointer; }
 .btn.wand{ color:var(--violet); padding:2px 6px; } .btn.wand:hover{ background:var(--violet-soft); }
 .csq{ width:15px; height:15px; border:0; border-radius:3px; padding:0; margin:0 3px; align-self:center; box-shadow:0 0 0 1px var(--line); }
 .csq:hover{ transform:scale(1.2); }
-.fmt.b{ font-weight:800; } .fmt.i{ font-style:italic; font-family:var(--doc); }
+.fmt.u{ text-decoration:underline; } .fmt.b{ font-weight:800; } .fmt.i{ font-style:italic; font-family:var(--doc); }
 .fmt.v{ color:var(--violet); border-color:var(--violet) !important; }
 .sw{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
 .ed .noinfo{ color:var(--muted); }
@@ -485,7 +485,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.11";
+const APP_VERSION = "0.1.12";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -619,8 +619,8 @@ const VENT = {
 /* ============ text model: paragraphs of runs {t, c:"r"|"v"|"k", b, i} ============ */
 const COLORS = { r: "#d0201a", v: "#7030a0", k: "#17212b" };
 const runColor = r => r.c || (r.r ? "r" : null);
-const sameFmt = (a, b) => runColor(a) === runColor(b) && !!a.b === !!b.b && !!a.i === !!b.i;
-function pushRun(cur, t, f) { if (!t) return; const n = { t }; if (f.c) n.c = f.c; if (f.b) n.b = true; if (f.i) n.i = true; const l = cur[cur.length - 1]; if (l && sameFmt(l, n)) l.t += t; else cur.push(n); }
+const sameFmt = (a, b) => runColor(a) === runColor(b) && !!a.b === !!b.b && !!a.i === !!b.i && !!a.u === !!b.u;
+function pushRun(cur, t, f) { if (!t) return; const n = { t }; if (f.c) n.c = f.c; if (f.b) n.b = true; if (f.i) n.i = true; if (f.u) n.u = true; const l = cur[cur.length - 1]; if (l && sameFmt(l, n)) l.t += t; else cur.push(n); }
 function markedToParas(s) {
   const paras = []; let cur = []; const f = { c: null };
   for (const tok of String(s || "").split(/(\[\[\/?[RV]\]\]|\n)/)) {
@@ -634,8 +634,9 @@ function trimParas(p) { while (p.length && !p[0].some(r => r.t.trim())) p.shift(
 function parasToMarked(p) { return (p || []).map(runs => runs.map(r => { const c = runColor(r); return c === "r" ? "[[R]]" + r.t + "[[/R]]" : c === "v" ? "[[V]]" + r.t + "[[/V]]" : r.t; }).join("")).join("\n"); }
 function parasToPlain(p) { return (p || []).map(runs => runs.map(r => r.t).join("")).join("\n"); }
 function parasToHtml(p) {
+  if (!p || !p.length) return "<div><br></div>";
   return (p || []).map(runs => {
-    const txt = runs.map(r => { let s = esc(r.t); if (r.i) s = `<i>${s}</i>`; if (r.b) s = `<b>${s}</b>`; const c = runColor(r); if (c) s = `<font color="${COLORS[c]}">${s}</font>`; return s; }).join("");
+    const txt = runs.map(r => { let s = esc(r.t); if (r.u) s = `<u>${s}</u>`; if (r.i) s = `<i>${s}</i>`; if (r.b) s = `<b>${s}</b>`; const c = runColor(r); if (c) s = `<font color="${COLORS[c]}">${s}</font>`; return s; }).join("");
     return `<div>${txt || "<br>"}</div>`;
   }).join("");
 }
@@ -661,6 +662,8 @@ function domToParas(root) {
         const nf = { ...f };
         if (/^(B|STRONG)$/.test(n.tagName)) nf.b = true;
         if (/^(I|EM)$/.test(n.tagName)) nf.i = true;
+        if (n.tagName === "U") nf.u = true;
+        const td = n.style && (n.style.textDecorationLine || n.style.textDecoration); if (td && /underline/.test(td)) nf.u = true; else if (td === "none") nf.u = false;
         const fw = n.style && n.style.fontWeight; if (fw === "bold" || +fw >= 600) nf.b = true; else if (fw === "normal" || fw === "400") nf.b = false;
         const fs = n.style && n.style.fontStyle; if (fs === "italic") nf.i = true; else if (fs === "normal") nf.i = false;
         const col = elColor(n); if (col !== undefined) nf.c = col;
@@ -1801,6 +1804,12 @@ function fieldHtml(c, f) {
         ${SAMPLE ? `<button class="btn ghost small wand" data-ft="wand" title="Baguette magique : reformuler avec la banque DTG-REF et les anciens DTG" aria-label="Reformuler avec l’IA"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 21 15.5 8.5l-2-2L1 19z" fill="currentColor"/><path d="M14.5 5.5l2 2" stroke="currentColor" stroke-width="2"/><path d="M19 2l.7 1.8L21.5 4.5l-1.8.7L19 7l-.7-1.8L16.5 4.5l1.8-.7zM21 10l.5 1.2 1.2.5-1.2.5L21 13.4l-.5-1.2-1.2-.5 1.2-.5zM10.5 1.5l.4 1 1 .4-1 .4-.4 1-.4-1-1-.4 1-.4z" fill="currentColor"/></svg></button>` : ""}
         <button class="btn ghost small fmt b" data-ft="bold" title="Gras (Ctrl+B)" aria-label="Gras">G</button>
         <button class="btn ghost small fmt i" data-ft="italic" title="Italique (Ctrl+I)" aria-label="Italique">I</button>
+        <button class="btn ghost small fmt u" data-ft="underline" title="Souligné (Ctrl+U)" aria-label="Souligné">S</button>
+        <button class="btn ghost small fmt" data-ft="ul" title="Liste à puces (paragraphes sélectionnés)" aria-label="Liste à puces">•</button>
+        <button class="btn ghost small fmt" data-ft="ol" title="Liste numérotée (paragraphes sélectionnés)" aria-label="Liste numérotée">1.</button>
+        <button class="btn ghost small fmt" data-ft="undo" title="Annuler (Ctrl+Z)" aria-label="Annuler">↶</button>
+        <button class="btn ghost small fmt" data-ft="redo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir">↷</button>
+        <button class="btn ghost small fmt" data-ft="clear" title="Effacer la mise en forme de la sélection" aria-label="Effacer la mise en forme">Tx</button>
         <button class="csq" data-ft="red" title="Rouge (désordres, travaux)" aria-label="Texte en rouge" style="background:var(--red)"></button>
         <button class="csq" data-ft="violet" title="Violet (thermique)" aria-label="Texte en violet" style="background:var(--violet)"></button>
         <button class="csq" data-ft="black" title="Noir" aria-label="Texte en noir" style="background:var(--ink)"></button>
@@ -1814,21 +1823,61 @@ function fieldHtml(c, f) {
     <div data-refp="${f.id}"></div>
   </div>`;
 }
+const LIST_RE = /^(• |(\d+)\. )/;
+function selectedParaIdx(ed) {
+  const sel = window.getSelection(); if (!sel.rangeCount || !ed.contains(sel.anchorNode)) return null;
+  const kids = [...ed.childNodes]; const idx = (n, off, end) => { if (n === ed) return Math.max(0, Math.min(kids.length - 1, end ? off - 1 : off)); while (n && n.parentNode !== ed) n = n.parentNode; return kids.indexOf(n); };
+  const r = sel.getRangeAt(0); let a = idx(r.startContainer, r.startOffset, false), b = idx(r.endContainer, r.endOffset, true);
+  if (a < 0 && b < 0) return null; if (a < 0) a = b; if (b < 0) b = a; return [Math.min(a, b), Math.max(a, b)];
+}
+function listToggle(c, f, ed, kind) {
+  const rg = selectedParaIdx(ed); if (!rg) { toast("Placez le curseur dans la rubrique (ou sélectionnez les paragraphes)."); return; }
+  f.paras = domToParas(ed); if (isNoInfo(f.paras)) f.paras = [];
+  while (f.paras.length <= rg[1]) f.paras.push([]);
+  const txt = i => f.paras[i].map(r => r.t).join("");
+  const want = kind === "ul" ? /^• / : /^\d+\. /;
+  const allOn = Array.from({ length: rg[1] - rg[0] + 1 }, (_, k) => rg[0] + k).every(i => want.test(txt(i)));
+  let n = 1;
+  for (let i = rg[0]; i <= rg[1]; i++) {
+    const runs = f.paras[i], first = runs[0];
+    if (first && LIST_RE.test(first.t)) { first.t = first.t.replace(LIST_RE, ""); if (!first.t) runs.shift(); }   // retire l'ancien préfixe
+    if (!allOn) runs.unshift({ t: kind === "ul" ? "• " : (n++) + ". " });
+  }
+  ed.innerHTML = parasToHtml(f.paras); touch(c);
+}
+function listEnter(e, c, f, ed) {
+  if (e.key !== "Enter" || e.shiftKey) return;
+  const rg = selectedParaIdx(ed); if (!rg) return;
+  const div = ed.childNodes[rg[0]]; if (!div) return;
+  const t = (div.textContent || "").replace(/\u00a0/g, " "); const m = t.match(LIST_RE); if (!m) return;
+  if (t.trim() === m[1].trim()) { e.preventDefault(); if (div.nodeType === 1) div.innerHTML = "<br>"; else div.nodeValue = ""; f.paras = domToParas(ed); touch(c); return; }   // ligne vide : fin de liste
+  const next = m[2] ? (+m[2] + 1) + ". " : "• ";
+  e.preventDefault(); document.execCommand("insertParagraph"); document.execCommand("insertText", false, next); f.paras = domToParas(ed); touch(c);
+}
 function bindFields(c) {
   for (const f of c.fields) {
     const box = $(`[data-f="${f.id}"]`); if (!box) continue;
     const ed = $(`[data-ed="${f.id}"]`, box);
     ed.addEventListener("input", () => { f.paras = domToParas(ed); ed.classList.toggle("noinfo", isNoInfo(f.paras)); touch(c); });
+    ed.addEventListener("keydown", e => listEnter(e, c, f, ed));
     ed.addEventListener("paste", e => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData("text/plain"); document.execCommand("insertText", false, t); });
     $$("[data-ft]", box).forEach(btn => {
       btn.addEventListener("mousedown", e => e.preventDefault());
       btn.onclick = async () => {
         const a = btn.dataset.ft;
-        if (["red", "violet", "black", "bold", "italic"].includes(a)) {
+        if (a === "undo" || a === "redo") { ed.focus(); document.execCommand(a); f.paras = domToParas(ed); touch(c); return; }
+        if (a === "ul" || a === "ol") { listToggle(c, f, ed, a); return; }
+        if (a === "clear") {
+          const sel = window.getSelection();
+          if (!sel.rangeCount || sel.isCollapsed || !ed.contains(sel.anchorNode)) { toast("Sélectionnez d’abord le texte dans la rubrique."); return; }
+          document.execCommand("removeFormat"); document.execCommand("styleWithCSS", false, false); document.execCommand("foreColor", false, COLORS.k);
+          f.paras = domToParas(ed); touch(c); return;
+        }
+        if (["red", "violet", "black", "bold", "italic", "underline"].includes(a)) {
           const sel = window.getSelection();
           if (!sel.rangeCount || sel.isCollapsed || !ed.contains(sel.anchorNode)) { toast("Sélectionnez d’abord le texte dans la rubrique."); return; }
           document.execCommand("styleWithCSS", false, false);
-          if (a === "bold" || a === "italic") document.execCommand(a);
+          if (a === "bold" || a === "italic" || a === "underline") document.execCommand(a);
           else document.execCommand("foreColor", false, a === "red" ? COLORS.r : a === "violet" ? COLORS.v : COLORS.k);
           f.paras = domToParas(ed); touch(c);
         } else if (a === "noinfo") { f.paras = markedToParas(NOINFO); ed.innerHTML = parasToHtml(f.paras); ed.classList.add("noinfo"); touch(c); }
@@ -2894,7 +2943,7 @@ function refreshAfterPhoto() { renderTree(); if (S.tab === "photos") renderPhoto
 
 /* ============ export Word ============ */
 function buildDocx(D, data) {
-  const RUN = (t, o = {}) => new D.TextRun({ text: t, font: "Montserrat", size: o.size || 18, bold: !!o.bold, italics: !!o.it, color: o.color });
+  const RUN = (t, o = {}) => new D.TextRun({ text: t, font: "Montserrat", size: o.size || 18, bold: !!o.bold, italics: !!o.it, color: o.color, underline: o.u ? {} : undefined });
   const none = { style: D.BorderStyle.NONE, size: 0, color: "FFFFFF" };
   const nob = { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none };
   const children = [];
@@ -2944,7 +2993,7 @@ function buildDocx(D, data) {
         const shade = f.kind === "etat" ? "EAF2FB" : f.kind === "th" ? "F4ECFB" : null;
         const out = shade ? [] : children;
         out.push(new D.Paragraph({ keepNext: true, spacing: { before: shade ? 60 : 180, after: 60 }, children: [RUN(f.label, { bold: true, size: 22, color: shade ? "000000" : "1F4E79" })] }));
-        f.paras.forEach(runs => out.push(new D.Paragraph({ alignment: D.AlignmentType.JUSTIFIED, spacing: { after: 80, line: 276 }, children: runs.map(r => { const c = r.c || (r.r ? "r" : null); return RUN(r.t, { color: c === "r" ? "FF0000" : c === "v" ? "7030A0" : c === "k" ? "000000" : (f.noinfo ? "7F7F7F" : undefined), bold: !!r.b, it: !!r.i || f.noinfo }); }) })));
+        f.paras.forEach(runs => out.push(new D.Paragraph({ alignment: D.AlignmentType.JUSTIFIED, spacing: { after: 80, line: 276 }, children: runs.map(r => { const c = r.c || (r.r ? "r" : null); return RUN(r.t, { color: c === "r" ? "FF0000" : c === "v" ? "7030A0" : c === "k" ? "000000" : (f.noinfo ? "7F7F7F" : undefined), bold: !!r.b, it: !!r.i || f.noinfo, u: !!r.u }); }) })));
         if (shade) { const nb0 = { style: D.BorderStyle.NONE, size: 0, color: "FFFFFF" }; children.push(new D.Paragraph({ spacing: { before: 120, after: 0 }, children: [] })); children.push(new D.Table({ width: { size: 100, type: D.WidthType.PERCENTAGE }, rows: [new D.TableRow({ cantSplit: false, children: [new D.TableCell({ shading: { fill: shade, type: D.ShadingType.CLEAR, color: "auto" }, margins: { top: 80, bottom: 80, left: 140, right: 140 }, borders: { top: nb0, bottom: nb0, left: nb0, right: nb0 }, children: out.length ? out : [new D.Paragraph("")] })] })] })); }
       });
       if (c.costs && c.costs.length) {
@@ -3158,7 +3207,7 @@ async function coverCanvasUrl(photoUrl) {
   ctx.fillStyle = "#C00000"; ctx.fillRect(0, 1088, 380, 2);
   return cv.toDataURL("image/jpeg", 0.9);
 }
-const runHtml = (r, base) => { const c = r.c || (r.r ? "r" : null); let s = esc(r.t); if (r.i) s = `<i>${s}</i>`; if (r.b) s = `<b>${s}</b>`; const col = c === "r" ? "#D0201A" : c === "v" ? "#7030A0" : c === "k" ? "#111" : base; return col ? `<span style="color:${col}">${s}</span>` : s; };
+const runHtml = (r, base) => { const c = r.c || (r.r ? "r" : null); let s = esc(r.t); if (r.u) s = `<u>${s}</u>`; if (r.i) s = `<i>${s}</i>`; if (r.b) s = `<b>${s}</b>`; const col = c === "r" ? "#D0201A" : c === "v" ? "#7030A0" : c === "k" ? "#111" : base; return col ? `<span style="color:${col}">${s}</span>` : s; };
 async function exportPDF() {
   if (!S.d) return;
   const opt = await ask("Exporter la base du DTG en PDF (mise en page arrondie).", [["Exporter", "all"], ["Sans les rubriques vides", "filled"], ["Annuler", ""]]);
