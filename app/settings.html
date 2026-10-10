@@ -27,6 +27,7 @@ button.p{ background:#1F4E79; color:#fff; border-color:#1F4E79; }
 <fieldset><legend>Ragic</legend>
   <label for="rk">Clé API Ragic</label><input id="rk" type="password" autocomplete="off">
   <div class="row"><div style="flex:1"><label for="rh">Serveur</label><input id="rh"></div><div style="flex:1"><label for="ra">Espace</label><input id="ra"></div><div style="flex:1"><label for="rs">Feuille Immeubles</label><input id="rs"></div></div>
+  <div class="row" style="margin-top:8px"><button id="testR">Tester la connexion Ragic</button><span class="st" id="rSt"></span></div>
 </fieldset>
 <fieldset><legend>Google (identification et Google Agenda)</legend>
   <div id="gSt" class="hint"></div>
@@ -43,6 +44,7 @@ $("#pick").onclick = async () => { const p = await D.pickDropbox(); if (p) $("#r
 const vals = () => ({ dropboxRoot: $("#root").value.trim(), anthropicKey: $("#ak").value, model: $("#model").value.trim(), ragicKey: $("#rk").value, ragicHost: $("#rh").value.trim(), ragicAp: $("#ra").value.trim(), ragicSheet: $("#rs").value.trim(), googleClientId: $("#gi").value.trim(), googleClientSecret: $("#gs").value });
 $("#save").onclick = async () => { await D.cfgSet(vals()); await load(); $("#save").textContent = "Enregistré ✓"; setTimeout(() => $("#save").textContent = "Enregistrer", 1500); };
 $("#test").onclick = async () => { await D.cfgSet(vals()); $("#aiSt").textContent = "Test en cours…"; try { await D.testAI(); $("#aiSt").innerHTML = '<span class="ok">Connexion à l’IA réussie.</span>'; } catch (e) { $("#aiSt").innerHTML = '<span class="er">' + e.message + "</span>"; } };
+$("#testR").onclick = async () => { await D.cfgSet(vals()); $("#rSt").textContent = "Test en cours…"; try { const r = await D.testRagic(); $("#rSt").innerHTML = '<span class="ok">Connexion Ragic réussie (' + r.host + ' / ' + r.ap + ') — ' + r.n + ' fiche(s) lue(s).</span>'; } catch (e) { $("#rSt").innerHTML = '<span class="er"></span>'; $("#rSt").firstChild.textContent = e.message || String(e); } };
 $("#cancel").onclick = () => window.close();
 load();
 </script></body></html>
