@@ -16,9 +16,12 @@ const DEFAULTS = { dropboxRoot: path.join(os.homedir(), "T&K Dropbox"), model: "
 function enc(s) { if (!s) return ""; try { return safeStorage.isEncryptionAvailable() ? "enc:" + safeStorage.encryptString(s).toString("base64") : s; } catch { return s; } }
 function dec(s) { if (!s) return ""; if (!String(s).startsWith("enc:")) return s; try { return safeStorage.decryptString(Buffer.from(s.slice(4), "base64")); } catch { return ""; } }
 const cleanHost = h => String(h || "").trim().replace(/^https?:\/\//i, "").replace(/\/.*$/, "") || "eu2.ragic.com";
-function loadCfg() { let c = {}; try { c = JSON.parse(fs.readFileSync(CFG_FILE, "utf8")); } catch {} c = { ...DEFAULTS, ...c }; if (!c.ragicHost || c.ragicHost === "www.ragic.com") c.ragicHost = "eu2.ragic.com"; c.ragicHost = cleanHost(c.ragicHost); c.anthropicKey = dec(c.anthropicKey); c.ragicKey = dec(c.ragicKey); c.googleClientSecret = dec(c.googleClientSecret); if (c.google) c.google = { ...c.google, refresh: dec(c.google.refresh) }; return c; }
-function saveCfg(c) { const o = { ...c, anthropicKey: enc(c.anthropicKey), ragicKey: enc(c.ragicKey), googleClientSecret: enc(c.googleClientSecret), google: c.google ? { email: c.google.email, name: c.google.name, refresh: enc(c.google.refresh) } : null }; fs.mkdirSync(USER, { recursive: true }); fs.writeFileSync(CFG_FILE, JSON.stringify(o, null, 2)); }
-let cfg = loadCfg();
+function loadCfg() { let c = {}; try { c = JSON.parse(fs.readFileSync(CFG_FILE, "utf8")); } catch {} c = { ...DEFAULTS, ...c }; if (!c.ragicHost || c.ragicHost === "www.ragic.com") c.ragicHost = "eu2.ragic.com"; c.ragicHost = cleanHost(c.ragicHost); const raw = { anthropicKey: c.anthropicKey, ragicKey: c.ragicKey, googleClientSecret: c.googleClientSecret, refresh: c.google && c.google.refresh }; c.anthropicKey = dec(c.anthropicKey); c.ragicKey = dec(c.ragicKey); c.googleClientSecret = dec(c.googleClientSecret); if (c.google) c.google = { ...c.google, refresh: dec(c.google.refresh) }; Object.defineProperty(c, "_raw", { value: raw, enumerable: false, writable: true }); return c; }
+let cfgReady = false;
+function saveCfg(c) { if (!cfgReady) return;   // jamais d'écriture avant le chargement complet (évite d'effacer les clés)
+  const R = c._raw || {}; const keep = (v, r) => (v ? enc(v) : (r || ""));
+  const o = { ...c, anthropicKey: keep(c.anthropicKey, R.anthropicKey), ragicKey: keep(c.ragicKey, R.ragicKey), googleClientSecret: keep(c.googleClientSecret, R.googleClientSecret), google: c.google ? { email: c.google.email, name: c.google.name, ver: c.google.ver, refresh: keep(c.google.refresh, R.refresh) } : null }; fs.mkdirSync(USER, { recursive: true }); fs.writeFileSync(CFG_FILE, JSON.stringify(o, null, 2)); }
+let cfg = { ...DEFAULTS };   // rechargé après app.whenReady (le chiffrement des clés n'est disponible qu'ensuite)
 
 /* ---------- fenêtre ---------- */
 function createWindow() {
@@ -97,7 +100,7 @@ ipcMain.handle("google:login", async () => {
   const c = googleClient();
   try {
     const s = await G.login({ ...c, openUrl: u => shell.openExternal(u) });
-    cfg.google = { email: s.email, name: s.name, refresh: s.refresh }; saveCfg(cfg); gSess = { access: s.access, expiry: s.expiry, refresh: s.refresh };
+    cfg.google = { email: s.email, name: s.name, refresh: s.refresh, ver: app.getVersion() }; saveCfg(cfg); gSess = { access: s.access, expiry: s.expiry, refresh: s.refresh };
     if (loginDone) { const d = loginDone; loginDone = null; d(true); setTimeout(() => loginWin && loginWin.close(), 700); }
     return { ok: true, email: s.email };
   } catch (e) { return { ok: false, code: e.code, message: e.message }; }
@@ -142,6 +145,11 @@ async function startup() {
   let updating = false;
   if (app.isPackaged && !process.env.AGOA_NO_UPDATE) { try { updating = await checkAndUpdate(); } catch {} }
   if (updating) return;
+  if (googleSigned() && cfg.google.ver !== app.getVersion()) {   // nouvelle version : une seule revérification, silencieuse si possible
+    splashSet({ text: "Vérification du compte Google…" });
+    try { const c = googleClient(); gSess = { refresh: cfg.google.refresh }; await G.accessToken(gSess, c); cfg.google.ver = app.getVersion(); saveCfg(cfg); }
+    catch { cfg.google = null; gSess = null; saveCfg(cfg); }
+  }
   if (!googleSigned()) {
     splashSet({ text: "Identification…" }); splashHidden = true; if (splash && !splash.isDestroyed()) splash.hide();
     const ok = await showLogin();
@@ -156,7 +164,7 @@ async function startup() {
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on("second-instance", (e, argv) => { const f = dtgArg(argv); if (win) { if (win.isMinimized()) win.restore(); win.focus(); } if (f) queueOpen(f); });
-  app.whenReady().then(() => { const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
+  app.whenReady().then(() => { cfg = loadCfg(); cfgReady = true; const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
   app.on("window-all-closed", () => { if (!splash && !loginWin) app.quit(); });
 }
 
