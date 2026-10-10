@@ -42,7 +42,7 @@ button{ cursor:pointer; }
 .app{ display:flex; flex-direction:column; height:100%; }
 
 /* top bar */
-.top{ display:flex; align-items:center; gap:18px; padding:10px 18px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.top{ display:flex; align-items:center; gap:18px; padding:10px 18px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:nowrap; min-height:58px; box-sizing:border-box; } .top > *{ flex-shrink:0; } .top .refchip{ flex-shrink:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } @media (max-width:1100px){ .top{ flex-wrap:wrap; } }
 .brand{ display:flex; align-items:baseline; gap:10px; }
 .brand b{ font-weight:700; font-size:18px; letter-spacing:-.01em; }
 .brand span{ color:var(--muted); font-size:14.5px; }
@@ -51,7 +51,7 @@ button{ cursor:pointer; }
 .tabs button{ border:0; background:transparent; padding:6px 14px; border-radius:4px; color:var(--muted); font-weight:500; }
 .tabs button[aria-selected="true"]{ background:var(--panel); color:var(--ink); box-shadow:0 0 0 1px var(--line); }
 .spacer{ flex:1; }
-.savestate{ color:var(--muted); font-size:13.5px; min-width:110px; text-align:right; }
+.savestate{ color:var(--muted); font-size:13.5px; width:210px; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .btn{ border:1px solid var(--line); background:var(--panel); padding:7px 12px; border-radius:var(--r); font-weight:500; }
 .btn:hover{ border-color:var(--muted); }
 .btn.primary{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
@@ -64,7 +64,7 @@ button{ cursor:pointer; }
 .btn.red{ color:var(--red); border-color:var(--red); }
 
 .main{ flex:1; min-height:0; overflow:hidden; display:flex; }
-.view{ flex:1; min-width:0; overflow:auto; }
+.view{ flex:1; min-width:0; overflow:auto; scrollbar-gutter:stable; } .tree,.editor,.drawer{ scrollbar-gutter:stable; overflow-anchor:none; }
 .hidden{ display:none !important; }
 
 /* sources view */
@@ -135,7 +135,7 @@ button{ cursor:pointer; }
 .cover:hover{ border-color:var(--accent); }
 .cover.drag{ border-color:var(--accent); background:var(--accent-soft); }
 .cover-rm{ position:absolute; left:152px; top:-6px; background:var(--panel) !important; border:1px solid var(--line) !important; border-radius:50%; width:24px; height:24px; padding:0; }
-.ch-prog{ display:flex; align-items:center; gap:10px; font-size:13.5px; color:var(--muted); margin:-6px 0 10px; }
+.ch-prog{ min-height:20px; display:flex; align-items:center; gap:10px; font-size:13.5px; color:var(--muted); margin:-6px 0 10px; }
 .ch-prog .pbar{ flex:1; max-width:260px; }
 .chap .pc{ margin-left:auto; color:var(--muted); font-size:13px; font-weight:400; }
 .pbar{ display:block; height:4px; background:var(--soft); border-radius:3px; overflow:hidden; }
@@ -195,6 +195,8 @@ button{ cursor:pointer; }
 .csq{ width:15px; height:15px; border:0; border-radius:3px; padding:0; margin:0 3px; align-self:center; box-shadow:0 0 0 1px var(--line); }
 .csq:hover{ transform:scale(1.2); }
 .lrow{ display:grid; grid-template-columns:200px 1fr auto; gap:10px; align-items:center; padding:7px 0; border-top:1px solid var(--line); } .lrow:first-of-type{ border-top:0; } .lname{ display:flex; flex-direction:column; } .lst{ font-size:13.5px; color:var(--muted,#5A6570); } .lst.ok{ color:#1e7a3c; } .lst.er{ color:var(--red,#c0392b); } @media (max-width:700px){ .lrow{ grid-template-columns:1fr; } }
+.pvdlg{ max-width:min(940px,100%); height:100%; display:flex; flex-direction:column; } .pvscroll{ flex:1; overflow:auto; background:#8a9199; padding:16px; display:flex; flex-direction:column; align-items:center; gap:14px; } .pvwrap{ flex:none; overflow:hidden; }
+.rprog{ display:block; margin-top:4px; } .rprog small{ display:block; color:var(--muted); margin-top:2px; }
 .fmt.u{ text-decoration:underline; } .fmt.b{ font-weight:800; } .fmt.i{ font-style:italic; font-family:var(--doc); }
 .fmt.v{ color:var(--violet); border-color:var(--violet) !important; }
 .sw{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
@@ -427,7 +429,7 @@ a.btn{ text-decoration:none; color:inherit; display:inline-flex; align-items:cen
 .betbox{ margin:16px 0 4px; border:1px solid var(--th-line); background:var(--th-bg); border-radius:12px; padding:12px 14px; }
 .betprop{ margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
 .dpechip{ display:inline-block; min-width:26px; text-align:center; color:#fff; border-radius:4px; padding:1px 7px; font-weight:800; }
-@media (max-width:1650px){ .brand span:not(.appver){ display:none; } .top{ gap:10px; } .top .btn{ padding:6px 10px; } .savestate{ min-width:0; } }
+@media (max-width:1650px){ .brand span:not(.appver){ display:none; } .top{ gap:10px; } .top .btn{ padding:6px 10px; } .savestate{ width:150px; } }
 .brand .appver{ font-size:12px; font-weight:600; color:var(--accent); background:var(--accent-soft); padding:2px 8px; border-radius:10px; white-space:nowrap; }
 
 .toast{ position:fixed; bottom:calc(18px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%); background:var(--ink); color:var(--panel); padding:9px 16px; border-radius:var(--r); z-index:60; font-size:14.5px; max-width:90vw; }
@@ -449,8 +451,7 @@ a.btn{ text-decoration:none; color:inherit; display:inline-flex; align-items:cen
     <button class="btn red hidden" id="btnPending"></button>
     <div class="savestate" id="savestate"></div>
     <button class="btn" id="btnSaveDtg" disabled title="Enregistrer le fichier .dtg">Enregistrer .dtg</button>
-    <button class="btn" id="btnExport" disabled>Exporter Word</button>
-    <button class="btn primary" id="btnPdf" disabled>Exporter PDF</button>
+    <button class="btn primary" id="btnPdf" disabled title="Générer le PDF du DTG (base de rédaction)">Exporter PDF</button>
   </header>
   <div class="main">
     <section class="view" id="v-sources"></section>
@@ -486,7 +487,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.13";
+const APP_VERSION = "0.1.16";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1450,7 +1451,7 @@ ${d ? `
       <input id="refIn" class="field-in big" placeholder="CODE-INDICE" value="${esc(d?.ref || "")}" aria-label="Référence du dossier" ${busy ? "disabled" : ""}>
       <button class="btn primary" id="btnOpen" ${busy ? "disabled" : ""}>${busy === "open" ? '<span class="spin"></span> Recherche…' : "Ouvrir le dossier"}</button>
     </div>
-    ${!d && recentCache?.length ? `<h3 class="rtitle">Dossiers récents</h3><div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : ""}
+    ${!d && recentCache?.length ? `<h3 class="rtitle">Dossiers récents</h3><div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.meta?.progress != null ? `<span class="rprog">${bar((x.meta.progress || 0) / 100)}<small>${x.meta.progress} % rédigé</small></span>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : ""}
     ${d ? `<div class="row" style="margin-top:10px"><span class="path" id="lastSavedSrc">${S.lastSaved ? "Dernière sauvegarde : " + fmtWhen(S.lastSaved) : ""}</span><span class="spacer"></span><button class="btn small primary" data-save-dtg title="Enregistrer le dossier dans un fichier .dtg (s’ouvre par double-clic avec l’application Atelier DTG)">Enregistrer le fichier .dtg</button><button class="btn small" data-close-dossier>Changer de dossier</button></div>` : `<div class="row" style="margin-top:10px"><label class="btn small" for="dtgpick">Ouvrir un fichier .dtg</label><span class="hint">Fichier .dtg (ou .dtg.zip) enregistré depuis l’atelier ou l’application Windows.</span></div>`}
     ${Store.local && Store.db === null ? `<div class="banner warn"><b>Enregistrement local</b>Le stockage partagé n’est pas disponible : le travail est enregistré dans ce navigateur uniquement.</div>` : ""}
   </div></div>
@@ -1467,7 +1468,7 @@ ${d ? `
         <div class="row"><label class="btn primary" for="dtgpick">Ouvrir un fichier .dtg…</label></div></section>
     </div>
     <h2 class="rtitle">DTG récents</h2>
-    ${recentCache?.length ? `<div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : `<p class="hint">${recentCache === null ? "Chargement…" : "Aucun DTG récent pour le moment."}</p>`}
+    ${recentCache?.length ? `<div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.meta?.progress != null ? `<span class="rprog">${bar((x.meta.progress || 0) / 100)}<small>${x.meta.progress} % rédigé</small></span>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : `<p class="hint">${recentCache === null ? "Chargement…" : "Aucun DTG récent pour le moment."}</p>`}
     ${Store.local && Store.db === null ? `<div class="banner warn"><b>Enregistrement local</b>Le stockage partagé n’est pas disponible : le travail est enregistré dans ce navigateur uniquement.</div>` : ""}
   </div>
 `}
@@ -1598,6 +1599,8 @@ function renderTree() {
   if (!S.d) { t.innerHTML = `<div class="empty">Ouvrez un dossier dans l’onglet Options.</div>`; return; }
   const pi = photoIndex();
   const allIds = S.d.buildings.flatMap(b => b.chapters); const g = progressOf(allIds);
+  { const v = Math.round(g * 100); if (S.d.meta && S.d.meta.progress !== v) { S.d.meta.progress = v; queueSave("d"); } }
+  const keepTop = t.scrollTop;
   t.innerHTML = `<div class="prog"><div class="row"><b>Avancement de la rédaction</b><span>${pct(g)}</span></div>${bar(g, true)}<div class="hint" style="margin-top:6px">${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.filter(fieldFilled).length || 0), 0)} rubriques renseignées sur ${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.length || 0), 0)}</div></div><h3>Bâtiments et chapitres</h3>` + S.d.buildings.map((b, bi) => `
     <div class="bld"><div class="bld-h"><b class="bname" data-bsel="${b.id}" role="button" tabindex="0" aria-current="${S.sel === "B:" + b.id}" title="Informations du bâtiment">${esc(b.name)}</b>
       <button class="btn ghost small" data-act="addch" data-b="${b.id}" title="Ajouter un chapitre" aria-label="Ajouter un chapitre">+</button>
@@ -1612,6 +1615,7 @@ function renderTree() {
   $$("[data-ch]", t).forEach(b => b.onclick = () => { S.sel = b.dataset.ch; renderTree(); renderEditor(); });
   $$("[data-act]", t).forEach(b => b.onclick = () => treeAction(b.dataset.act, b.dataset.b));
   $("#trashBtn", t)?.addEventListener("click", openTrash);
+  t.scrollTop = keepTop;
   $$("[data-bsel]", t).forEach(x => { const go = () => { S.sel = "B:" + x.dataset.bsel; renderTree(); renderEditor(); }; x.onclick = go; x.onkeydown = e => { if (e.key === "Enter") go(); }; });
   $$("[data-mvc]", t).forEach(btn => btn.onclick = () => {
     const id = btn.dataset.mvc, d = +btn.dataset.d; const b = S.d.buildings.find(x => x.chapters.includes(id)); if (!b) return;
@@ -1690,6 +1694,7 @@ function renderEditor() {
     <div class="ch-title"><input id="chTitle" value="${esc(c.title)}" aria-label="Titre du chapitre">
       <button class="btn ghost small" data-cact="up" ${bi === 0 ? "disabled" : ""} aria-label="Monter le chapitre">↑</button>
       <button class="btn ghost small" data-cact="down" ${bi === b.chapters.length - 1 ? "disabled" : ""} aria-label="Descendre le chapitre">↓</button>
+      <button class="btn small" data-cact="preview" title="Aperçu de ce chapitre tel qu’il sera dans le PDF">Prévisualiser</button>
       <button class="btn ghost small danger" data-cact="del">Supprimer</button></div>
     <div class="etatsel"><span>État d’entretien général</span>${ETATS.map(([k, l, col]) => `<button class="${c.etatGen === k ? "on" : ""}" data-etat="${k}" style="--ec:${col}" aria-pressed="${c.etatGen === k}">${l}</button>`).join("")}<span class="hint">référentiel APC</span></div>
     ${T.cot.length ? `<div class="cots">${T.cot.map(k => `<div class="cot ${k !== "a" ? "th" : ""}"><span>${COT_LBL[k]}</span><span class="pips">${[1, 2, 3].map(n => `<button class="pip" data-cot="${k}" data-n="${n}" aria-label="${COT_LBL[k]} ${n} sur 3" title="${n} sur 3">${iconSvg(COT_ICON[k], c.cot[k] >= n)}</button>`).join("")}</span></div>`).join("")}</div>` : ""}
@@ -1712,6 +1717,7 @@ function renderEditor() {
   $$("[data-cot]", ed).forEach(p => p.onclick = () => { const k = p.dataset.cot, n = +p.dataset.n; c.cot[k] = c.cot[k] === n ? null : n; touch(c); renderEditor(); });
   $$("[data-cact]", ed).forEach(btn => btn.onclick = async () => {
     const a = btn.dataset.cact;
+    if (a === "preview") { previewChapter(c.id); return; }
     if (a === "up" || a === "down") { const i = b.chapters.indexOf(c.id), j = i + (a === "up" ? -1 : 1); [b.chapters[i], b.chapters[j]] = [b.chapters[j], b.chapters[i]]; queueSave("d"); }
     if (a === "del") { if (!(await toTrash("chapter", c.title, c, { bid: b.id, index: b.chapters.indexOf(c.id), where: b.name }))) return; b.chapters = b.chapters.filter(x => x !== c.id); delete S.chaps[c.id]; Store.deleteChapter(S.slug, c.id); S.sel = b.chapters[0] || null; queueSave("d"); }
     renderTree(); renderEditor();
@@ -3161,7 +3167,7 @@ async function renderPhotoForExport(key, arrows) {
   return { data: new Uint8Array(await out.arrayBuffer()), w, h };
 }
 function u8ToDataUrl(u8, mime) { let s = ""; const CH = 0x8000; for (let i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH)); return "data:" + mime + ";base64," + btoa(s); }
-async function collectExport(opt) {
+async function collectExport(opt, only) {
   let missing = 0;
     const dphoto = await getImg("dossier_photo");
     let pw = 360, ph = 240; if (dphoto) { try { const bm = await createImageBitmap(new Blob([dataUrlToU8(dphoto)], { type: "image/jpeg" })); ph = Math.round(360 * bm.height / bm.width); if (ph > 300) { pw = Math.round(360 * 300 / ph); ph = 300; } bm.close?.(); } catch {} }
@@ -3172,6 +3178,7 @@ async function collectExport(opt) {
       if (b.bet || S.d.bet?.result?.dpeGlobal) nb.betLine = [b.bet?.dpe ? "DPE du bâtiment : " + b.bet.dpe : "", b.bet?.ges ? "GES : " + b.bet.ges : "", b.bet?.conso || "", S.d.bet?.result?.dpeGlobal ? "copropriété : classe " + S.d.bet.result.dpeGlobal : ""].filter(Boolean).join(" · ");
       if (b.dpe) { try { const png = await dpePng(b.dpe); nb.dpe = { cls: b.dpe, png, url: u8ToDataUrl(png, "image/png") }; } catch {} }
       for (const id of b.chapters) {
+        if (only && id !== only) continue;
         const c = S.chaps[id]; if (!c) continue;
         const T = TYPES[c.type] || TYPES.LIBRE;
         const fields = c.fields.map(f => ({ label: f.label, th: f.kind === "th", kind: f.kind, noinfo: isNoInfo(f.paras), paras: f.paras.filter(r => r.length) }))
@@ -3180,12 +3187,12 @@ async function collectExport(opt) {
         for (const p of c.photos) { try { const r = await renderPhotoForExport(p.key, p.arrows); if (r) photos.push({ ...r, url: u8ToDataUrl(r.data, "image/jpeg"), legend: p.legend }); else missing++; } catch { missing++; } }
         let coverPng = null;
         if (c.cover) { try { const [, b64] = c.cover.split(","); const bin = atob(b64); const u8 = new Uint8Array(bin.length); for (let q = 0; q < bin.length; q++) u8[q] = bin.charCodeAt(q); const bmp = await createImageBitmap(new Blob([u8], { type: "image/jpeg" })); const cv = document.createElement("canvas"); cv.width = cv.height = 300; const ctx = cv.getContext("2d"); ctx.beginPath(); ctx.roundRect(0, 0, 300, 300, 42); ctx.clip(); ctx.drawImage(bmp, 0, 0, 300, 300); const pb = await new Promise(r => cv.toBlob(r, "image/png")); coverPng = new Uint8Array(await pb.arrayBuffer()); } catch {} }
-        nb.chapters.push({ etat: (ETATS.find(e => e[0] === c.etatGen) || [])[1] || "", etatCol: (ETATS.find(e => e[0] === c.etatGen) || [])[2] || "", cover: coverPng, coverUrl: c.cover || null, type: c.type, costs: sortedIdx(c.costs || []).map(i => c.costs[i]).filter(l => l.des || lineTotal(l)).map(l => ({ des: l.des || "", qte: !isManual(l) && l.qte ? (+l.qte).toLocaleString("fr-FR") + " " + (l.unite || "") : "", pu: !isManual(l) && l.pu ? euro(+l.pu) : "", tot: lineTotal(l), terme: TERMES[l.terme] || "", gain: l.gain || "", scen: l.scen || "" })), title: c.title, cot: T.cot.map(k => ({ k, label: COT_LBL[k], v: c.cot[k] || 0, th: k !== "a" })).filter(x => x.v), fields, photos });
+        nb.chapters.push({ id: c.id, etat: (ETATS.find(e => e[0] === c.etatGen) || [])[1] || "", etatCol: (ETATS.find(e => e[0] === c.etatGen) || [])[2] || "", cover: coverPng, coverUrl: c.cover || null, type: c.type, costs: sortedIdx(c.costs || []).map(i => c.costs[i]).filter(l => l.des || lineTotal(l)).map(l => ({ des: l.des || "", qte: !isManual(l) && l.qte ? (+l.qte).toLocaleString("fr-FR") + " " + (l.unite || "") : "", pu: !isManual(l) && l.pu ? euro(+l.pu) : "", tot: lineTotal(l), terme: TERMES[l.terme] || "", gain: l.gain || "", scen: l.scen || "" })), title: c.title, cot: T.cot.map(k => ({ k, label: COT_LBL[k], v: c.cot[k] || 0, th: k !== "a" })).filter(x => x.v), fields, photos });
       }
       (nb.chapters.length || nb.images.length || nb.dpe || nb.info.some(x => x[1])) && data.buildings.push(nb);
     }
     data.oblig = OBLIG.filter(([k]) => S.d.oblig?.[k]?.s).map(([k, l, ref]) => ({ l, ref, s: S.d.oblig[k].s, d: S.d.oblig[k].d || "", c: S.d.oblig[k].c || "" }));
-    { const P = ppptData(); if (P.grand || P.scen.some(s => s.lines.length)) data.pppt = { ...P, cols: ["court", "moyen", "long"].concat(P.hasNP ? [""] : []) }; }
+    if (!only) { const P = ppptData(); if (P.grand || P.scen.some(s => s.lines.length)) data.pppt = { ...P, cols: ["court", "moyen", "long"].concat(P.hasNP ? [""] : []) }; }
     try { data.icons = {}; for (const k of ["a", "t", "e"]) data.icons[k] = { on: await iconPng(COT_ICON[k], true), off: await iconPng(COT_ICON[k], false) }; } catch { data.icons = null; }
   return { data, missing };
 }
@@ -3275,17 +3282,18 @@ async function coverCanvasUrl(photoUrl) {
   return cv.toDataURL("image/jpeg", 0.9);
 }
 const runHtml = (r, base) => { const c = r.c || (r.r ? "r" : null); let s = esc(r.t); if (r.u) s = `<u>${s}</u>`; if (r.i) s = `<i>${s}</i>`; if (r.b) s = `<b>${s}</b>`; const col = c === "r" ? "#D0201A" : c === "v" ? "#7030A0" : c === "k" ? "#111" : base; return col ? `<span style="color:${col}">${s}</span>` : s; };
-async function exportPDF() {
+async function exportPDF(only) {
   if (!S.d) return;
-  const opt = await ask("Exporter la base du DTG en PDF (mise en page arrondie).", [["Exporter", "all"], ["Sans les rubriques vides", "filled"], ["Annuler", ""]]);
-  if (!opt) return;
-  const btn = $("#btnPdf"); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> PDF…';
+  const opt = "all";   // export direct, sans question
+  const btn = $("#btnPdf"); if (!only) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> PDF…'; }
   const host = document.createElement("div"); host.className = "pdfhost"; document.body.append(host);
   try {
-    await loadScript("vendor/html2canvas.min.js", () => window.html2canvas);
-    await loadScript("vendor/jspdf.umd.min.js", () => window.jspdf && window.jspdf.jsPDF);
+    if (!only) {
+      await loadScript("vendor/html2canvas.min.js", () => window.html2canvas);
+      await loadScript("vendor/jspdf.umd.min.js", () => window.jspdf && window.jspdf.jsPDF);
+    }
     await flushSave();
-    const { data, missing } = await collectExport(opt);
+    const { data, missing } = await collectExport(opt, only);
     try { await document.fonts.load("400 12px Montserrat"); await document.fonts.load("700 12px Montserrat"); await document.fonts.load("italic 400 12px Montserrat"); } catch {}
     const icons = {}; for (const k of ["a", "t", "e"]) icons[k] = { on: u8ToDataUrl(await iconPng(COT_ICON[k], true), "image/png"), off: u8ToDataUrl(await iconPng(COT_ICON[k], false), "image/png") };
     const pages = []; let cur = null;
@@ -3313,12 +3321,14 @@ async function exportPDF() {
     const tableSplit = (head, rows, caption) => placeSplit(cont => { const t = el(`<table class="ptbl">${caption && cont ? `<caption>${esc(caption)} (suite)</caption>` : ""}<thead><tr>${head}</tr></thead><tbody></tbody></table>`); return { root: t, target: $("tbody", t) }; }, rows);
 
     // ---- couverture
+    if (!only) {
     const firstCover = data.photoUrl || data.buildings.flatMap(b => b.chapters).find(c => c.coverUrl && /FACADE/.test(c.type || ""))?.coverUrl || data.buildings.flatMap(b => b.chapters).find(c => c.coverUrl)?.coverUrl || null;
     const cpg = document.createElement("div"); cpg.className = "pdfpage cover"; host.append(cpg); pages.push(cpg);
     cpg.innerHTML = `<img class="cbg" src="${await coverCanvasUrl(firstCover)}" width="794" height="1123" alt=""><div class="ctxt"><div class="big">DTG<br>&amp;<br>PPPT</div><div class="sub">DIAGNOSTIC TECHNIQUE GLOBAL &amp; PROJET DE PLAN PLURIANNUEL DE TRAVAUX</div><div class="ver"><b>Version : ${esc(data.version || "1")}</b><br><b>Date :</b> ${esc(data.date || "")}</div><div class="adr">${esc(data.adresse || data.ref)}</div><div class="ag"><b>REMI THOLLET ARCHITECTE</b><br>47 avenue Mathurin Moreau 75019 PARIS</div></div>`;
+    }
 
     // ---- obligations
-    if (data.oblig && data.oblig.length) {
+    if (!only && data.oblig && data.oblig.length) {
       newPage("ANALYSE DE LA GESTION TECHNIQUE", "OBLIGATIONS LÉGALES");
       place(el(`<h1 class="pbt">SITUATION AU REGARD DES OBLIGATIONS LÉGALES</h1>`));
       const SC = { "Fait": "#2C7A4B", "À faire": "#D0201A", "En cours": "#C27C0E" };
@@ -3326,6 +3336,7 @@ async function exportPDF() {
     }
     // ---- bâtiments
     for (const b of data.buildings) {
+      if (!only) {
       newPage(b.name, "FICHE BÂTIMENT");
       place(el(`<h1 class="pbt">${esc(b.name)}</h1>`));
       const kv = (b.info || []).filter(x => x[1]);
@@ -3333,6 +3344,7 @@ async function exportPDF() {
       if (b.images.length) place(el(`<div class="pimgs">${b.images.map(im => `<figure><img src="${im.url}" width="${Math.round(im.w * 1.05)}" height="${Math.round(im.h * 1.05)}" alt=""><figcaption>${esc(im.label)}</figcaption></figure>`).join("")}</div>`));
       if (b.betLine) place(el(`<div class="pfld th"><div class="lb">Étude thermique (BET)</div><p>${esc(b.betLine)}</p></div>`));
       if (b.dpe) place(el(`<div class="pdpe"><div class="lb">Étiquette énergétique : classe ${esc(b.dpe.cls)}</div><img src="${b.dpe.url}" width="160" height="93" alt=""></div>`));
+      }
       for (const c of b.chapters) {
         newPage(b.name, c.title);
         const cot = c.cot.length ? `<div class="pcot">${c.cot.map(x => `<div><span>${esc(x.label)}</span><br>${[1, 2, 3].map(n => `<img src="${n <= x.v ? icons[x.k].on : icons[x.k].off}" width="17" height="17" alt="">`).join("")}</div>`).join("")}</div>` : "";
@@ -3391,6 +3403,7 @@ async function exportPDF() {
     // ---- numérotation et rendu
     const N = pages.length; pages.forEach((pg, i) => { const f = $(".pf", pg); if (f) f.textContent = "Page " + (i + 1) + " | " + N; });
     await Promise.all([...host.querySelectorAll("img")].map(i => i.decode ? i.decode().catch(() => {}) : null));
+    if (only) { showPdfPreview(pages, host, only); return; }
     const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
     for (let i = 0; i < N; i++) {
       btn.innerHTML = `<span class="spin"></span> PDF ${i + 1}/${N}`;
@@ -3399,9 +3412,30 @@ async function exportPDF() {
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.86), "JPEG", 0, 0, 210, 297, undefined, "FAST");
     }
     await saveBlob(pdf.output("blob"), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
-  } catch (e) { console.error(e); toast("Erreur pendant l’export PDF : " + (e?.message || e)); }
-  host.remove();
-  btn.disabled = !S.d; btn.textContent = "Exporter PDF";
+  } catch (e) { console.error(e); toast("Erreur pendant l’export PDF : " + (e?.message || e)); if (only) host.remove(); }
+  if (!only) { host.remove(); btn.disabled = !S.d; btn.textContent = "Exporter PDF"; }
+}
+
+/* ============ prévisualisation d'un chapitre (mêmes pages que le PDF) ============ */
+function showPdfPreview(pages, host, cid) {
+  const c = S.chaps[cid];
+  const m = document.createElement("div"); m.className = "modal pvmodal";
+  m.innerHTML = `<div class="dlg pvdlg" role="dialog" aria-modal="true"><div class="row" style="margin-bottom:10px"><h3 style="margin:0;flex:1">Prévisualisation — ${esc(c?.title || "")} <small class="muted">(${pages.length} page${pages.length > 1 ? "s" : ""}, rendu identique au PDF)</small></h3><button class="btn small" id="pvZ-">−</button><span class="muted" id="pvZv" style="min-width:42px;text-align:center"></span><button class="btn small" id="pvZ+">+</button><button class="btn primary" id="pvClose">Fermer</button></div><div class="pvscroll" id="pvScroll"></div></div>`;
+  document.body.append(m);
+  let z = 0.8; const box = m.querySelector("#pvScroll");
+  const apply = () => { m.querySelector("#pvZv").textContent = Math.round(z * 100) + " %"; box.querySelectorAll(".pvwrap").forEach(w => { w.style.width = Math.round(794 * z) + "px"; w.style.height = Math.round(1123 * z) + "px"; w.firstElementChild.style.transform = "scale(" + z + ")"; }); };
+  pages.forEach(pg => { const w = document.createElement("div"); w.className = "pvwrap"; pg.style.transformOrigin = "0 0"; pg.style.boxShadow = "0 1px 8px rgba(0,0,0,.35)"; w.append(pg); box.append(w); });
+  apply();
+  const close = () => { m.remove(); host.remove(); };
+  m.querySelector("#pvClose").onclick = close; m.addEventListener("click", e => { if (e.target === m) close(); });
+  m.querySelector("#pvZ-").onclick = () => { z = Math.max(0.4, z - 0.1); apply(); }; m.querySelector("#pvZ\\+").onclick = () => { z = Math.min(1.6, z + 0.1); apply(); };
+  m.addEventListener("keydown", e => { if (e.key === "Escape") close(); }); m.tabIndex = -1; m.focus();
+}
+async function previewChapter(cid) {
+  if (!S.d || !S.chaps[cid]) return;
+  const btn = $('[data-cact="preview"]'); const old = btn?.innerHTML; if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Aperçu…'; }
+  try { await flushSave(); await exportPDF(cid); } catch (e) { toast("Prévisualisation impossible : " + (e?.message || e)); }
+  if (btn) { btn.disabled = false; btn.innerHTML = old; }
 }
 
 /* ============ tabs & boot ============ */
@@ -3412,7 +3446,6 @@ function setTab(t) {
   if (t === "sources") renderSources(); if (t === "redac") { renderTree(); renderEditor(); } else renderDrawer(); if (t === "photos") renderPhotos(); if (t === "pppt") renderPPPT();
 }
 $$(".tabs [data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
-$("#btnExport").onclick = exportWord;
 $("#btnPdf").onclick = exportPDF;
 $("#btnSaveDtg").onclick = () => saveDtgFile();
 async function closeDossier() {
@@ -3427,7 +3460,7 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 $("#btnPending").onclick = () => openIdentify(pendingTx(), 0);
 function renderAll() {
   const rc = $("#refchip"); if (S.d) { rc.textContent = S.d.ref; rc.classList.remove("hidden"); } else rc.classList.add("hidden");
-  $("#btnExport").disabled = !S.d; $("#btnPdf").disabled = !S.d; $("#btnClose").classList.toggle("hidden", !S.d); $("#btnSaveDtg").disabled = !S.d;
+  $("#btnPdf").disabled = !S.d; $("#btnClose").classList.toggle("hidden", !S.d); $("#btnSaveDtg").disabled = !S.d;
   const pn = S.d ? pendingTx().length : 0; const bp = $("#btnPending");
   bp.classList.toggle("hidden", !pn); bp.textContent = pn + " vidéo(s) à identifier";
   if (S.tab === "sources") renderSources(); else if (S.tab === "redac") { renderTree(); renderEditor(); } else if (S.tab === "pppt") renderPPPT(); else renderPhotos();
