@@ -87,8 +87,9 @@ button{ cursor:pointer; }
 .rtitle{ font-size:15px; margin:22px 0 4px; color:var(--muted); font-weight:600; }
 .rcard{ border:1px solid var(--line); background:var(--panel); padding:0 0 10px; border-radius:12px; overflow:hidden; text-align:left; display:flex; flex-direction:column; gap:2px; font-size:14px; transition:border-color .15s, box-shadow .15s; }
 .rcard:hover{ border-color:var(--accent); box-shadow:0 4px 14px rgba(0,0,0,.08); }
-.rcard .rimg{ display:block; aspect-ratio:4/3; background:var(--soft); margin-bottom:8px; overflow:hidden; }
+.rcard .rimg{ position:relative; display:block; aspect-ratio:4/3; background:var(--soft); margin-bottom:8px; overflow:hidden; }
 .rcard .rimg img{ width:100%; height:100%; object-fit:cover; display:block; }
+.rcard .rpct{ position:absolute; left:0; right:0; bottom:0; padding:22px 12px 6px; font-size:40px; font-weight:800; line-height:1; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.55); background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0)); text-align:right; pointer-events:none; } .rcard .rpct i{ font-style:normal; font-size:20px; font-weight:700; margin-left:2px; }
 .rcard .rph{ display:grid; place-items:center; height:100%; font-size:34px; font-weight:700; color:var(--muted); letter-spacing:.05em; }
 .rcard b{ padding:0 12px; font-size:15.5px; } .rcard small{ padding:0 12px; font-size:12.5px; } .rcard .ra{ color:var(--ink); }
 .path{ font-size:14px; color:var(--muted); word-break:break-all; }
@@ -377,7 +378,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .ph-h .r{ text-align:right; } .pdfpage .ph-h .r span{ color:#8A8A8A; }
 .pdfpage .pb{ position:absolute; left:76px; right:76px; top:104px; bottom:84px; overflow:hidden; }
 .pdfpage .pf{ position:absolute; right:110px; bottom:38px; font-size:9pt; letter-spacing:1px; }
-.pdfpage .pl{ position:absolute; left:0; right:0; bottom:24px; height:2px; background:#C00000; }
+.pdfpage .pl{ display:none; position:absolute; left:0; right:0; bottom:24px; height:2px; background:#C00000; }
 .pdfpage .pbt{ color:#3A5F8C; font-size:18pt; font-weight:700; margin:0 0 14px; line-height:1.2; }
 .pdfpage .chead{ display:flex; gap:18px; align-items:center; margin:0 0 14px; }
 .pdfpage .ccov{ width:118px; height:118px; border-radius:18px; object-fit:cover; display:block; }
@@ -386,7 +387,6 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .pfld{ background:#F7F7F7; border-radius:12px; padding:10px 14px 9px; margin:0 0 12px; }
 .pdfpage .pfld.etat{ background:#EAF2FB; } .pdfpage .pfld.th{ background:#F4ECFB; }
 .pdfpage .pfld .lb{ font-weight:700; font-size:11pt; margin-bottom:5px; color:#1F4E79; }
-.pdfpage .pfld.etat .lb, .pdfpage .pfld.th .lb{ text-transform:uppercase; font-size:9pt; letter-spacing:.3px; }
 .pdfpage .pfld p{ margin:0 0 5px; text-align:justify; }
 .pdfpage .psec{ font-weight:700; color:#1F4E79; font-size:12pt; margin:16px 0 8px; }
 .pdfpage .ptbl{ width:100%; border-collapse:separate; border-spacing:0; font-size:8.5pt; line-height:1.4; border:1px solid #D3DAE3; border-radius:10px; overflow:hidden; margin:0 0 8px; }
@@ -405,7 +405,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .pphoto img{ border-radius:0; display:block; margin:0 auto; }
 .pdfpage figcaption{ font-size:8.5pt; font-style:italic; color:#444; margin-top:5px; }
 .pdfpage .pdpe .lb{ font-weight:700; color:#1F4E79; margin-bottom:6px; }
-.pdfpage .pphotos{ display:grid; grid-template-columns:repeat(3, 1fr); gap:14px 10px; margin-top:10px; align-items:start; }
+.pdfpage .pphotos{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px 4px; margin-top:10px; align-items:start; }
 .pdfpage .pphoto{ width:auto; } .pdfpage .pphoto figcaption{ font-size:8pt; }
 .pdfpage.cover .cbg{ position:absolute; inset:0; width:794px; height:1123px; }
 .pdfpage.cover .ctxt{ position:absolute; left:520px; right:26px; top:470px; color:#fff; }
@@ -492,8 +492,8 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.24";
-const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
+const APP_VERSION = "0.1.25";
+const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
 const MAXDOC = DESKTOP ? Infinity : 5 * 1024 * 1024;
@@ -1456,7 +1456,7 @@ ${d ? `
       <input id="refIn" class="field-in big" placeholder="CODE-INDICE" value="${esc(d?.ref || "")}" aria-label="Référence du dossier" ${busy ? "disabled" : ""}>
       <button class="btn primary" id="btnOpen" ${busy ? "disabled" : ""}>${busy === "open" ? '<span class="spin"></span> Recherche…' : "Ouvrir le dossier"}</button>
     </div>
-    ${!d && recentCache?.length ? `<h3 class="rtitle">Dossiers récents</h3><div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.meta?.progress != null ? `<span class="rprog">${bar((x.meta.progress || 0) / 100)}<small>${x.meta.progress} % rédigé</small></span>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : ""}
+    ${!d && recentCache?.length ? `<h3 class="rtitle">Dossiers récents</h3><div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}${x.meta?.progress != null ? `<span class="rpct">${x.meta.progress}<i>%</i></span>` : ""}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.meta?.progress != null ? `<span class="rprog">${bar((x.meta.progress || 0) / 100)}</span>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : ""}
     ${d ? `<div class="row" style="margin-top:10px"><span class="path" id="lastSavedSrc">${S.lastSaved ? "Dernière sauvegarde : " + fmtWhen(S.lastSaved) : ""}</span><span class="spacer"></span><button class="btn small primary" data-save-dtg title="Enregistrer le dossier dans un fichier .dtg (s’ouvre par double-clic avec l’application Atelier DTG)">Enregistrer le fichier .dtg</button><button class="btn small" data-close-dossier>Changer de dossier</button></div>` : `<div class="row" style="margin-top:10px"><label class="btn small" for="dtgpick">Ouvrir un fichier .dtg</label><span class="hint">Fichier .dtg (ou .dtg.zip) enregistré depuis l’atelier ou l’application Windows.</span></div>`}
     ${Store.local && Store.db === null ? `<div class="banner warn"><b>Enregistrement local</b>Le stockage partagé n’est pas disponible : le travail est enregistré dans ce navigateur uniquement.</div>` : ""}
   </div></div>
@@ -1473,7 +1473,7 @@ ${d ? `
         <div class="row"><label class="btn primary" for="dtgpick">Ouvrir un fichier .dtg…</label></div></section>
     </div>
     <h2 class="rtitle">DTG récents</h2>
-    ${recentCache?.length ? `<div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.meta?.progress != null ? `<span class="rprog">${bar((x.meta.progress || 0) / 100)}<small>${x.meta.progress} % rédigé</small></span>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : `<p class="hint">${recentCache === null ? "Chargement…" : "Aucun DTG récent pour le moment."}</p>`}
+    ${recentCache?.length ? `<div class="recent">${recentCache.map(x => `<button class="rcard" data-ref="${esc(x.ref)}" title="Ouvrir ${esc(x.ref)}${x.updatedAt ? " — dernière sauvegarde " + fmtWhen(x.updatedAt) : ""}"><span class="rimg" data-rimg="${esc(x.slug || slugOf(x.ref))}">${x.meta?.thumb ? `<img src="${x.meta.thumb}" alt="">` : `<span class="rph">${esc((x.ref || "?").slice(0, 2))}</span>`}${x.meta?.progress != null ? `<span class="rpct">${x.meta.progress}<i>%</i></span>` : ""}</span><b>${esc(x.ref)}</b>${x.meta?.adresse ? `<small class="ra">${esc(x.meta.adresse)}</small>` : ""}${x.meta?.progress != null ? `<span class="rprog">${bar((x.meta.progress || 0) / 100)}</span>` : ""}${x.updatedAt ? `<small class="muted">${fmtWhen(x.updatedAt)}</small>` : ""}</button>`).join("")}</div>` : `<p class="hint">${recentCache === null ? "Chargement…" : "Aucun DTG récent pour le moment."}</p>`}
     ${Store.local && Store.db === null ? `<div class="banner warn"><b>Enregistrement local</b>Le stockage partagé n’est pas disponible : le travail est enregistré dans ce navigateur uniquement.</div>` : ""}
   </div>
 `}
@@ -1714,7 +1714,7 @@ function renderEditor() {
         <textarea class="leg" data-leg="${i}" placeholder="Légende">${esc(p.legend || "")}</textarea>
         <div class="bar"><button class="btn ghost small" data-pmv="${i}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Avancer">←</button><button class="btn ghost small" data-pmv="${i}" data-d="1" ${i === c.photos.length - 1 ? "disabled" : ""} aria-label="Reculer">→</button><span class="spacer"></span><button class="btn ghost small" data-open="${esc(p.key)}">Flèches</button><button class="btn ghost small danger" data-prm="${i}">Retirer</button></div></div>`).join("")}</div>`
       : ""}
-      ${desktopBanner()}<label class="dropzone" id="dropzone">Glissez ici des photos depuis l’explorateur Windows ou depuis le panneau « Photos du dossier », ou <u>cliquez pour choisir des fichiers</u>.<br><small>Les photos sont intégrées à 5,3 cm dans leur plus grande dimension, 3 par ligne.</small><input type="file" class="dzinput" id="dzinput" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.heic" aria-label="Ajouter des photos au chapitre"></label>
+      ${desktopBanner()}<label class="dropzone" id="dropzone">Glissez ici des photos depuis l’explorateur Windows ou depuis le panneau « Photos du dossier », ou <u>cliquez pour choisir des fichiers</u>.<br><small>Les photos sont intégrées à 5,5 cm dans leur plus grande dimension, 3 par ligne.</small><input type="file" class="dzinput" id="dzinput" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.heic" aria-label="Ajouter des photos au chapitre"></label>
     </div></div>`;
   // events
   $("#chTitle").addEventListener("input", e => { c.title = e.target.value.toUpperCase(); queueSave(c.id); clearTimeout(renderEditor._t); renderEditor._t = setTimeout(renderTree, 400); });
@@ -3403,10 +3403,10 @@ async function exportPDF(only) {
           const SHORT = t => (t || "").replace(/ \(.*\)/, "");
           const CLS = { "Court terme (1-3 ans)": "tr", "Moyen terme (3-6 ans)": "tb", "Long terme (6-10 ans)": "tg" };
           const groups = []; c.costs.forEach(l => { let g = groups.find(x => x.t === (l.terme || "")); if (!g) groups.push(g = { t: l.terme || "", ls: [] }); g.ls.push(l); });
-          const head = `<th style="width:15%">Échéance</th><th>Désignation des travaux</th><th class="n" style="width:10%">Quantité</th><th class="n" style="width:10%">PU TTC</th><th class="n" style="width:12%">Coût TTC</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th>`;
+          const head = `<th>Désignation des travaux</th><th class="n" style="width:10%">Quantité</th><th class="n" style="width:10%">PU TTC</th><th class="n" style="width:12%">Coût TTC</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th>`;
           groups.forEach(g => {
-            const rows = g.ls.map(l => `<tr><td style="color:${TCOL[g.t] || "#333"};font-weight:700">${esc(SHORT(g.t))}</td><td>${esc(l.des)}</td><td class="n">${esc(l.qte)}</td><td class="n">${esc(String(l.pu))}</td><td class="n">${fmtE(l.tot)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(l.scen)}</td></tr>`);
-            rows.push(`<tr class="tot"><td colspan="4" style="color:${TCOL[g.t] || "#333"}">Total ${esc(SHORT(g.t).toLowerCase() || "sans échéance")}</td><td class="n">${fmtE(g.ls.reduce((s, l) => s + l.tot, 0))}</td><td colspan="2"></td></tr>`);
+            const rows = g.ls.map(l => `<tr><td>${esc(l.des)}</td><td class="n">${esc(l.qte)}</td><td class="n">${esc(String(l.pu))}</td><td class="n">${fmtE(l.tot)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(l.scen)}</td></tr>`);
+            rows.push(`<tr class="tot"><td colspan="3" style="color:${TCOL[g.t] || "#333"}">Total ${esc(SHORT(g.t).toLowerCase() || "sans échéance")}</td><td class="n">${fmtE(g.ls.reduce((s, l) => s + l.tot, 0))}</td><td colspan="2"></td></tr>`);
             tableSplit(head, rows, "Tableau des coûts", CLS[g.t] || "");
           });
           if (groups.length > 1) place(el(`<div class="ptotch">Total ${esc(c.title)} : ${fmtE(c.costs.reduce((s, l) => s + l.tot, 0))}</div>`));
