@@ -339,6 +339,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .dropzone{ position:relative; display:block; }
 .dzinput{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .errbar{ position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom,0px)); background:var(--red-soft); border:1px solid var(--red); color:var(--ink); padding:10px 14px; border-radius:var(--r); z-index:70; font-size:14px; white-space:pre-wrap; }
+.frontlist{ display:flex; flex-direction:column; margin:0 0 10px; } .frontrow{ padding:5px 8px 5px 14px; } .frsec{ margin:0 0 18px; } .frta{ width:100%; font:10.5pt/1.55 Arial, sans-serif; } .frchk{ display:flex; gap:8px; align-items:center; margin:5px 0; } .frlist{ margin:6px 0 0; padding-left:20px; line-height:1.7; }
 .bsheet h2{ margin:0 0 4px; font-size:26px; }
 .binfo{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px 18px; margin:16px 0 8px; }
 .binfo label{ display:block; font-size:13.5px; color:var(--muted); margin-bottom:3px; }
@@ -407,14 +408,14 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage.l2 .pbf{ flex:none; font-size:9pt; line-height:1.55; margin-top:6px; padding-top:12px; } .pdfpage.l2 .pbf:empty{ display:none; } .pdfpage.l2 .pbf .pfld:last-child{ margin-bottom:0; }
 .pdfpage.l2 .pfld .lb{ break-inside:avoid; font-size:10.5pt; text-transform:uppercase; letter-spacing:.7px; color:#151515; margin:0 0 6px; break-after:avoid; }
 .pdfpage.l2 .pfld .lb::before{ content:""; display:block; width:40px; height:3px; background:#C00000; margin-bottom:6px; }
-.pdfpage.l2 .pfld.etat .lb::before, .pdfpage.l2 .pfld.th .lb::before{ display:none; }
-.pdfpage.l2 .pfld.etat{ border:3px solid #111; border-radius:6px; padding:11px 14px 7px; } .pdfpage.l2 .pfld.th{ border:3px solid #7030A0; border-radius:6px; padding:11px 14px 7px; }
+.pdfpage.l2 .pfld.etat .lb::before{ background:#1F6FC5; } .pdfpage.l2 .pfld.th .lb::before{ background:#7030A0; } .pdfpage.l2 .pfld.th .lb{ color:#7030A0; }
 .pdfpage.l2 .pfld p{ text-align:left; hyphens:auto; margin:0 0 5px; }
 .pdfpage.l2 .pbt{ font-weight:300; text-transform:uppercase; color:#C00000; }
 .pdfpage.l2 .pul{ margin:0 0 6px; padding-left:16px; } .pdfpage.l2 .pul li{ margin:0 0 3px; text-align:left; }
 .pdfpage.l2 .ptoc{ font-size:9pt; } .pdfpage.l2 .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage.l2 .tli i{ flex:1; border-bottom:1px dotted #9AA; transform:translateY(-2px); min-width:12px; } .pdfpage.l2 .tli b{ font-weight:700; }
 .pdfpage.l2 .tli.l0{ font-weight:700; margin-top:9px; } .pdfpage.l2 .tli.l1{ padding-left:14px; }
-.pdfpage.l2 .pduo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0 0 16px; } .pdfpage.l2 .pph{ height:200px; border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage.l2 .pduo.tall .pph{ height:330px; }
+.pdfpage.l2 .pduo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0 0 16px; } .pdfpage.l2 .pph{ height:200px; border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage.l2 .pph.has{ border-style:solid; border-color:#D9D9D9; padding:0; overflow:hidden; } .pdfpage.l2 .pph img{ width:100%; height:100%; object-fit:contain; display:block; }
+.pdfpage.l2 .pduo.tall .pph{ height:330px; }
 .pdfpage.l2 .pk4{ table-layout:fixed; } .pdfpage.l2 .pk4 td{ padding:4px 8px 4px 0; width:26%; } .pdfpage.l2 .pk4 td.k{ width:24%; } .pdfpage.l2 .pnone{ color:#B5BCC6; }
 .pdfpage.l2 .pduo2 table{ align-self:start; } .pdfpage.l2 .pduo2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; } .pdfpage.l2 .pcb{ width:18px; color:#555; font-size:11pt; }
 .pdfpage .pnote{ font-size:8pt; font-style:italic; color:#7F7F7F; }
@@ -512,7 +513,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.29";
+const APP_VERSION = "0.1.30";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1626,7 +1627,7 @@ function renderTree() {
   const allIds = S.d.buildings.flatMap(b => b.chapters); const g = progressOf(allIds);
   { const v = Math.round(g * 100); if (S.d.meta && S.d.meta.progress !== v) { S.d.meta.progress = v; queueSave("d"); } }
   const keepTop = t.scrollTop;
-  t.innerHTML = `<div class="prog"><div class="row"><b>Avancement de la rédaction</b><span>${pct(g)}</span></div>${bar(g, true)}<div class="hint" style="margin-top:6px">${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.filter(fieldFilled).length || 0), 0)} rubriques renseignées sur ${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.length || 0), 0)}</div></div><h3>Bâtiments et chapitres</h3>` + S.d.buildings.map((b, bi) => `
+  t.innerHTML = `<div class="prog"><div class="row"><b>Avancement de la rédaction</b><span>${pct(g)}</span></div>${bar(g, true)}<div class="hint" style="margin-top:6px">${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.filter(fieldFilled).length || 0), 0)} rubriques renseignées sur ${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.length || 0), 0)}</div></div><h3>Pages d’ouverture</h3><div class="frontlist">${FRONT_PAGES.map(([k, l]) => `<button class="chap frontrow" data-front="${k}" aria-current="${S.sel === "P:" + k}"><span class="ct">${esc(l)}</span></button>`).join("")}</div><h3>Bâtiments et chapitres</h3>` + S.d.buildings.map((b, bi) => `
     <div class="bld"><div class="bld-h"><b class="bname" data-bsel="${b.id}" role="button" tabindex="0" aria-current="${S.sel === "B:" + b.id}" title="Informations du bâtiment">${esc(b.name)}</b>
       <button class="btn ghost small" data-act="addch" data-b="${b.id}" title="Ajouter un chapitre" aria-label="Ajouter un chapitre">+</button>
       <button class="btn ghost small" data-act="renb" data-b="${b.id}" title="Renommer" aria-label="Renommer le bâtiment">✎</button>
@@ -1638,6 +1639,7 @@ function renderTree() {
     </div>`).join("") + `<div class="row" style="margin:4px 6px;gap:6px"><button class="btn small" data-act="addb">Ajouter un bâtiment</button><button class="btn small ghost" id="trashBtn">Corbeille (${S.trashN || 0})</button></div>
     <p class="hint" style="margin:14px 6px 0"><span class="dot" style="display:inline-block"></span> vide &nbsp; <span class="dot st-ai" style="display:inline-block"></span> rédigé par l’IA &nbsp; <span class="dot st-ed" style="display:inline-block"></span> relu / modifié</p>`;
   $$("[data-ch]", t).forEach(b => b.onclick = () => { S.sel = b.dataset.ch; renderTree(); renderEditor(); });
+  $$("[data-front]", t).forEach(b => b.onclick = () => { S.sel = "P:" + b.dataset.front; renderTree(); renderEditor(); });
   $$("[data-act]", t).forEach(b => b.onclick = () => treeAction(b.dataset.act, b.dataset.b));
   $("#trashBtn", t)?.addEventListener("click", openTrash);
   t.scrollTop = keepTop;
@@ -1701,6 +1703,7 @@ function renderEditor() {
   const ed = $("#editor"); if (!ed) return;
   const c = S.chaps[S.sel];
   if (!S.d) { ed.innerHTML = ""; return; }
+  if (String(S.sel).startsWith("P:")) return renderFront(S.sel.slice(2));
   if (String(S.sel).startsWith("B:")) { const bb = S.d.buildings.find(x => "B:" + x.id === S.sel); if (bb) return renderBuilding(bb); }
   if (!c) { ed.innerHTML = `<div class="empty">Choisissez un chapitre dans la liste.</div>`; return; }
   const b = S.d.buildings.find(x => x.chapters.includes(c.id));
@@ -2886,6 +2889,65 @@ async function dpePng(cls) {
   });
   const b = await new Promise(r => cv.toBlob(r, "image/png")); return new Uint8Array(await b.arrayBuffer());
 }
+
+/* ============ pages d'ouverture (préambule, sommaire, cadre réglementaire, fiche, localisation) ============ */
+const FRONT_PAGES = [["preambule", "Préambule"], ["sommaire", "Sommaire"], ["cadre", "Cadre réglementaire"], ["fiche", "Fiche d’identification"], ["localisation", "Localisation des ouvrages"]];
+const FRONT_TEXT = {
+  preambule: [
+    ["Le diagnostic technique global", "Le **Diagnostic Technique Global (DTG)** est une étude réglementaire et technique prévue par l’**article L.731-1 du Code de la construction et de l’habitation (CCH)**, destinée à fournir aux copropriétaires une vision objective et prospective de l’état général de leur immeuble.\n\nIl a pour finalité :\n- d’évaluer **l’état apparent de la structure et des principaux équipements communs** ;\n- de **détecter les désordres ou pathologies éventuelles** pouvant affecter la pérennité du bâtiment ;\n- d’apprécier **la performance énergétique globale** de l’immeuble ;\n- de **proposer un programme pluriannuel de travaux** hiérarchisé, adapté aux besoins de conservation et d’amélioration.\n\nLe DTG constitue ainsi un **outil d’aide à la décision** pour le syndicat des copropriétaires, permettant de planifier les interventions nécessaires sur le court, moyen et long terme, tant pour des raisons de sécurité et de conformité réglementaire que pour l’amélioration du confort et de la performance énergétique."],
+    ["Méthodologie", "La méthodologie retenue s’appuie sur :\n- l’examen **visuel des parties communes accessibles**, sans sondages destructifs ;\n- l’analyse **documentaire** (plans, diagnostics existants, règlements de copropriété, procès-verbaux d’assemblées générales, etc.) ;\n- la **référence aux normes en vigueur**, garantissant la conformité technique des préconisations.\n\nLe présent rapport expose les constats effectués lors de la visite, établit un état descriptif et analytique de l’immeuble, et propose des recommandations de travaux assorties d’estimations financières, afin d’orienter la copropriété dans la gestion de son patrimoine bâti."],
+    ["Quelle mission réalise l’architecte ?", "L’architecte réalise les points suivants :\n- analyse de l’état apparent des parties communes : parties de bâtiments (couloirs, chaudière, canalisation, garde-corps…) et des terrains (jardins, parcs…) affectés à l’usage ou à l’utilité de tous les copropriétaires, et des équipements communs ;\n- analyse des améliorations possibles de la gestion technique et patrimoniale de l’immeuble ;\n- liste des travaux nécessaires pour conserver l’immeuble dans un bon état sur les 10 prochaines années et évaluation du coût de ces travaux."],
+    ["Quelle mission réalise le BE thermique & ingénierie financière ?", "Le thermicien réalise les points suivants :\n- diagnostic de performance énergétique de l’immeuble ou audit énergétique ;\n- ingénierie financière des scénarios proposés dans le cadre de l’amélioration thermique du bâtiment ;\n- volet réglementaire ;\n- volet de synthèse."],
+    ["Quelle mission réalise le syndicat des copropriétaires ?", "Le syndic réalise les points suivants :\n- état de la situation du syndicat de copropriétaires (par exemple, impayés de charges)."]
+  ],
+  cadre: [
+    ["Validité du présent rapport", "La validité du présent rapport s’apprécie au regard des pathologies identifiées, qui sont valables uniquement au jour de la visite. Toutes modifications des lieux réalisées postérieurement à notre ou nos passage(s) ne sauraient être prises en compte dans notre diagnostic. En effet, de nouvelles pathologies peuvent apparaître ou s’amplifier rapidement en raison de différents facteurs (intempéries, canicule, séisme, travaux, etc.)."],
+    ["Périmètre de la mission et réserves", "Notre étude est un bilan visuel de l’état apparent des parties communes et des équipements communs établi afin de mettre en évidence des pathologies et/ou dégradations de l’immeuble. Aucun sondage ou essai destructif ne sera donc effectué.\n\nCes avis sont fondés d’une part d’après les informations et documents mis à disposition par le client, et d’autre part sur l’examen visuel des éléments du bâti accessibles et visibles le jour de la visite.\n\nEn l’absence d’indication contraire, les parties ou éléments suivants ne sont pas visités :\n- les espaces à accès réservé et dont la visite ne peut se faire qu’accompagnée d’une personne habilitée (locaux machinerie ascenseur, local chaufferie, locaux techniques EDF/GDF, etc.) ;\n- les ouvrages, en tout ou partie, dont la hauteur est supérieure à 3 mètres, en raison du défaut de mise à disposition d’une nacelle ou d’équipements spécifiques et adaptés ;\n- les parties de bâtiments condamnées ou inaccessibles, ou dont l’espace ne suffit pas pour y déambuler (combles perdus, vides sanitaires…) ;\n- les éléments dissimulés, encoffrés, enfouis, emmurés, scellés, conduites et canalisations inaccessibles, poutres enrobées, colonnes et gaines techniques indémontables, faces dissimulées par des revêtements de toutes sortes, situés derrière les plénums ;\n- les éléments de structures et ossatures sous isolations, clapets coupe-feu, les parties non visibles et inaccessibles qui nécessiteraient démontage et manipulation de mobilier ;\n- tout élément en dessous des revêtements assurant l’étanchéité à l’eau et à l’air du bâti ;\n- les zones dont l’accès ne serait pas sécurisé."],
+    ["Limite de mission", "L’immeuble est réputé avoir obtenu toutes les autorisations nécessaires en rapport avec la réglementation en vigueur au moment de sa construction et au regard de sa conformité actuelle notamment avec les réglementations d’urbanisme.\n\nLe présent diagnostic technique global s’inscrit dans les strictes limites du périmètre qui lui est fixé par le code de la construction et de l’habitation aux articles L.731-1 et suivants.\n\nLe présent diagnostic n’a pas vocation à remplacer une étude approfondie ou une expertise sur la solidité de l’ouvrage. Il n’est pas destiné à se substituer à une mission de maîtrise d’œuvre pour la réalisation des futurs travaux choisis par le syndicat des copropriétaires dans le cadre notamment d’un plan pluriannuel de travaux.\n\nCe diagnostic n’est qu’un outil d’aide à la décision qui vise à informer les propriétaires et copropriétaires sur l’état général de l’immeuble examiné et ses éléments d’équipement commun.\n\nCe diagnostic technique global ne se substitue en aucune façon au dossier de diagnostic technique visé notamment à l’article L.271-4 du CCH comprenant les diagnostics obligatoires (amiante, plomb, électricité, gaz, etc.).\n\nSi le DTG met en évidence des défauts ou des dysfonctionnements qui nécessitent des réparations de remise en état sur des éléments connexes, le présent DTG ne saurait se substituer à une étude d’exécution.\n\nL’agence d’architecture Thollet décline toute responsabilité dans les cas où le présent diagnostic serait utilisé, exploité ou communiqué en dehors de son strict périmètre légal fixé par le code de la construction et de l’habitation."]
+  ]
+};
+const GEO_NAT = ["Inondation", "Remontée de nappe", "Séisme", "Mouvements de terrain", "Retrait-gonflement des argiles", "Radon"], GEO_TECH = ["Installations industrielles classées", "Nucléaire", "Transport de matières dangereuses", "Pollution des sols"];
+const frontText = (key, i) => { const o = S.d?.front?.[key]; return (o && typeof o[i] === "string") ? o[i] : FRONT_TEXT[key][i][1]; };
+const inlineMd = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+function mdItems(text) {   // paragraphes et listes → éléments HTML (un par bloc)
+  const out = []; let list = [];
+  const flush = () => { if (list.length) { out.push(`<ul class="pul">${list.map(x => `<li>${inlineMd(x)}</li>`).join("")}</ul>`); list = []; } };
+  for (const ln of String(text || "").split("\n")) { const m = ln.match(/^\s*[-•]\s+(.*)$/); if (m) list.push(m[1]); else { flush(); if (ln.trim()) out.push(`<p>${inlineMd(ln.trim())}</p>`); } }
+  flush(); return out;
+}
+function frontSelected() { return String(S.sel || "").startsWith("P:") ? S.sel.slice(2) : null; }
+function renderFront(key) {
+  const ed = $("#editor"); const d = S.d; d.front = d.front || {}; d.meta = d.meta || {};
+  const title = (FRONT_PAGES.find(x => x[0] === key) || [])[1] || "";
+  const slot = (k, ttl) => { const ik = "front_" + k; const v = S.imgs[ik];
+    if (!(ik in S.imgs)) { S.imgs[ik] = undefined; delete S.imgs[ik]; getImg(ik).then(() => { if (S.sel === "P:" + key) renderFront(key); }); }
+    return `<div><div class="bimg-h"><span>${ttl}</span>${v ? `<button class="btn ghost small danger" data-imgrm="${ik}">Retirer</button>` : ""}</div>
+    <label class="bimg ${v ? "has" : ""}" data-imgslot="${ik}">${v ? `<img src="${v}" alt="${esc(ttl)}">` : v === undefined ? '<span class="spin"></span>' : `<span>Cliquez ou glissez une image<br><small>(${ttl.toLowerCase()})</small></span>`}
+    <input type="file" class="dzinput" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" data-imgin="${ik}" aria-label="${esc(ttl)}"></label></div>`; };
+  let body = "";
+  if (key === "preambule" || key === "cadre") {
+    body = `<p class="muted" style="margin:0 0 6px">Texte repris tel quel dans le PDF. Une ligne vide sépare les paragraphes, « - » en début de ligne crée une puce, <code>**texte**</code> met en gras.</p>` + FRONT_TEXT[key].map(([t], i) => `<div class="frsec"><div class="row" style="margin-bottom:4px"><b style="flex:1">${esc(t)}</b><button class="btn ghost small" data-frreset="${i}" ${typeof d.front[key]?.[i] === "string" ? "" : "disabled"}>Rétablir le texte par défaut</button></div><textarea class="field-in frta" data-frta="${i}" rows="${Math.min(18, Math.max(4, Math.ceil(frontText(key, i).length / 95)))}">${esc(frontText(key, i))}</textarea></div>`).join("");
+  } else if (key === "sommaire") {
+    body = `<p class="muted">Le sommaire est généré automatiquement à l’export, avec les numéros de page.</p><ul class="frlist">${FRONT_PAGES.map(x => `<li>${esc(x[1])}</li>`).join("")}${d.buildings.map(b => `<li><b>${esc(b.name)}</b><ul>${b.chapters.map(id => S.chaps[id] ? `<li>${esc(S.chaps[id].title)}</li>` : "").join("")}</ul></li>`).join("")}<li>Projet de plan pluriannuel de travaux</li></ul>`;
+  } else if (key === "fiche") {
+    const F = [["adresse", "Adresse"], ["parcelle", "Référence cadastrale"], ["immatriculation", "Immatriculation"], ["siret", "SIRET"], ["batiments", "Nombre de bâtiments"], ["lots", "Nombre de lots"], ["typologie", "Typologie"], ["annee", "Période de construction"], ["ascenseurs", "Ascenseurs"], ["stationnements", "Stationnements en sous-sol"]];
+    const geo = new Set(d.front.geo || []);
+    body = `<div class="binfo">${F.map(([k, l]) => `<div><label for="fi-${k}">${l}</label><input id="fi-${k}" class="field-in" data-fi="${k}" value="${esc(d.meta[k] || "")}"></div>`).join("")}</div>
+      <div class="bimgs">${slot("cadastre", "Cadastre")}${slot("aerien", "Vue aérienne")}</div>
+      <h3 style="font-size:15.5px;margin:22px 0 4px">Géorisques</h3><p class="hint" style="margin:0 0 6px">Cochez les risques identifiés sur georisques.gouv.fr.</p>
+      <div class="bimgs"><div><b>Risques naturels</b>${GEO_NAT.map(g => `<label class="frchk"><input type="checkbox" data-geo="${esc(g)}" ${geo.has(g) ? "checked" : ""}> ${esc(g)}</label>`).join("")}</div><div><b>Risques technologiques</b>${GEO_TECH.map(g => `<label class="frchk"><input type="checkbox" data-geo="${esc(g)}" ${geo.has(g) ? "checked" : ""}> ${esc(g)}</label>`).join("")}</div></div>`;
+  } else if (key === "localisation") {
+    body = `<p class="muted">Plan de situation des bâtiments et vue aérienne. La nomenclature (étoiles, flammes, soleils) est ajoutée automatiquement.</p><div class="bimgs">${slot("plan", "Plan")}${slot("vue", "Vue aérienne")}</div>`;
+  }
+  ed.innerHTML = `<div class="sheet bsheet"><div class="crumb">Pages d’ouverture</div><h2>${esc(title)}</h2>${body}</div>`;
+  $$("[data-frta]", ed).forEach(t => t.oninput = () => { d.front[key] = d.front[key] || []; d.front[key][+t.dataset.frta] = t.value; queueSave("d"); const b = $(`[data-frreset="${t.dataset.frta}"]`, ed); if (b) b.disabled = false; });
+  $$("[data-frreset]", ed).forEach(b => b.onclick = () => { if (d.front[key]) delete d.front[key][+b.dataset.frreset]; queueSave("d"); renderFront(key); });
+  $$("[data-fi]", ed).forEach(i => i.oninput = () => { d.meta[i.dataset.fi] = i.value; queueSave("d"); });
+  $$("[data-geo]", ed).forEach(cb => cb.onchange = () => { const st = new Set(d.front.geo || []); cb.checked ? st.add(cb.dataset.geo) : st.delete(cb.dataset.geo); d.front.geo = [...st]; queueSave("d"); });
+  $$("[data-imgin]", ed).forEach(inp => inp.addEventListener("change", async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return; try { await setImg(inp.dataset.imgin, await fitImage(f)); } catch { toast("Format d’image non lisible (JPG, PNG ou WebP)."); } renderFront(key); }));
+  $$("[data-imgslot]", ed).forEach(sl => { sl.addEventListener("dragenter", () => sl.classList.add("drag")); sl.addEventListener("dragleave", () => sl.classList.remove("drag")); sl.addEventListener("drop", () => sl.classList.remove("drag")); });
+  $$("[data-imgrm]", ed).forEach(x => x.onclick = async () => { await setImg(x.dataset.imgrm, null); renderFront(key); });
+}
 function renderBuilding(b) {
   const ed = $("#editor"); b.info = b.info || {};
   const slot = (k, title) => { const key = b.id + "_" + k; const v = S.imgs[key];
@@ -3400,53 +3462,34 @@ async function exportPDF(only, lay) {
     const sec = (title, html) => placeSplit(cont => { const d = el(`<div class="pfld"><div class="lb">${esc(title)}${cont ? " (suite)" : ""}</div></div>`); return { root: d, target: d }; }, html);
     let tocBox = null;
     if (L2 && !only) {
-      const M = S.d.meta || {};
+      const M = S.d.meta || {}; const FI = {};
+      for (const k of ["cadastre", "aerien", "plan", "vue"]) { try { FI[k] = await getImg("front_" + k) || null; } catch { FI[k] = null; } }
+      const frontSecs = key => FRONT_TEXT[key].forEach(([t], i) => sec(t, mdItems(frontText(key, i))));
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "PRÉAMBULE"); mark("PRÉAMBULE", 0);
-      headPut(el(`<h1 class="pbt">PRÉAMBULE</h1>`));
-      sec("Le diagnostic technique global", [
-        `<p>Le <b>Diagnostic Technique Global (DTG)</b> est une étude réglementaire et technique prévue par l’<b>article L.731-1 du Code de la construction et de l’habitation (CCH)</b>, destinée à fournir aux copropriétaires une vision objective et prospective de l’état général de leur immeuble.</p>`,
-        `<p>Il a pour finalité :</p><ul class="pul"><li>d’évaluer <b>l’état apparent de la structure et des principaux équipements communs</b> ;</li><li>de <b>détecter les désordres ou pathologies éventuelles</b> pouvant affecter la pérennité du bâtiment ;</li><li>d’apprécier <b>la performance énergétique globale</b> de l’immeuble ;</li><li>de <b>proposer un programme pluriannuel de travaux</b> hiérarchisé, adapté aux besoins de conservation et d’amélioration.</li></ul>`,
-        `<p>Le DTG constitue ainsi un <b>outil d’aide à la décision</b> pour le syndicat des copropriétaires, permettant de planifier les interventions nécessaires sur le court, moyen et long terme, tant pour des raisons de sécurité et de conformité réglementaire que pour l’amélioration du confort et de la performance énergétique.</p>`]);
-      sec("Méthodologie", [
-        `<p>La méthodologie retenue s’appuie sur :</p><ul class="pul"><li>l’examen <b>visuel des parties communes accessibles</b>, sans sondages destructifs ;</li><li>l’analyse <b>documentaire</b> (plans, diagnostics existants, règlements de copropriété, procès-verbaux d’assemblées générales, etc.) ;</li><li>la <b>référence aux normes en vigueur</b>, garantissant la conformité technique des préconisations.</li></ul>`,
-        `<p>Le présent rapport expose les constats effectués lors de la visite, établit un état descriptif et analytique de l’immeuble, et propose des recommandations de travaux assorties d’estimations financières, afin d’orienter la copropriété dans la gestion de son patrimoine bâti.</p>`]);
-      sec("Quelle mission réalise l’architecte ?", [`<p>L’architecte réalise les points suivants :</p><ul class="pul"><li>analyse de l’état apparent des parties communes : parties de bâtiments (couloirs, chaudière, canalisation, garde-corps…) et des terrains (jardins, parcs…) affectés à l’usage ou à l’utilité de tous les copropriétaires, et des équipements communs ;</li><li>analyse des améliorations possibles de la gestion technique et patrimoniale de l’immeuble ;</li><li>liste des travaux nécessaires pour conserver l’immeuble dans un bon état sur les 10 prochaines années et évaluation du coût de ces travaux.</li></ul>`]);
-      sec("Quelle mission réalise le BE thermique & ingénierie financière ?", [`<p>Le thermicien réalise les points suivants :</p><ul class="pul"><li>diagnostic de performance énergétique de l’immeuble ou audit énergétique ;</li><li>ingénierie financière des scénarios proposés dans le cadre de l’amélioration thermique du bâtiment ;</li><li>volet réglementaire ;</li><li>volet de synthèse.</li></ul>`]);
-      sec("Quelle mission réalise le syndicat des copropriétaires ?", [`<p>Le syndic réalise les points suivants :</p><ul class="pul"><li>état de la situation du syndicat de copropriétaires (par exemple, impayés de charges).</li></ul>`]);
+      headPut(el(`<h1 class="pbt">PRÉAMBULE</h1>`)); frontSecs("preambule");
 
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "SOMMAIRE"); mark("SOMMAIRE", 0);
       headPut(el(`<h1 class="pbt">SOMMAIRE</h1>`));
       tocBox = el(`<div class="ptoc"></div>`); place(tocBox);
 
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "CADRE RÉGLEMENTAIRE"); mark("CADRE RÉGLEMENTAIRE DU DTG", 0);
-      headPut(el(`<h1 class="pbt">CADRE RÉGLEMENTAIRE DU DTG</h1>`));
-      sec("Validité du présent rapport", [`<p>La validité du présent rapport s’apprécie au regard des pathologies identifiées, qui sont valables uniquement au jour de la visite. Toutes modifications des lieux réalisées postérieurement à notre ou nos passage(s) ne sauraient être prises en compte dans notre diagnostic. En effet, de nouvelles pathologies peuvent apparaître ou s’amplifier rapidement en raison de différents facteurs (intempéries, canicule, séisme, travaux, etc.).</p>`]);
-      sec("Périmètre de la mission et réserves", [
-        `<p>Notre étude est un bilan visuel de l’état apparent des parties communes et des équipements communs établi afin de mettre en évidence des pathologies et/ou dégradations de l’immeuble. Aucun sondage ou essai destructif ne sera donc effectué.</p>`,
-        `<p>Ces avis sont fondés d’une part d’après les informations et documents mis à disposition par le client, et d’autre part sur l’examen visuel des éléments du bâti accessibles et visibles le jour de la visite.</p>`,
-        `<p>En l’absence d’indication contraire, les parties ou éléments suivants ne sont pas visités :</p><ul class="pul"><li>les espaces à accès réservé et dont la visite ne peut se faire qu’accompagnée d’une personne habilitée (locaux machinerie ascenseur, local chaufferie, locaux techniques EDF/GDF, etc.) ;</li><li>les ouvrages, en tout ou partie, dont la hauteur est supérieure à 3 mètres, en raison du défaut de mise à disposition d’une nacelle ou d’équipements spécifiques et adaptés ;</li><li>les parties de bâtiments condamnées ou inaccessibles, ou dont l’espace ne suffit pas pour y déambuler (combles perdus, vides sanitaires…) ;</li><li>les éléments dissimulés, encoffrés, enfouis, emmurés, scellés, conduites et canalisations inaccessibles, poutres enrobées, colonnes et gaines techniques indémontables, faces dissimulées par des revêtements de toutes sortes, situés derrière les plénums ;</li><li>les éléments de structures et ossatures sous isolations, clapets coupe-feu, les parties non visibles et inaccessibles qui nécessiteraient démontage et manipulation de mobilier ;</li><li>tout élément en dessous des revêtements assurant l’étanchéité à l’eau et à l’air du bâti ;</li><li>les zones dont l’accès ne serait pas sécurisé.</li></ul>`]);
-      sec("Limite de mission", [
-        `<p>L’immeuble est réputé avoir obtenu toutes les autorisations nécessaires en rapport avec la réglementation en vigueur au moment de sa construction et au regard de sa conformité actuelle notamment avec les réglementations d’urbanisme.</p>`,
-        `<p>Le présent diagnostic technique global s’inscrit dans les strictes limites du périmètre qui lui est fixé par le code de la construction et de l’habitation aux articles L.731-1 et suivants.</p>`,
-        `<p>Le présent diagnostic n’a pas vocation à remplacer une étude approfondie ou une expertise sur la solidité de l’ouvrage. Il n’est pas destiné à se substituer à une mission de maîtrise d’œuvre pour la réalisation des futurs travaux choisis par le syndicat des copropriétaires dans le cadre notamment d’un plan pluriannuel de travaux.</p>`,
-        `<p>Ce diagnostic n’est qu’un outil d’aide à la décision qui vise à informer les propriétaires et copropriétaires sur l’état général de l’immeuble examiné et ses éléments d’équipement commun.</p>`,
-        `<p>Ce diagnostic technique global ne se substitue en aucune façon au dossier de diagnostic technique visé notamment à l’article L.271-4 du CCH comprenant les diagnostics obligatoires (amiante, plomb, électricité, gaz, etc.).</p>`,
-        `<p>Si le DTG met en évidence des défauts ou des dysfonctionnements qui nécessitent des réparations de remise en état sur des éléments connexes, le présent DTG ne saurait se substituer à une étude d’exécution.</p>`,
-        `<p>L’agence d’architecture Thollet décline toute responsabilité dans les cas où le présent diagnostic serait utilisé, exploité ou communiqué en dehors de son strict périmètre légal fixé par le code de la construction et de l’habitation.</p>`]);
+      headPut(el(`<h1 class="pbt">CADRE RÉGLEMENTAIRE DU DTG</h1>`)); frontSecs("cadre");
 
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "FICHE D’IDENTIFICATION", true); mark("FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ", 0);
       place(el(`<h1 class="pbt">FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ</h1>`));
       const nbB = M.batiments || S.d.buildings.length || "";
       const val = v => v ? esc(String(v)) : `<span class="pnone">—</span>`;
-      place(el(`<div class="pfld"><div class="lb">Localisation de l’immeuble</div><table class="pkv"><tr><td class="k">Adresse</td><td>${val(S.d.meta?.adresse || data.adresse)}</td></tr><tr><td class="k">Référence cadastrale</td><td>${val(M.parcelle)}</td></tr></table></div>`));
-      place(el(`<div class="pduo"><div class="pph">Cadastre</div><div class="pph">Vue aérienne</div></div>`));
+      const ph = (img, lbl) => `<div class="pph ${img ? "has" : ""}">${img ? `<img src="${img}" alt="">` : esc(lbl)}</div>`;
+      place(el(`<div class="pfld"><div class="lb">Localisation de l’immeuble</div><table class="pkv"><tr><td class="k">Adresse</td><td>${val(M.adresse || data.adresse)}</td></tr><tr><td class="k">Référence cadastrale</td><td>${val(M.parcelle)}</td></tr></table></div>`));
+      place(el(`<div class="pduo">${ph(FI.cadastre, "Cadastre")}${ph(FI.aerien, "Vue aérienne")}</div>`));
       place(el(`<div class="pfld"><div class="lb">Description de l’immeuble</div><table class="pkv pk4"><tr><td class="k">Immatriculation</td><td>${val(M.immatriculation)}</td><td class="k">Nombre de bâtiments</td><td>${val(nbB)}</td></tr><tr><td class="k">SIRET</td><td>${val(M.siret)}</td><td class="k">Nombre de lots</td><td>${val(M.lots)}</td></tr><tr><td class="k">Typologie</td><td>${val(M.typologie)}</td><td class="k">Période de construction</td><td>${val(M.annee)}</td></tr><tr><td class="k">Ascenseurs</td><td>${val(M.ascenseurs)}</td><td class="k">Stationnements en sous-sol</td><td>${val(M.stationnements)}</td></tr></table></div>`));
-      const box = t => `<tr><td class="pcb">☐</td><td>${t}</td></tr>`;
-      place(el(`<div class="pfld"><div class="lb">Géorisques</div><div class="pnote" style="margin:-2px 0 6px">À renseigner d’après georisques.gouv.fr</div><div class="pduo2"><table class="pkv"><tr><td colspan="2" class="k">Risques naturels identifiés</td></tr>${["Inondation", "Remontée de nappe", "Séisme", "Mouvements de terrain", "Retrait-gonflement des argiles", "Radon"].map(box).join("")}</table><table class="pkv"><tr><td colspan="2" class="k">Risques technologiques identifiés</td></tr>${["Installations industrielles classées", "Nucléaire", "Transport de matières dangereuses", "Pollution des sols"].map(box).join("")}</table></div></div>`));
+      const geo = new Set(S.d.front?.geo || []);
+      const box = t => `<tr><td class="pcb">${geo.has(t) ? "☒" : "☐"}</td><td>${t}</td></tr>`;
+      place(el(`<div class="pfld"><div class="lb">Géorisques</div><div class="pduo2"><table class="pkv"><tr><td colspan="2" class="k">Risques naturels identifiés</td></tr>${GEO_NAT.map(box).join("")}</table><table class="pkv"><tr><td colspan="2" class="k">Risques technologiques identifiés</td></tr>${GEO_TECH.map(box).join("")}</table></div></div>`));
 
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "LOCALISATION DES OUVRAGES", true); mark("LOCALISATION DES OUVRAGES", 0);
       place(el(`<h1 class="pbt">LOCALISATION DES OUVRAGES</h1>`));
-      place(el(`<div class="pduo tall"><div class="pph">Plan</div><div class="pph">Vue aérienne</div></div>`));
+      place(el(`<div class="pduo tall">${ph(FI.plan, "Plan")}${ph(FI.vue, "Vue aérienne")}</div>`));
       const ic = (k, n) => [1, 2, 3].map(i => `<img src="${i <= n ? icons[k].on : icons[k].off}" width="17" height="17" alt="">`).join("");
       const nomen = (lbl, k) => `<tr><td class="k">${lbl} de 1 à 3 :</td><td>${[1, 2, 3].map(n => ic(k, n)).join(' <span class="pslash">/</span> ')}</td></tr>`;
       place(el(`<div class="pfld"><div class="lb">Nomenclature</div><table class="pkv">${nomen("Qualité architecturale", "a")}${nomen("Qualité thermique", "t")}${nomen("Confort d’été", "e")}<tr><td class="k">Caractéristique thermique et gain de 1 à 3 :</td><td><b style="color:#7030A0">+ &nbsp;/&nbsp; ++ &nbsp;/&nbsp; +++</b></td></tr></table><p style="margin-top:8px;color:#7030A0">La couleur violette (écriture / tableau / icônes) est dédiée aux caractéristiques thermiques.</p><p style="color:#C00000">Les zones de textes en rouge sont dédiées aux éléments nécessitant des travaux : pathologies, non-conformités, entretiens, etc.</p></div>`));
