@@ -247,6 +247,7 @@ button{ cursor:pointer; }
 .pgrid{ display:grid; grid-template-columns:repeat(3, 5.8cm); gap:14px; }
 .pitem .im[draggable="true"]{ cursor:grab; }
 .dropzone{ cursor:pointer; }
+.pitem{ position:relative; } .pitem[draggable="true"]{ cursor:grab; } .pnum{ position:absolute; top:4px; left:4px; z-index:2; background:var(--accent); color:#fff; font-size:11px; font-weight:700; border-radius:10px; padding:0 6px; line-height:17px; pointer-events:none; }
 .pitem.over{ outline:2px dashed var(--accent); outline-offset:2px; }
 .dropzone{ margin-top:12px; border:2px dashed var(--line); border-radius:var(--r); padding:22px 16px; text-align:center; color:var(--muted); font-size:14.5px; transition:background .12s, border-color .12s; }
 .photos-sec.drag .dropzone, .dropzone.drag{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
@@ -488,7 +489,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.19";
+const APP_VERSION = "0.1.20";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1705,7 +1706,7 @@ function renderEditor() {
     <div class="addfld"><input id="newFld" class="field-in" placeholder="Nouveau point technique" style="flex:1"><button class="btn" id="btnAddFld">Ajouter</button></div>
     <div class="costs-sec" id="costsSec">${costsHtml(c)}</div>
     <div class="photos-sec" id="photosSec"><div class="row" style="margin-bottom:10px"><h4 style="margin:0;flex:1">Photos intégrées au chapitre (${c.photos.length})</h4><button class="btn small" id="btnDrawer">${S.drawer ? "Masquer les photos du dossier" : "Afficher les photos du dossier"}</button></div>
-      ${c.photos.length ? `<div class="pgrid">${c.photos.map((p, i) => `<div class="pitem" data-pk="${esc(p.key)}" data-pi="${i}">
+      ${c.photos.length ? `<div class="pgrid">${c.photos.map((p, i) => `<div class="pitem" data-pk="${esc(p.key)}" data-pi="${i}" draggable="true"><span class="pnum" title="Position dans le chapitre">${i + 1}</span>
         <div class="im" data-open="${esc(p.key)}" draggable="true" title="Cliquer pour annoter, glisser pour déplacer"><canvas data-thumb="${esc(p.key)}"></canvas></div>
         <textarea class="leg" data-leg="${i}" placeholder="Légende">${esc(p.legend || "")}</textarea>
         <div class="bar"><button class="btn ghost small" data-pmv="${i}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Avancer">←</button><button class="btn ghost small" data-pmv="${i}" data-d="1" ${i === c.photos.length - 1 ? "disabled" : ""} aria-label="Reculer">→</button><span class="spacer"></span><button class="btn ghost small" data-open="${esc(p.key)}">Flèches</button><button class="btn ghost small danger" data-prm="${i}">Retirer</button></div></div>`).join("")}</div>`
@@ -1742,7 +1743,7 @@ function renderEditor() {
   $$("[data-open]", ed).forEach(x => x.onclick = () => openAnnotator(x.dataset.open));
   $$("canvas[data-thumb]", ed).forEach(cv => drawThumbCanvas(cv, cv.dataset.thumb, c.photos.find(p => p.key === cv.dataset.thumb)));
   $("#btnDrawer").onclick = () => { S.drawer = !S.drawer; renderDrawer(); renderEditor(); };
-  $$(".pitem .im[draggable]", ed).forEach(im => im.addEventListener("dragstart", e => { e.dataTransfer.setData("text/x-dtg-move", im.closest(".pitem").dataset.pi); e.dataTransfer.effectAllowed = "move"; }));
+  $$(".pitem[draggable]", ed).forEach(it => { it.addEventListener("dragstart", e => { if (e.target.closest?.("textarea")) { e.preventDefault(); return; } e.dataTransfer.setData("text/x-dtg-move", it.dataset.pi); e.dataTransfer.effectAllowed = "move"; }); });
   $("#dzinput").addEventListener("change", e => { const files = [...e.target.files]; e.target.value = ""; if (files.length) addPhotosToChapter(c, filesToKeys(files)); });
   bindChapterDrop(c);
   bindCosts(c);
@@ -3125,7 +3126,7 @@ function buildDocx(D, data) {
           const pair = c.photos.slice(i, i + 3);
           rows.push(new D.TableRow({ cantSplit: true, children: [0, 1, 2].map(j => { const ph = pair[j]; const kids = [];
             if (ph) { n++; kids.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { before: 120 }, children: [new D.ImageRun({ type: "jpg", data: ph.data, transformation: { width: ph.w, height: ph.h } })] }));
-              kids.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { after: 160 }, children: [RUN("Photo " + n + (ph.legend ? " – " + ph.legend : ""), { it: true, size: 17, color: "404040" })] })); }
+              kids.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { after: 160 }, children: ph.legend ? [RUN("Photo " + n + " – " + ph.legend, { it: true, size: 17, color: "404040" })] : [] })); }
             else kids.push(new D.Paragraph(""));
             return new D.TableCell({ width: { size: 33, type: D.WidthType.PERCENTAGE }, borders: nob, children: kids }); }) }));
         }
@@ -3407,7 +3408,7 @@ async function exportPDF(only) {
         }
         if (c.photos.length) {
           let n0 = 0;
-          placeSplit(() => { const d = el(`<div class="pphotos"></div>`); return { root: d, target: d }; }, c.photos.map(ph => `<figure class="pphoto"><img src="${ph.url}" width="${ph.w}" height="${ph.h}" alt=""><figcaption>Photo ${++n0}${ph.legend ? " – " + esc(ph.legend) : ""}</figcaption></figure>`));
+          placeSplit(() => { const d = el(`<div class="pphotos"></div>`); return { root: d, target: d }; }, c.photos.map(ph => `<figure class="pphoto"><img src="${ph.url}" width="${ph.w}" height="${ph.h}" alt="">${++n0 && ph.legend ? `<figcaption>Photo ${n0} – ${esc(ph.legend)}</figcaption>` : ""}</figure>`));
         }
       }
     }
