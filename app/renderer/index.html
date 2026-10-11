@@ -398,6 +398,16 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .ptbl tr.sub td{ font-weight:700; background:#FAFAFA; } .pdfpage .ptbl tr.tot td{ font-weight:800; background:#F0F2F5; } .pdfpage .ptbl tr.grp td{ font-weight:700; color:#1F4E79; background:#EAF2FB; }
 .pdfpage .ptbl.tr{ border:2px solid #D0201A; } .pdfpage .ptbl.tb{ border:2px solid #1F6FC5; } .pdfpage .ptbl.tg{ border:2px solid #2C7A4B; }
 .pdfpage .ptotch{ text-align:right; font-weight:800; font-size:9pt; margin:2px 0 6px; }
+.pdfpage.l2 .pbc{ display:flex; flex-direction:column; }
+.pdfpage.l2 .pbh{ flex:none; } .pdfpage.l2 .pcols{ flex:none; column-count:2; column-gap:30px; column-fill:auto; overflow:hidden; font-size:9pt; line-height:1.55; }
+.pdfpage.l2 .pbh .chead{ margin:0 0 18px; padding-bottom:14px; border-bottom:1px solid #D9D9D9; }
+.pdfpage.l2 .pct{ font-size:24pt; font-weight:300; text-transform:uppercase; letter-spacing:.4px; color:#C00000; margin:0 0 8px; }
+.pdfpage.l2 .pfld{ background:none; border-radius:0; padding:0; margin:0 0 16px; }
+.pdfpage.l2 .pfld .lb{ font-size:8.5pt; text-transform:uppercase; letter-spacing:.7px; color:#151515; margin:0 0 6px; break-after:avoid; }
+.pdfpage.l2 .pfld .lb::before{ content:""; display:block; width:34px; height:3px; background:#C00000; margin-bottom:6px; }
+.pdfpage.l2 .pfld.etat .lb::before{ background:#1F6FC5; } .pdfpage.l2 .pfld.th .lb::before{ background:#7030A0; }
+.pdfpage.l2 .pfld p{ text-align:left; hyphens:auto; margin:0 0 5px; }
+.pdfpage.l2 .pbt{ font-weight:300; text-transform:uppercase; color:#C00000; }
 .pdfpage .pnote{ font-size:8pt; font-style:italic; color:#7F7F7F; }
 .pdfpage .pkv{ border-collapse:collapse; width:100%; } .pdfpage .pkv td{ padding:3px 6px 3px 0; vertical-align:top; } .pdfpage .pkv td.k{ font-weight:700; color:#1F4E79; width:38%; }
 .pdfpage .pimgs{ display:flex; gap:22px; justify-content:center; margin:6px 0 14px; } .pdfpage figure{ margin:0; text-align:center; }
@@ -457,6 +467,7 @@ a.btn{ text-decoration:none; color:inherit; display:inline-flex; align-items:cen
     <div class="savestate" id="savestate"></div>
     <button class="btn" id="btnSaveDtg" disabled title="Enregistrer le fichier .dtg">Enregistrer .dtg</button>
     <button class="btn primary" id="btnPdf" disabled title="Générer le PDF du DTG (base de rédaction)">Exporter PDF</button>
+    <button class="btn" id="btnPdf2" disabled title="Version test : mise en page moderne en deux colonnes">PDF 2 col. (test)</button>
   </header>
   <div class="main">
     <section class="view" id="v-sources"></section>
@@ -492,7 +503,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.25";
+const APP_VERSION = "0.1.26";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1699,7 +1710,7 @@ function renderEditor() {
     <div class="ch-title"><input id="chTitle" value="${esc(c.title)}" aria-label="Titre du chapitre">
       <button class="btn ghost small" data-cact="up" ${bi === 0 ? "disabled" : ""} aria-label="Monter le chapitre">↑</button>
       <button class="btn ghost small" data-cact="down" ${bi === b.chapters.length - 1 ? "disabled" : ""} aria-label="Descendre le chapitre">↓</button>
-      <button class="btn small" data-cact="preview" title="Aperçu de ce chapitre tel qu’il sera dans le PDF">Prévisualiser</button>
+      <button class="btn small" data-cact="preview" title="Aperçu de ce chapitre tel qu’il sera dans le PDF">Prévisualiser</button><button class="btn small" data-cact="preview2" title="Version test : mise en page en deux colonnes">Aperçu 2 col. (test)</button>
       <button class="btn ghost small danger" data-cact="del">Supprimer</button></div>
     <div class="etatsel"><span>État d’entretien général</span>${ETATS.map(([k, l, col]) => `<button class="${c.etatGen === k ? "on" : ""}" data-etat="${k}" style="--ec:${col}" aria-pressed="${c.etatGen === k}">${l}</button>`).join("")}<span class="hint">référentiel APC</span></div>
     ${T.cot.length ? `<div class="cots">${T.cot.map(k => `<div class="cot ${k !== "a" ? "th" : ""}"><span>${COT_LBL[k]}</span><span class="pips">${[1, 2, 3].map(n => `<button class="pip" data-cot="${k}" data-n="${n}" aria-label="${COT_LBL[k]} ${n} sur 3" title="${n} sur 3">${iconSvg(COT_ICON[k], c.cot[k] >= n)}</button>`).join("")}</span></div>`).join("")}</div>` : ""}
@@ -1723,6 +1734,7 @@ function renderEditor() {
   $$("[data-cact]", ed).forEach(btn => btn.onclick = async () => {
     const a = btn.dataset.cact;
     if (a === "preview") { previewChapter(c.id); return; }
+    if (a === "preview2") { previewChapter(c.id, "2col"); return; }
     if (a === "up" || a === "down") { const i = b.chapters.indexOf(c.id), j = i + (a === "up" ? -1 : 1); [b.chapters[i], b.chapters[j]] = [b.chapters[j], b.chapters[i]]; queueSave("d"); }
     if (a === "del") { if (!(await toTrash("chapter", c.title, c, { bid: b.id, index: b.chapters.indexOf(c.id), where: b.name }))) return; b.chapters = b.chapters.filter(x => x !== c.id); delete S.chaps[c.id]; Store.deleteChapter(S.slug, c.id); S.sel = b.chapters[0] || null; queueSave("d"); }
     renderTree(); renderEditor();
@@ -3325,11 +3337,12 @@ function pdfCss() {
   for (const sh of document.styleSheets) { let rules; try { rules = sh.cssRules; } catch { continue; } for (const r of rules) if (r.cssText && /\.pdfpage|\.pdfhost/.test(r.selectorText || "")) out += r.cssText + "\n"; }
   return out;
 }
-async function exportPDF(only) {
+async function exportPDF(only, lay) {
   if (typeof only !== "string") only = undefined;
+  const L2 = lay === "2col";
   if (!S.d) return;
   const opt = "all";   // export direct, sans question
-  const btn = $("#btnPdf"); if (!only) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> PDF…'; }
+  const btn = L2 ? $("#btnPdf2") : $("#btnPdf"); const btnLbl = btn.textContent; if (!only) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> PDF…'; }
   const host = document.createElement("div"); host.className = "pdfhost"; document.body.append(host);
   try {
     if (!only) {
@@ -3341,8 +3354,9 @@ async function exportPDF(only) {
     try { await document.fonts.load("400 12px Montserrat"); await document.fonts.load("700 12px Montserrat"); await document.fonts.load("italic 400 12px Montserrat"); } catch {}
     const icons = {}; for (const k of ["a", "t", "e"]) icons[k] = { on: u8ToDataUrl(await iconPng(COT_ICON[k], true), "image/png"), off: u8ToDataUrl(await iconPng(COT_ICON[k], false), "image/png") };
     const pages = []; let cur = null;
-    const newPage = (r1, r2) => { const pg = document.createElement("div"); pg.className = "pdfpage"; pg.innerHTML = `<div class="ph-h"><div class="l"><b>DIAGNOSTIC TECHNIQUE GLOBAL</b>AGENCE D’ARCHITECTURE REMI THOLLET</div><div class="r"><b>${esc(r1 || "")}</b><span>${esc(r2 || "")}</span></div></div><div class="pb"></div><div class="pf"></div><div class="pl"></div>`; host.append(pg); pages.push(pg); cur = { pg, body: $(".pb", pg), r1, r2 }; };
-    const fits = () => cur.body.scrollHeight <= cur.body.clientHeight + 1;
+    const newPage = (r1, r2, full) => { const pg = document.createElement("div"); pg.className = "pdfpage" + (L2 ? " l2" : ""); const cols = L2 && !full; pg.innerHTML = `<div class="ph-h"><div class="l"><b>DIAGNOSTIC TECHNIQUE GLOBAL</b>AGENCE D’ARCHITECTURE REMI THOLLET</div><div class="r"><b>${esc(r1 || "")}</b><span>${esc(r2 || "")}</span></div></div>${cols ? `<div class="pb pbc"><div class="pbh"></div><div class="pcols"></div></div>` : `<div class="pb"></div>`}<div class="pf"></div><div class="pl"></div>`; host.append(pg); pages.push(pg); const pb = $(".pb", pg); cur = { pg, pb, cols, head: cols ? $(".pbh", pg) : null, body: cols ? $(".pcols", pg) : pb, r1, r2 }; };
+    const fits = () => { if (cur.cols) { cur.body.style.height = Math.max(40, cur.pb.clientHeight - cur.head.offsetHeight) + "px"; return cur.body.scrollWidth <= cur.body.clientWidth + 1; } return cur.body.scrollHeight <= cur.body.clientHeight + 1; };
+    const fullMode = () => { if (L2 && cur && cur.cols) newPage(cur.r1, cur.r2, true); };
     const el = html => { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; };
     const place = node => { cur.body.append(node); if (!fits() && cur.body.children.length > 1) { node.remove(); newPage(cur.r1, cur.r2); cur.body.append(node); } };
     const placeSplit = (makeBox, items) => {
@@ -3373,7 +3387,7 @@ async function exportPDF(only) {
 
     // ---- obligations
     if (!only && data.oblig && data.oblig.length) {
-      newPage("ANALYSE DE LA GESTION TECHNIQUE", "OBLIGATIONS LÉGALES");
+      newPage("ANALYSE DE LA GESTION TECHNIQUE", "OBLIGATIONS LÉGALES", true);
       place(el(`<h1 class="pbt">SITUATION AU REGARD DES OBLIGATIONS LÉGALES</h1>`));
       const SC = { "Fait": "#2C7A4B", "À faire": "#D0201A", "En cours": "#C27C0E" };
       tableSplit(`<th style="width:34%">Obligation</th><th style="width:18%">Référence</th><th style="width:11%">Statut</th><th style="width:11%">Date</th><th>Conclusion</th>`, data.oblig.map(o => `<tr><td><b>${esc(o.l)}</b></td><td>${esc(o.ref)}</td><td style="font-weight:700;color:${SC[o.s] || "#333"}">${esc(o.s)}</td><td>${esc(o.d)}</td><td>${esc(o.c)}</td></tr>`), "Obligations légales");
@@ -3381,7 +3395,7 @@ async function exportPDF(only) {
     // ---- bâtiments
     for (const b of data.buildings) {
       if (!only) {
-      newPage(b.name, "FICHE BÂTIMENT");
+      newPage(b.name, "FICHE BÂTIMENT", true);
       place(el(`<h1 class="pbt">${esc(b.name)}</h1>`));
       const kv = (b.info || []).filter(x => x[1]);
       if (kv.length) place(el(`<div class="pfld"><table class="pkv">${kv.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v).replace(/\n/g, "<br>")}</td></tr>`).join("")}</table></div>`));
@@ -3392,13 +3406,15 @@ async function exportPDF(only) {
       for (const c of b.chapters) {
         newPage(b.name, c.title);
         const cot = c.cot.length ? `<div class="pcot">${c.cot.map(x => `<div><span>${esc(x.label)}</span><br>${[1, 2, 3].map(n => `<img src="${n <= x.v ? icons[x.k].on : icons[x.k].off}" width="17" height="17" alt="">`).join("")}</div>`).join("")}</div>` : "";
-        place(el(`<div class="chead">${c.coverUrl ? `<img class="ccov" src="${c.coverUrl}" width="118" height="118" alt="">` : ""}<div><h2 class="pct">${esc(c.title)}</h2>${c.etat ? `<div style="font-size:13px;margin:-2px 0 8px">État d’entretien général : <b style="color:${c.etatCol}">${esc(c.etat)}</b></div>` : ""}${cot}</div></div>`));
+        const headNode = (n) => { if (L2 && cur.cols) cur.head.append(n); else place(n); };
+        headNode(el(`<div class="chead">${c.coverUrl ? `<img class="ccov" src="${c.coverUrl}" width="118" height="118" alt="">` : ""}<div><h2 class="pct">${esc(c.title)}</h2>${c.etat ? `<div style="font-size:13px;margin:-2px 0 8px">État d’entretien général : <b style="color:${c.etatCol}">${esc(c.etat)}</b></div>` : ""}${cot}</div></div>`));
         for (const f of c.fields) {
           const cls = f.kind === "etat" ? "etat" : f.kind === "th" ? "th" : "";
           const paras = f.paras.map(runs => `<p>${runs.map(r => runHtml(r, f.noinfo ? "#7F7F7F" : null)).join("") || "&nbsp;"}</p>`);
           placeSplit(cont => { const d = el(`<div class="pfld ${cls}"><div class="lb">${esc(f.label)}${cont ? " (suite)" : ""}</div></div>`); return { root: d, target: d }; }, paras);
         }
         if (c.costs && c.costs.length) {
+          fullMode();
           place(el(`<div class="psec">TABLEAU DES COÛTS</div>`));
           const SHORT = t => (t || "").replace(/ \(.*\)/, "");
           const CLS = { "Court terme (1-3 ans)": "tr", "Moyen terme (3-6 ans)": "tb", "Long terme (6-10 ans)": "tg" };
@@ -3413,6 +3429,7 @@ async function exportPDF(only) {
           place(el(`<div class="pnote">Estimatifs TTC sur la base des éléments visités, hors présence d’amiante ou de plomb, hors honoraires.</div>`));
         }
         if (c.photos.length) {
+          fullMode();
           let n0 = 0;
           placeSplit(() => { const d = el(`<div class="pphotos"></div>`); return { root: d, target: d }; }, c.photos.map(ph => `<figure class="pphoto"><img src="${ph.url}" width="${ph.w}" height="${ph.h}" alt="">${++n0 && ph.legend ? `<figcaption>Photo ${n0} – ${esc(ph.legend)}</figcaption>` : ""}</figure>`));
         }
@@ -3421,7 +3438,7 @@ async function exportPDF(only) {
     // ---- PPPT
     if (data.pppt) {
       const P = data.pppt; const colL = { court: "Court terme", moyen: "Moyen terme", long: "Long terme", "": "Non planifié" }; const TC = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B", "": "#444" };
-      newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SYNTHÈSE");
+      newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SYNTHÈSE", true);
       place(el(`<h1 class="pbt">PROJET DE PLAN PLURIANNUEL DE TRAVAUX</h1>`));
       place(el(`<div class="pnote" style="margin-bottom:12px">Estimatifs TTC sur la base des éléments visités, hors présence d’amiante ou de plomb, hors honoraires, CSPS, assurance dommages-ouvrage et frais annexes.</div>`));
       place(el(`<div class="psec">SYNTHÈSE PAR BÂTIMENT</div>`));
@@ -3436,7 +3453,7 @@ async function exportPDF(only) {
         rows.push(`<tr class="tot"><td colspan="5" style="color:${TC[t.key]}">TOTAL ${esc(t.title)}</td><td class="n">${fmtE(t.total)}</td></tr>`);
         tableSplit(`<th style="width:6%">N°</th><th style="width:20%">Localisation</th><th>Désignation des travaux</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th><th class="n" style="width:14%">Estimatif TTC</th>`, rows, t.title);
       }
-      newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SCÉNARIOS D’AMÉLIORATION");
+      newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SCÉNARIOS D’AMÉLIORATION", true);
       place(el(`<h1 class="pbt" style="color:#7030A0">SCÉNARIOS D’AMÉLIORATION THERMIQUE</h1>`));
       if (P.dpeGlobal) place(el(`<div style="margin:0 0 12px;font-weight:700">Performance actuelle de la copropriété : <span style="color:#7030A0">classe ${esc(P.dpeGlobal)}</span></div>`));
       tableSplit(`<th style="width:13%">Scénario</th><th>Travaux préconisés (BET)</th><th class="n" style="width:9%">Nb lignes</th><th class="n" style="width:14%">Estimatif TTC</th><th style="width:10%">Classe visée</th><th style="width:16%">Gain énergétique</th>`,
@@ -3458,7 +3475,7 @@ async function exportPDF(only) {
         const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>@page{size:210mm 297mm;margin:0} html,body{margin:0;padding:0;background:#fff} ${css} .pdfpage{ width:210mm !important; height:297mm !important; break-after:page; page-break-after:always; overflow:hidden; } .pdfpage:last-child{ break-after:auto; page-break-after:auto; }</style></head><body>${body}</body></html>`;
         const u8 = await window.dtgDesktop.pdfFromHtml(html);
         await saveBlob(new Blob([u8], { type: "application/pdf" }), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
-        host.remove(); btn.disabled = !S.d; btn.textContent = "Exporter PDF"; return;
+        host.remove(); btn.disabled = !S.d; btn.textContent = btnLbl; return;
       } catch (e) { console.warn("PDF vectoriel indisponible, export en image", e); }
     }
     const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
@@ -3470,7 +3487,7 @@ async function exportPDF(only) {
     }
     await saveBlob(pdf.output("blob"), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
   } catch (e) { console.error(e); toast("Erreur pendant l’export PDF : " + (e?.message || e)); if (only) host.remove(); }
-  if (!only) { host.remove(); btn.disabled = !S.d; btn.textContent = "Exporter PDF"; }
+  if (!only) { host.remove(); btn.disabled = !S.d; btn.textContent = btnLbl; }
 }
 
 /* ============ prévisualisation d'un chapitre (mêmes pages que le PDF) ============ */
@@ -3488,10 +3505,10 @@ function showPdfPreview(pages, host, cid) {
   m.querySelector("#pvZ-").onclick = () => { z = Math.max(0.4, z - 0.1); apply(); }; m.querySelector("#pvZ\\+").onclick = () => { z = Math.min(1.6, z + 0.1); apply(); };
   m.addEventListener("keydown", e => { if (e.key === "Escape") close(); }); m.tabIndex = -1; m.focus();
 }
-async function previewChapter(cid) {
+async function previewChapter(cid, lay) {
   if (!S.d || !S.chaps[cid]) return;
   const btn = $('[data-cact="preview"]'); const old = btn?.innerHTML; if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Aperçu…'; }
-  try { await flushSave(); await exportPDF(cid); } catch (e) { toast("Prévisualisation impossible : " + (e?.message || e)); }
+  try { await flushSave(); await exportPDF(cid, lay); } catch (e) { toast("Prévisualisation impossible : " + (e?.message || e)); }
   if (btn) { btn.disabled = false; btn.innerHTML = old; }
 }
 
@@ -3504,6 +3521,7 @@ function setTab(t) {
 }
 $$(".tabs [data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
 $("#btnPdf").onclick = () => exportPDF();
+$("#btnPdf2").onclick = () => exportPDF(undefined, "2col");
 $("#btnSaveDtg").onclick = () => saveDtgFile();
 async function closeDossier() {
   if (pending.c.size || pending.d) { clearTimeout(pending.t); await flushSave(); }
@@ -3517,7 +3535,7 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 $("#btnPending").onclick = () => openIdentify(pendingTx(), 0);
 function renderAll() {
   const rc = $("#refchip"); if (S.d) { rc.textContent = S.d.ref; rc.classList.remove("hidden"); } else rc.classList.add("hidden");
-  $("#btnPdf").disabled = !S.d; $("#btnClose").classList.toggle("hidden", !S.d); $("#btnSaveDtg").disabled = !S.d;
+  $("#btnPdf").disabled = !S.d; $("#btnPdf2").disabled = !S.d; $("#btnClose").classList.toggle("hidden", !S.d); $("#btnSaveDtg").disabled = !S.d;
   const pn = S.d ? pendingTx().length : 0; const bp = $("#btnPending");
   bp.classList.toggle("hidden", !pn); bp.textContent = pn + " vidéo(s) à identifier";
   if (S.tab === "sources") renderSources(); else if (S.tab === "redac") { renderTree(); renderEditor(); } else if (S.tab === "pppt") renderPPPT(); else renderPhotos();
