@@ -403,8 +403,9 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage.l2 .pbh .chead{ margin:0 0 18px; padding-bottom:14px; border-bottom:1px solid #D9D9D9; }
 .pdfpage.l2 .pct{ font-size:24pt; font-weight:300; text-transform:uppercase; letter-spacing:.4px; color:#C00000; margin:0 0 8px; }
 .pdfpage.l2 .pfld{ background:none; border-radius:0; padding:0; margin:0 0 16px; }
-.pdfpage.l2 .pfld .lb{ font-size:8.5pt; text-transform:uppercase; letter-spacing:.7px; color:#151515; margin:0 0 6px; break-after:avoid; }
-.pdfpage.l2 .pfld .lb::before{ content:""; display:block; width:34px; height:3px; background:#C00000; margin-bottom:6px; }
+.pdfpage.l2 .pbf{ flex:none; font-size:9pt; line-height:1.55; border-top:1px solid #D9D9D9; margin-top:6px; padding-top:16px; } .pdfpage.l2 .pbf:empty{ display:none; } .pdfpage.l2 .pbf .pfld:last-child{ margin-bottom:0; }
+.pdfpage.l2 .pfld .lb{ font-size:10.5pt; text-transform:uppercase; letter-spacing:.7px; color:#151515; margin:0 0 6px; break-after:avoid; }
+.pdfpage.l2 .pfld .lb::before{ content:""; display:block; width:40px; height:3px; background:#C00000; margin-bottom:6px; }
 .pdfpage.l2 .pfld.etat .lb::before{ background:#1F6FC5; } .pdfpage.l2 .pfld.th .lb::before{ background:#7030A0; }
 .pdfpage.l2 .pfld p{ text-align:left; hyphens:auto; margin:0 0 5px; }
 .pdfpage.l2 .pbt{ font-weight:300; text-transform:uppercase; color:#C00000; }
@@ -503,7 +504,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.26";
+const APP_VERSION = "0.1.27";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3354,7 +3355,7 @@ async function exportPDF(only, lay) {
     try { await document.fonts.load("400 12px Montserrat"); await document.fonts.load("700 12px Montserrat"); await document.fonts.load("italic 400 12px Montserrat"); } catch {}
     const icons = {}; for (const k of ["a", "t", "e"]) icons[k] = { on: u8ToDataUrl(await iconPng(COT_ICON[k], true), "image/png"), off: u8ToDataUrl(await iconPng(COT_ICON[k], false), "image/png") };
     const pages = []; let cur = null;
-    const newPage = (r1, r2, full) => { const pg = document.createElement("div"); pg.className = "pdfpage" + (L2 ? " l2" : ""); const cols = L2 && !full; pg.innerHTML = `<div class="ph-h"><div class="l"><b>DIAGNOSTIC TECHNIQUE GLOBAL</b>AGENCE D’ARCHITECTURE REMI THOLLET</div><div class="r"><b>${esc(r1 || "")}</b><span>${esc(r2 || "")}</span></div></div>${cols ? `<div class="pb pbc"><div class="pbh"></div><div class="pcols"></div></div>` : `<div class="pb"></div>`}<div class="pf"></div><div class="pl"></div>`; host.append(pg); pages.push(pg); const pb = $(".pb", pg); cur = { pg, pb, cols, head: cols ? $(".pbh", pg) : null, body: cols ? $(".pcols", pg) : pb, r1, r2 }; };
+    const newPage = (r1, r2, full) => { const pg = document.createElement("div"); pg.className = "pdfpage" + (L2 ? " l2" : ""); const cols = L2 && !full; pg.innerHTML = `<div class="ph-h"><div class="l"><b>DIAGNOSTIC TECHNIQUE GLOBAL</b>AGENCE D’ARCHITECTURE REMI THOLLET</div><div class="r"><b>${esc(r1 || "")}</b><span>${esc(r2 || "")}</span></div></div>${cols ? `<div class="pb pbc"><div class="pbh"></div><div class="pcols"></div><div class="pbf"></div></div>` : `<div class="pb"></div>`}<div class="pf"></div><div class="pl"></div>`; host.append(pg); pages.push(pg); const pb = $(".pb", pg); cur = { pg, pb, cols, head: cols ? $(".pbh", pg) : null, foot: cols ? $(".pbf", pg) : null, body: cols ? $(".pcols", pg) : pb, r1, r2 }; };
     const fits = () => { if (cur.cols) { cur.body.style.height = Math.max(40, cur.pb.clientHeight - cur.head.offsetHeight) + "px"; return cur.body.scrollWidth <= cur.body.clientWidth + 1; } return cur.body.scrollHeight <= cur.body.clientHeight + 1; };
     const fullMode = () => { if (L2 && cur && cur.cols) newPage(cur.r1, cur.r2, true); };
     const el = html => { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; };
@@ -3408,9 +3409,23 @@ async function exportPDF(only, lay) {
         const cot = c.cot.length ? `<div class="pcot">${c.cot.map(x => `<div><span>${esc(x.label)}</span><br>${[1, 2, 3].map(n => `<img src="${n <= x.v ? icons[x.k].on : icons[x.k].off}" width="17" height="17" alt="">`).join("")}</div>`).join("")}</div>` : "";
         const headNode = (n) => { if (L2 && cur.cols) cur.head.append(n); else place(n); };
         headNode(el(`<div class="chead">${c.coverUrl ? `<img class="ccov" src="${c.coverUrl}" width="118" height="118" alt="">` : ""}<div><h2 class="pct">${esc(c.title)}</h2>${c.etat ? `<div style="font-size:13px;margin:-2px 0 8px">État d’entretien général : <b style="color:${c.etatCol}">${esc(c.etat)}</b></div>` : ""}${cot}</div></div>`));
-        for (const f of c.fields) {
+        const isConc = f => f.kind === "etat" || f.kind === "th";
+        const flds = L2 ? [...c.fields.filter(f => !isConc(f)), ...c.fields.filter(isConc)] : c.fields;
+        for (const f of flds) {
           const cls = f.kind === "etat" ? "etat" : f.kind === "th" ? "th" : "";
           const paras = f.paras.map(runs => `<p>${runs.map(r => runHtml(r, f.noinfo ? "#7F7F7F" : null)).join("") || "&nbsp;"}</p>`);
+          if (L2 && isConc(f) && cur.cols) {   // conclusions : pleine largeur sous les deux colonnes
+            const node = el(`<div class="pfld ${cls}"><div class="lb">${esc(f.label)}</div>${paras.join("")}</div>`);
+            cur.body.style.height = "auto"; cur.body.style.columnFill = "balance"; cur.foot.append(node);
+            if (cur.pb.scrollHeight <= cur.pb.clientHeight + 1) { cur.balanced = true; continue; }
+            node.remove(); cur.body.style.columnFill = ""; fits();
+            newPage(cur.r1, cur.r2, true);
+          } else if (L2 && isConc(f) && cur.balanced) {
+            const node = el(`<div class="pfld ${cls}"><div class="lb">${esc(f.label)}</div>${paras.join("")}</div>`);
+            cur.foot.append(node);
+            if (cur.pb.scrollHeight <= cur.pb.clientHeight + 1) continue;
+            node.remove(); newPage(cur.r1, cur.r2, true);
+          }
           placeSplit(cont => { const d = el(`<div class="pfld ${cls}"><div class="lb">${esc(f.label)}${cont ? " (suite)" : ""}</div></div>`); return { root: d, target: d }; }, paras);
         }
         if (c.costs && c.costs.length) {
