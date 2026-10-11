@@ -395,6 +395,8 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .ptbl .n{ text-align:right; white-space:nowrap; } .pdfpage .ptbl .th, .pdfpage .ptbl .sc{ color:#7030A0; } .pdfpage .ptbl .gain{ color:#7030A0; font-weight:800; font-size:10pt; }
 .pdfpage .ptbl tr.gap td{ height:7px; padding:0; background:#F3F5F8; }
 .pdfpage .ptbl tr.sub td{ font-weight:700; background:#FAFAFA; } .pdfpage .ptbl tr.tot td{ font-weight:800; background:#F0F2F5; } .pdfpage .ptbl tr.grp td{ font-weight:700; color:#1F4E79; background:#EAF2FB; }
+.pdfpage .ptbl.tr{ border:2px solid #D0201A; } .pdfpage .ptbl.tb{ border:2px solid #1F6FC5; } .pdfpage .ptbl.tg{ border:2px solid #2C7A4B; }
+.pdfpage .ptotch{ text-align:right; font-weight:800; font-size:9pt; margin:2px 0 6px; }
 .pdfpage .pnote{ font-size:8pt; font-style:italic; color:#7F7F7F; }
 .pdfpage .pkv{ border-collapse:collapse; width:100%; } .pdfpage .pkv td{ padding:3px 6px 3px 0; vertical-align:top; } .pdfpage .pkv td.k{ font-weight:700; color:#1F4E79; width:38%; }
 .pdfpage .pimgs{ display:flex; gap:22px; justify-content:center; margin:6px 0 14px; } .pdfpage figure{ margin:0; text-align:center; }
@@ -489,7 +491,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.21";
+const APP_VERSION = "0.1.22";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3359,7 +3361,7 @@ async function exportPDF(only) {
     };
     const fmtE = n => Math.round(n || 0).toLocaleString("fr-FR") + " €";
     const TCOL = { "Court terme (1-3 ans)": "#D0201A", "Moyen terme (3-6 ans)": "#1F6FC5", "Long terme (6-10 ans)": "#2C7A4B" };
-    const tableSplit = (head, rows, caption) => placeSplit(cont => { const t = el(`<table class="ptbl">${caption && cont ? `<caption>${esc(caption)} (suite)</caption>` : ""}<thead><tr>${head}</tr></thead><tbody></tbody></table>`); return { root: t, target: $("tbody", t) }; }, rows);
+    const tableSplit = (head, rows, caption, xc = "") => placeSplit(cont => { const t = el(`<table class="ptbl ${xc}">${caption && cont ? `<caption>${esc(caption)} (suite)</caption>` : ""}<thead><tr>${head}</tr></thead><tbody></tbody></table>`); return { root: t, target: $("tbody", t) }; }, rows);
 
     // ---- couverture
     if (!only) {
@@ -3397,13 +3399,16 @@ async function exportPDF(only) {
         }
         if (c.costs && c.costs.length) {
           place(el(`<div class="psec">TABLEAU DES COÛTS</div>`));
-          const rows = []; let prev = null;
-          c.costs.forEach(l => { if (prev !== null && prev !== l.terme) rows.push(`<tr class="gap"><td colspan="7"></td></tr>`); prev = l.terme;
-            rows.push(`<tr><td style="color:${TCOL[l.terme] || "#333"};font-weight:${l.terme ? 700 : 400}">${esc(l.terme)}</td><td>${esc(l.des)}</td><td class="n">${esc(l.qte)}</td><td class="n">${esc(String(l.pu))}</td><td class="n">${fmtE(l.tot)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(l.scen)}</td></tr>`); });
-          const terms = [...new Set(c.costs.map(l => l.terme).filter(Boolean))];
-          if (terms.length > 1 || (terms.length === 1 && c.costs.some(l => !l.terme))) terms.forEach(t => rows.push(`<tr class="sub"><td colspan="4" style="color:${TCOL[t]}">Sous-total ${esc(t.replace(/ \(.*\)/, "").toLowerCase())}</td><td class="n">${fmtE(c.costs.filter(l => l.terme === t).reduce((s, l) => s + l.tot, 0))}</td><td colspan="2"></td></tr>`));
-          rows.push(`<tr class="tot"><td colspan="4">Total ${esc(c.title)}</td><td class="n">${fmtE(c.costs.reduce((s, l) => s + l.tot, 0))}</td><td colspan="2"></td></tr>`);
-          tableSplit(`<th style="width:15%">Échéance</th><th>Désignation des travaux</th><th class="n" style="width:10%">Quantité</th><th class="n" style="width:10%">PU TTC</th><th class="n" style="width:12%">Coût TTC</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th>`, rows, "Tableau des coûts");
+          const SHORT = t => (t || "").replace(/ \(.*\)/, "");
+          const CLS = { "Court terme (1-3 ans)": "tr", "Moyen terme (3-6 ans)": "tb", "Long terme (6-10 ans)": "tg" };
+          const groups = []; c.costs.forEach(l => { let g = groups.find(x => x.t === (l.terme || "")); if (!g) groups.push(g = { t: l.terme || "", ls: [] }); g.ls.push(l); });
+          const head = `<th style="width:15%">Échéance</th><th>Désignation des travaux</th><th class="n" style="width:10%">Quantité</th><th class="n" style="width:10%">PU TTC</th><th class="n" style="width:12%">Coût TTC</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th>`;
+          groups.forEach(g => {
+            const rows = g.ls.map(l => `<tr><td style="color:${TCOL[g.t] || "#333"};font-weight:700">${esc(SHORT(g.t))}</td><td>${esc(l.des)}</td><td class="n">${esc(l.qte)}</td><td class="n">${esc(String(l.pu))}</td><td class="n">${fmtE(l.tot)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(l.scen)}</td></tr>`);
+            rows.push(`<tr class="tot"><td colspan="4" style="color:${TCOL[g.t] || "#333"}">Total ${esc(SHORT(g.t).toLowerCase() || "sans échéance")}</td><td class="n">${fmtE(g.ls.reduce((s, l) => s + l.tot, 0))}</td><td colspan="2"></td></tr>`);
+            tableSplit(head, rows, "Tableau des coûts", CLS[g.t] || "");
+          });
+          if (groups.length > 1) place(el(`<div class="ptotch">Total ${esc(c.title)} : ${fmtE(c.costs.reduce((s, l) => s + l.tot, 0))}</div>`));
           place(el(`<div class="pnote">Estimatifs TTC sur la base des éléments visités, hors présence d’amiante ou de plomb, hors honoraires.</div>`));
         }
         if (c.photos.length) {
