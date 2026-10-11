@@ -35,6 +35,24 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (e, url) => { if (/^https?:/.test(url)) { e.preventDefault(); shell.openExternal(url); } });
   buildMenu();
+  setupSpellcheck();
+}
+// Correcteur orthographique : langue française, menu clic droit avec propositions de correction
+function setupSpellcheck() {
+  const ses = win.webContents.session;
+  try { const av = ses.availableSpellCheckerLanguages || []; const fr = av.find(l => l === "fr") || av.find(l => l === "fr-FR") || av.find(l => /^fr/i.test(l)); ses.setSpellCheckerLanguages(fr ? [fr] : ["fr-FR"]); ses.setSpellCheckerEnabled(true); } catch {}
+  win.webContents.on("context-menu", (e, params) => {
+    const T = [];
+    if (params.misspelledWord) {
+      const sug = (params.dictionarySuggestions || []).slice(0, 7);
+      for (const sgg of sug) T.push({ label: sgg, click: () => win.webContents.replaceMisspelling(sgg) });
+      if (!sug.length) T.push({ label: "Aucune suggestion", enabled: false });
+      T.push({ type: "separator" }, { label: "Ajouter « " + params.misspelledWord + " » au dictionnaire", click: () => ses.addWordToSpellCheckerDictionary(params.misspelledWord) }, { type: "separator" });
+    }
+    if (params.isEditable) T.push({ role: "undo", label: "Annuler" }, { role: "redo", label: "Rétablir" }, { type: "separator" }, { role: "cut", label: "Couper" }, { role: "copy", label: "Copier" }, { role: "paste", label: "Coller" }, { type: "separator" }, { role: "selectAll", label: "Tout sélectionner" });
+    else if (params.selectionText) T.push({ role: "copy", label: "Copier" });
+    if (T.length) Menu.buildFromTemplate(T).popup({ window: win });
+  });
 }
 function openSettings() {
   if (settingsWin) { settingsWin.focus(); return; }
