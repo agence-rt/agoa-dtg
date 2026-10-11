@@ -214,7 +214,7 @@ button{ cursor:pointer; }
 .costs-sec{ margin-top:30px; border-top:1px solid var(--line); padding-top:14px; }
 .costs-sec h4{ font-size:14.5px; color:var(--accent); }
 .ctab{ width:100%; border-collapse:collapse; font-size:14px; table-layout:fixed; }
-.ctab .calc{ background:var(--soft); }
+.ctab .calc{ background:var(--soft); } .ctab td.calc .cin, .ctab th.calc{ font-size:12px; padding-left:2px; padding-right:2px; } .ctab td.calc select{ text-overflow:ellipsis; }
 .ctab th.calc{ color:var(--muted); }
 .ctab th.th{ color:var(--violet); }
 .ctab td.calc + td.acts, .ctab th.calc:last-of-type{ }
@@ -489,7 +489,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.20";
+const APP_VERSION = "0.1.21";
 const PHOTO_CM = 5.3; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1776,7 +1776,7 @@ function costsHtml(c) {
   const subs = Object.keys(TERMES).map(k => [k, L.filter(l => l.terme === k)]).filter(([, a]) => a.length);
   const baseOpts = sel => `<option value="">—</option>` + COUTS.map((x, i) => `<option value="${i}" ${sel === String(i) ? "selected" : ""}>${esc(x[0])} · ${x[2].toLocaleString("fr-FR")} €/${esc(x[1])}</option>`).join("");
   return `<div class="row" style="margin-bottom:10px"><h4 style="margin:0;flex:1">Tableau des coûts</h4><button class="btn small" id="btnAddCost">Ajouter une ligne</button></div>
-    ${L.length ? `<table class="ctab"><colgroup><col style="width:118px"><col><col style="width:62px"><col style="width:92px"><col style="width:112px"><col style="width:66px"><col style="width:74px"><col style="width:200px"><col style="width:82px"><col style="width:34px"></colgroup>
+    ${L.length ? `<table class="ctab"><colgroup><col style="width:104px"><col><col style="width:54px"><col style="width:84px"><col style="width:98px"><col style="width:48px"><col style="width:54px"><col style="width:84px"><col style="width:62px"><col style="width:30px"></colgroup>
     <thead><tr><th>Échéance</th><th>Désignation des travaux</th><th class="th">Gain énerg.</th><th class="th">Scénario thermique</th><th class="n">Coût TTC</th><th class="calc">Qté</th><th class="calc">Unité</th><th class="calc">Prix de la base</th><th class="calc n">PU TTC</th><th></th></tr></thead><tbody>
     ${sortedIdx(L).map((i, n, arr) => { const l = L[i]; const prev = n ? (L[arr[n - 1]].terme || "") : null; return `${prev !== null && prev !== (l.terme || "") ? `<tr class="gap" aria-hidden="true"><td colspan="10"></td></tr>` : ""}<tr data-ci="${i}" class="t-${l.terme || "none"}">
       <td><select class="cin" data-k="terme"><option value="">—</option>${Object.entries(TERMES).map(([k, v]) => `<option value="${k}" ${l.terme === k ? "selected" : ""} title="${v}">${v.split(" ")[0]} terme</option>`).join("")}</select></td>
