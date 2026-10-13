@@ -343,7 +343,8 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .bsheet h2{ margin:0 0 4px; font-size:26px; }
 .binfo{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px 18px; margin:16px 0 8px; }
 .binfo label{ display:block; font-size:13.5px; color:var(--muted); margin-bottom:3px; }
-.binfo input, .binfo textarea{ width:100%; }
+.binfo input, .binfo textarea, .binfo select{ width:100%; }
+.bhead{ display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start; margin:16px 0 8px; } .bhph{ flex:none; width:230px; } .bhph .bimg{ min-height:170px; } .bhdpe{ flex:none; width:210px; } .bhinfo{ flex:1; min-width:300px; margin:0; }
 .bimgs{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
 .bimg{ position:relative; display:grid; place-items:center; min-height:260px; border:2px dashed var(--line); border-radius:12px; background:var(--soft); overflow:hidden; cursor:pointer; color:var(--muted); text-align:center; padding:10px; }
 .bimg.has{ border:1px solid var(--line); padding:0; background:var(--panel); }
@@ -426,6 +427,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .pimgs img{ border-radius:12px; display:block; margin:0 auto; object-fit:cover; }
 .pdfpage .pphoto img{ border-radius:0; display:block; margin:0 auto; }
 .pdfpage figcaption{ font-size:8.5pt; font-style:italic; color:#444; margin-top:5px; }
+.pdfpage .pbid{ display:flex; gap:16px; align-items:flex-start; margin:0 0 14px; } .pdfpage .bph{ flex:none; width:190px; } .pdfpage .bph img{ width:190px; height:190px; object-fit:cover; border-radius:12px; display:block; } .pdfpage .bdpe{ flex:none; width:130px; } .pdfpage .bdpe img{ width:130px; height:auto; display:block; } .pdfpage .bkv{ flex:1; min-width:0; font-size:9pt; } .pdfpage .bkv .pkv td.k{ width:44%; }
 .pdfpage .pdpe .lb{ font-weight:700; color:#1F4E79; margin-bottom:6px; }
 .pdfpage .pphotos{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px 4px; margin-top:10px; align-items:start; }
 .pdfpage .pphoto{ width:auto; } .pdfpage .pphoto figcaption{ font-size:8pt; }
@@ -515,7 +517,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.33";
+const APP_VERSION = "0.1.34";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -2857,6 +2859,8 @@ async function openTrash() {
 /* ============ fiche bâtiment ============ */
 const DPE = [["A", "#009C6D"], ["B", "#52B153"], ["C", "#78BD76"], ["D", "#F4E70F"], ["E", "#F0B50F"], ["F", "#EB8235"], ["G", "#D7221F"]];
 const BINFO = [["typologie", "Typologie"], ["periode", "Période de construction"], ["niveaux", "Nombre de niveaux"], ["lots", "Nombre de lots / logements"], ["structure", "Structure principale"], ["ascenseur", "Ascenseur"], ["acces", "Accès / adresse"], ["chauffage", "Chauffage"]];
+const TYPOS = ["Empire (1800-1815)", "Restauration (1815-1830)", "Louis-Philippe (1830-1850)", "Haussmannien (1850-1914)", "Art Nouveau (1895-1914)", "Art Déco (1920-1930)", "Années trente (1930-1939)", "Sociaux entre deux guerres (1918-1939)", "Trente Glorieuses (1946-1976)", "Moderne (1977+)"];
+const typoSel = (id, attr, val) => { const v = val || ""; const opts = ["", ...TYPOS]; if (v && !opts.includes(v)) opts.push(v); return `<select id="${id}" class="field-in" ${attr}>${opts.map(o => `<option value="${esc(o)}" ${o === v ? "selected" : ""}>${o ? esc(o) : "—"}</option>`).join("")}</select>`; };
 S.imgs = {};
 async function getImg(key) {
   if (key in S.imgs) return S.imgs[key];
@@ -2934,7 +2938,7 @@ function renderFront(key) {
   } else if (key === "fiche") {
     const F = [["adresse", "Adresse"], ["parcelle", "Référence cadastrale"], ["immatriculation", "Immatriculation"], ["siret", "SIRET"], ["batiments", "Nombre de bâtiments"], ["lots", "Nombre de lots"], ["typologie", "Typologie"], ["annee", "Période de construction"], ["ascenseurs", "Ascenseurs"], ["stationnements", "Stationnements en sous-sol"]];
     const geo = new Set(d.front.geo || []);
-    body = `<div class="binfo">${F.map(([k, l]) => `<div><label for="fi-${k}">${l}</label><input id="fi-${k}" class="field-in" data-fi="${k}" value="${esc(d.meta[k] || "")}"></div>`).join("")}</div>
+    body = `<div class="binfo">${F.map(([k, l]) => `<div><label for="fi-${k}">${l}</label>${k === "typologie" ? typoSel("fi-" + k, `data-fi="${k}"`, d.meta[k]) : `<input id="fi-${k}" class="field-in" data-fi="${k}" value="${esc(d.meta[k] || "")}">`}</div>`).join("")}</div>
       <div class="bimgs">${slot("cadastre", "Cadastre")}${slot("aerien", "Vue aérienne")}</div>
       <h3 style="font-size:15.5px;margin:22px 0 4px">Géorisques</h3><p class="hint" style="margin:0 0 6px">Cochez les risques identifiés sur georisques.gouv.fr.</p>
       <div class="bimgs"><div><b>Risques naturels</b>${GEO_NAT.map(g => `<label class="frchk"><input type="checkbox" data-geo="${esc(g)}" ${geo.has(g) ? "checked" : ""}> ${esc(g)}</label>`).join("")}</div><div><b>Risques technologiques</b>${GEO_TECH.map(g => `<label class="frchk"><input type="checkbox" data-geo="${esc(g)}" ${geo.has(g) ? "checked" : ""}> ${esc(g)}</label>`).join("")}</div></div>`;
@@ -2960,20 +2964,18 @@ function renderBuilding(b) {
     <div class="crumb">Fiche bâtiment</div>
     <h2>${esc(b.name)}</h2>
     <p class="muted" style="margin:0">Informations de base reprises en tête du bâtiment dans l’export Word.</p>
-    <div class="binfo">${BINFO.map(([k, l]) => `<div><label for="bi-${k}">${l}</label><input id="bi-${k}" class="field-in" data-bi="${k}" value="${esc(b.info[k] || "")}"></div>`).join("")}</div>
+    <div class="bhead"><div class="bhph">${slot("photo", "Photo du bâtiment")}</div><div class="bhdpe"><b>Étiquette énergétique</b><p class="hint" style="margin:2px 0 0">Classe DPE du bâtiment. Recliquez pour effacer.</p><div class="dpe">${DPE.map(([l, col], i) => `<button data-dpe="${l}" class="${b.dpe === l ? "on" : ""}" style="background:${col};width:${40 + i * 9}%;${l === "D" ? "color:#333" : ""}" aria-pressed="${b.dpe === l}">${l}</button>`).join("")}</div></div>
+    <div class="binfo bhinfo">${BINFO.map(([k, l]) => `<div><label for="bi-${k}">${l}</label>${k === "typologie" ? typoSel("bi-" + k, `data-bi="${k}"`, b.info[k]) : `<input id="bi-${k}" class="field-in" data-bi="${k}" value="${esc(b.info[k] || "")}">`}</div>`).join("")}</div></div>
     <div><label class="muted" for="bi-rem" style="font-size:13.5px">Observations générales</label><textarea id="bi-rem" class="field-in" data-bi="remarques" rows="3" style="width:100%;font:10.5pt/1.6 Montserrat, Arial, sans-serif">${esc(b.info.remarques || "")}</textarea></div>
     ${betBuildingHtml(b)}
     <div class="bimgs">${slot("plan", "Plan")}${slot("loc", "Localisation")}</div>
-    <h3 style="font-size:15.5px;margin:26px 0 4px">Étiquette énergétique</h3>
-    <p class="hint" style="margin:0">Classe du bâtiment (DPE). Cliquez à nouveau pour effacer.</p>
-    <div class="dpe">${DPE.map(([l, col], i) => `<button data-dpe="${l}" class="${b.dpe === l ? "on" : ""}" style="background:${col};width:${40 + i * 9}%;${l === "D" ? "color:#333" : ""}" aria-pressed="${b.dpe === l}">${l}</button>`).join("")}</div>
   </div>`;
   $$("[data-bi]", ed).forEach(i => i.oninput = () => { b.info[i.dataset.bi] = i.value; queueSave("d"); });
   $$("[data-dpe]", ed).forEach(x => x.onclick = () => { b.dpe = b.dpe === x.dataset.dpe ? null : x.dataset.dpe; queueSave("d"); renderBuilding(b); });
   $$("[data-imgin]", ed).forEach(inp => inp.addEventListener("change", async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return; try { await setImg(inp.dataset.imgin, await fitImage(f)); } catch { toast("Format d’image non lisible (JPG, PNG ou WebP)."); } renderBuilding(b); }));
   $$("[data-imgslot]", ed).forEach(sl => { sl.addEventListener("dragenter", () => sl.classList.add("drag")); sl.addEventListener("dragleave", () => sl.classList.remove("drag")); sl.addEventListener("drop", () => sl.classList.remove("drag")); });
   $$("[data-imgrm]", ed).forEach(x => x.onclick = async () => { await setImg(x.dataset.imgrm, null); renderBuilding(b); });
-  for (const k of ["plan", "loc"]) { const key = b.id + "_" + k; if (!(key in S.imgs)) { S.imgs[key] = undefined; delete S.imgs[key]; getImg(key).then(() => { if (S.sel === "B:" + b.id) renderBuilding(b); }); } }
+  for (const k of ["photo", "plan", "loc"]) { const key = b.id + "_" + k; if (!(key in S.imgs)) { S.imgs[key] = undefined; delete S.imgs[key]; getImg(key).then(() => { if (S.sel === "B:" + b.id) renderBuilding(b); }); } }
 }
 
 function betBuildingHtml(b) {
@@ -3159,6 +3161,9 @@ function buildDocx(D, data) {
   data.buildings.forEach(b => {
     children.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new D.TextRun(b.name)] }));
     { const nb0 = { style: D.BorderStyle.NONE, size: 0, color: "FFFFFF" }; const nbs = { top: nb0, bottom: nb0, left: nb0, right: nb0, insideHorizontal: nb0, insideVertical: nb0 };
+      if (b.photo || b.dpe) children.push(new D.Table({ width: { size: 100, type: D.WidthType.PERCENTAGE }, borders: nbs, rows: [new D.TableRow({ children: [
+        ...(b.photo ? [new D.TableCell({ borders: nbs, width: { size: 55, type: D.WidthType.PERCENTAGE }, children: [new D.Paragraph({ children: [new D.ImageRun({ type: "jpg", data: b.photo.data, transformation: { width: b.photo.w, height: b.photo.h } })] })] })] : []),
+        ...(b.dpe ? [new D.TableCell({ borders: nbs, width: { size: 45, type: D.WidthType.PERCENTAGE }, children: [new D.Paragraph({ spacing: { after: 60 }, children: [RUN("Étiquette énergétique : classe " + b.dpe.cls, { bold: true, color: "1F4E79" })] }), new D.Paragraph({ children: [new D.ImageRun({ type: "png", data: b.dpe.png, transformation: { width: 140, height: 82 } })] })] })] : [])] })] }), new D.Paragraph({ spacing: { after: 120 }, children: [] }));
       const kv = (b.info || []).filter(x => x[1]);
       if (kv.length) children.push(new D.Table({ width: { size: 100, type: D.WidthType.PERCENTAGE }, borders: nbs, columnWidths: [3000, 6600], rows: kv.map(([k, v]) => new D.TableRow({ children: [
         new D.TableCell({ borders: nbs, children: [new D.Paragraph({ spacing: { after: 40 }, children: [RUN(k, { bold: true, color: "1F4E79" })] })] }),
@@ -3168,7 +3173,6 @@ function buildDocx(D, data) {
         new D.Paragraph({ alignment: D.AlignmentType.CENTER, children: [new D.ImageRun({ type: "jpg", data: im.data, transformation: { width: im.w, height: im.h } })] }),
         new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { after: 120 }, children: [RUN(im.label, { it: true, size: 16, color: "404040" })] })] })) })] }));
       if (b.betLine) children.push(new D.Paragraph({ spacing: { before: 200, after: 60 }, children: [RUN("Étude thermique (BET) : ", { bold: true, color: "7030A0" }), RUN(b.betLine, { color: "7030A0" })] }));
-      if (b.dpe) children.push(new D.Paragraph({ keepNext: true, spacing: { before: 240, after: 60 }, children: [RUN("Étiquette énergétique : classe " + b.dpe.cls, { bold: true, color: "1F4E79" })] }), new D.Paragraph({ children: [new D.ImageRun({ type: "png", data: b.dpe.png, transformation: { width: 140, height: 82 } })] }));
     }
     b.chapters.forEach((c, ci) => {
       if (c.cover) {
@@ -3299,6 +3303,7 @@ async function collectExport(opt, only) {
       const nb = { name: b.name, chapters: [], info: BINFO.map(([k, l]) => [l, (b.info || {})[k] || ""]).concat([["Observations générales", (b.info || {}).remarques || ""]]), images: [] };
       for (const [k, lbl] of [["plan", "Plan"], ["loc", "Localisation"]]) { const u = await getImg(b.id + "_" + k); if (u) { try { const bmp = await createImageBitmap(new Blob([dataUrlToU8(u)], { type: "image/jpeg" })); const MAX = 300; let w = MAX, hh = Math.round(MAX * bmp.height / bmp.width); if (hh > 340) { w = Math.round(w * 340 / hh); hh = 340; } bmp.close?.(); nb.images.push({ data: dataUrlToU8(u), url: u, w, h: hh, label: lbl }); } catch {} } }
       if (b.bet || S.d.bet?.result?.dpeGlobal) nb.betLine = [b.bet?.dpe ? "DPE du bâtiment : " + b.bet.dpe : "", b.bet?.ges ? "GES : " + b.bet.ges : "", b.bet?.conso || "", S.d.bet?.result?.dpeGlobal ? "copropriété : classe " + S.d.bet.result.dpeGlobal : ""].filter(Boolean).join(" · ");
+      { const pu = await getImg(b.id + "_photo"); if (pu) { try { const bmp = await createImageBitmap(new Blob([dataUrlToU8(pu)], { type: "image/jpeg" })); let w = 200, hh = Math.round(200 * bmp.height / bmp.width); if (hh > 230) { w = Math.round(w * 230 / hh); hh = 230; } bmp.close?.(); nb.photo = { url: pu, data: dataUrlToU8(pu), w, h: hh }; } catch {} } }
       if (b.dpe) { try { const png = await dpePng(b.dpe); nb.dpe = { cls: b.dpe, png, url: u8ToDataUrl(png, "image/png") }; } catch {} }
       for (const id of b.chapters) {
         if (only && id !== only) continue;
@@ -3312,7 +3317,7 @@ async function collectExport(opt, only) {
         if (c.cover) { try { const [, b64] = c.cover.split(","); const bin = atob(b64); const u8 = new Uint8Array(bin.length); for (let q = 0; q < bin.length; q++) u8[q] = bin.charCodeAt(q); const bmp = await createImageBitmap(new Blob([u8], { type: "image/jpeg" })); const cv = document.createElement("canvas"); cv.width = cv.height = 300; const ctx = cv.getContext("2d"); ctx.beginPath(); ctx.roundRect(0, 0, 300, 300, 42); ctx.clip(); ctx.drawImage(bmp, 0, 0, 300, 300); const pb = await new Promise(r => cv.toBlob(r, "image/png")); coverPng = new Uint8Array(await pb.arrayBuffer()); } catch {} }
         nb.chapters.push({ id: c.id, etat: (ETATS.find(e => e[0] === c.etatGen) || [])[1] || "", etatCol: (ETATS.find(e => e[0] === c.etatGen) || [])[2] || "", cover: coverPng, coverUrl: c.cover || null, type: c.type, costs: sortedIdx(c.costs || []).map(i => c.costs[i]).filter(l => l.des || lineTotal(l)).map(l => ({ des: l.des || "", qte: !isManual(l) && l.qte ? (+l.qte).toLocaleString("fr-FR") + " " + (l.unite || "") : "", pu: !isManual(l) && l.pu ? euro(+l.pu) : "", tot: lineTotal(l), terme: TERMES[l.terme] || "", gain: l.gain || "", scen: l.scen || "" })), title: c.title, cot: T.cot.map(k => ({ k, label: COT_LBL[k], v: c.cot[k] || 0, th: k !== "a" })).filter(x => x.v), fields, photos });
       }
-      (nb.chapters.length || nb.images.length || nb.dpe || nb.info.some(x => x[1])) && data.buildings.push(nb);
+      (nb.chapters.length || nb.images.length || nb.dpe || nb.photo || nb.info.some(x => x[1])) && data.buildings.push(nb);
     }
     data.oblig = OBLIG.filter(([k]) => S.d.oblig?.[k]?.s).map(([k, l, ref]) => ({ l, ref, s: S.d.oblig[k].s, d: S.d.oblig[k].d || "", c: S.d.oblig[k].c || "" }));
     if (!only) { const P = ppptData(); if (P.grand || P.scen.some(s => s.lines.length)) data.pppt = { ...P, cols: ["court", "moyen", "long"].concat(P.hasNP ? [""] : []) }; }
@@ -3527,11 +3532,11 @@ async function exportPDF(only, lay) {
       if (!only) {
       newPage(b.name, "FICHE BÂTIMENT", true); mark(b.name, 0);
       place(el(`<h1 class="pbt">${esc(b.name)}</h1>`));
-      const kv = (b.info || []).filter(x => x[1]);
-      if (kv.length) place(el(`<div class="pfld"><table class="pkv">${kv.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v).replace(/\n/g, "<br>")}</td></tr>`).join("")}</table></div>`));
+      const kvAll = (b.info || []).filter(x => x[1]); const kv = kvAll.filter(x => x[0] !== "Observations générales"), obs = kvAll.find(x => x[0] === "Observations générales");
+      if (kv.length || b.photo || b.dpe) place(el(`<div class="pbid">${b.photo ? `<div class="bph"><img src="${b.photo.url}" alt=""></div>` : ""}${b.dpe ? `<div class="bdpe"><img src="${b.dpe.url}" alt=""></div>` : ""}<div class="bkv"><table class="pkv">${kv.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v).replace(/\n/g, "<br>")}</td></tr>`).join("")}</table></div></div>`));
+      if (obs) place(el(`<div class="pfld"><div class="lb">Observations générales</div><p>${esc(obs[1]).replace(/\n/g, "<br>")}</p></div>`));
       if (b.images.length) place(el(`<div class="pimgs">${b.images.map(im => `<figure><img src="${im.url}" width="${Math.round(im.w * 1.05)}" height="${Math.round(im.h * 1.05)}" alt=""><figcaption>${esc(im.label)}</figcaption></figure>`).join("")}</div>`));
       if (b.betLine) place(el(`<div class="pfld th"><div class="lb">Étude thermique (BET)</div><p>${esc(b.betLine)}</p></div>`));
-      if (b.dpe) place(el(`<div class="pdpe"><div class="lb">Étiquette énergétique : classe ${esc(b.dpe.cls)}</div><img src="${b.dpe.url}" width="160" height="93" alt=""></div>`));
       }
       for (const c of b.chapters) {
         newPage(b.name, c.title); mark(c.title, 1);
