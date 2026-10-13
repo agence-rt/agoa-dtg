@@ -414,7 +414,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage.l2 .pbt{ font-weight:300; text-transform:uppercase; color:#C00000; }
 .pdfpage.l2 .pul{ margin:0 0 6px; padding-left:16px; } .pdfpage.l2 .pul li{ margin:0 0 3px; text-align:justify; hyphens:auto; }
 .pdfpage.l2 .pcols.fl .pfld{ break-inside:auto; }
-.pdfpage.l2 .ptoc{ font-size:9pt; } .pdfpage.l2 .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage.l2 .tli i{ flex:1; border-bottom:.5px solid #111; transform:translateY(-3px); min-width:12px; } .pdfpage.l2 .tli b{ font-weight:700; color:#D0201A; }
+.pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage.l2 .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage.l2 .tli i{ flex:1; border-bottom:.5px solid #999; transform:translateY(-3px); min-width:12px; } .pdfpage.l2 .tli b{ font-weight:700; color:#D0201A; }
 .pdfpage.l2 .tli.l0{ font-weight:700; margin-top:9px; } .pdfpage.l2 .tli.l1{ padding-left:14px; }
 .pdfpage.l2 .pduo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0 0 16px; } .pdfpage.l2 .pph{ height:200px; border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage.l2 .pph.has{ border-style:solid; border-color:#D9D9D9; padding:0; overflow:hidden; } .pdfpage.l2 .pph img{ width:100%; height:100%; object-fit:contain; display:block; }
 .pdfpage.l2 .pduo.tall .pph{ height:330px; }
@@ -515,7 +515,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.32";
+const APP_VERSION = "0.1.33";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3401,7 +3401,6 @@ async function coverCanvasUrl(photoUrl) {
   ctx.fillStyle = "#CCCCCC"; ctx.fillRect(0, 0, 794, 1123);
   if (photoUrl) { try { const bmp = await createImageBitmap(new Blob([dataUrlToU8(photoUrl)], { type: "image/jpeg" })); const sc = Math.max(560 / bmp.width, 1123 / bmp.height); const w = bmp.width * sc, hh = bmp.height * sc; ctx.drawImage(bmp, (560 - w) / 2, (1123 - hh) / 2, w, hh); } catch {} }
   ctx.fillStyle = "#C00000"; ctx.beginPath(); ctx.moveTo(548, 0); ctx.lineTo(794, 0); ctx.lineTo(794, 1123); ctx.lineTo(373, 1123); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = "#C00000"; ctx.fillRect(0, 1088, 380, 2);
   return cv.toDataURL("image/jpeg", 0.9);
 }
 const runHtml = (r, base) => { const c = r.c || (r.r ? "r" : null); let s = esc(r.t); if (r.u) s = `<u>${s}</u>`; if (r.i) s = `<i>${s}</i>`; if (r.b) s = `<b>${s}</b>`; const col = c === "r" ? "#D0201A" : c === "v" ? "#7030A0" : c === "k" ? "#111" : base; return col ? `<span style="color:${col}">${s}</span>` : s; };
