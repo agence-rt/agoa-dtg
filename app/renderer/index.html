@@ -408,9 +408,10 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage.l2 .pcols .pfld{ break-inside:avoid; }
 .pdfpage.l2 .pfld{ background:none; border-radius:0; padding:0; margin:0 0 16px; }
 .pdfpage.l2 .pbf{ flex:none; font-size:9pt; line-height:1.55; margin-top:6px; padding-top:12px; } .pdfpage.l2 .pbf:empty{ display:none; } .pdfpage.l2 .pbf .pfld:last-child{ margin-bottom:0; }
-.pdfpage.l2 .pfld .lb{ break-inside:avoid; font-size:10.5pt; text-transform:uppercase; letter-spacing:.7px; color:#151515; margin:0 0 6px; break-after:avoid; }
-.pdfpage.l2 .pfld .lb::before{ content:""; display:block; width:40px; height:3px; background:#C00000; margin-bottom:6px; }
-.pdfpage.l2 .pfld.etat .lb::before{ background:#111; } .pdfpage.l2 .pfld.th .lb::before{ background:#7030A0; } .pdfpage.l2 .pfld.th .lb{ color:#7030A0; }
+.pdfpage.l2 .pfld .lb{ break-inside:avoid; font-size:9pt; text-transform:uppercase; letter-spacing:.7px; color:#151515; margin:0 0 6px; break-after:avoid; }
+.pdfpage.l2 .pfld .lb::before{ content:""; display:block; width:40px; height:3px; background:#111; margin-bottom:6px; }
+.pdfpage.l2 .pfld.etat .lb, .pdfpage.l2 .pfld.th .lb{ font-size:10.5pt; }
+.pdfpage.l2 .pfld.etat .lb::before{ background:#C00000; } .pdfpage.l2 .pfld.th .lb::before{ background:#7030A0; } .pdfpage.l2 .pfld.th .lb{ color:#7030A0; }
 .pdfpage.l2 .pfld p{ text-align:justify; hyphens:auto; margin:0 0 5px; }
 .pdfpage.l2 .pbt{ font-weight:300; text-transform:uppercase; color:#C00000; }
 .pdfpage.l2 .pul{ margin:0 0 6px; padding-left:16px; } .pdfpage.l2 .pul li{ margin:0 0 3px; text-align:justify; hyphens:auto; }
@@ -517,7 +518,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.35";
+const APP_VERSION = "0.1.36";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3545,7 +3546,7 @@ async function exportPDF(only, lay) {
         newPage(b.name, c.title); mark(c.title, 1);
         const cot = c.cot.length ? `<div class="pcot">${c.cot.map(x => `<div><span>${esc(x.label)}</span><br>${[1, 2, 3].map(n => `<img src="${n <= x.v ? icons[x.k].on : icons[x.k].off}" width="17" height="17" alt="">`).join("")}</div>`).join("")}</div>` : "";
         const headNode = (n) => { if (L2 && cur.cols) cur.head.append(n); else place(n); };
-        headNode(el(`<div class="chead">${c.coverUrl ? `<img class="ccov" src="${c.coverUrl}" width="118" height="118" alt="">` : ""}<div><h2 class="pct">${esc(c.title)}</h2>${c.etat ? `<div style="font-size:13px;margin:-2px 0 8px">État d’entretien général : <b style="color:${c.etatCol}">${esc(c.etat)}</b></div>` : ""}${cot}</div></div>`));
+        headNode(el(`<div class="chead">${c.coverUrl ? `<img class="ccov" src="${c.coverUrl}" width="118" height="118" alt="">` : ""}<div><h2 class="pct">${esc(c.title)}</h2>${c.etat ? `<div style="font-size:13px;margin:-2px 0 8px">État d’entretien général : <b style="background:${c.etatCol};color:#fff;padding:2px 9px;border-radius:10px;font-size:11px">${esc(c.etat)}</b></div>` : ""}${cot}</div></div>`));
         const isConc = f => f.kind === "etat" || f.kind === "th" || /^\s*[eé]tat d.entretien|caract[eé]ristiques? thermiques?/i.test(f.label || "");
         const flds = L2 ? [...c.fields.filter(f => !isConc(f)), ...c.fields.filter(isConc)] : c.fields;
         const placeConc = (f, cls, paras) => {   // conclusions : pleine largeur, jamais coupées par un saut de page
