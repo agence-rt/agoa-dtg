@@ -361,7 +361,9 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .bld-h b.bname{ cursor:pointer; }
 .bld-h b.bname[aria-current="true"]{ color:var(--accent); text-decoration:underline; }
 /* PPPT */
-.pppt{ max-width:1240px; margin:0 auto; padding:24px 22px 100px; }
+.pppt{ max-width:1240px; margin:0 auto; background:var(--sheet); border:1px solid var(--line); border-radius:var(--r); padding:30px 38px 40px; }
+.ptab[style*="solid"]{ border-collapse:separate; border-spacing:0; } .ptab tr.gt{ cursor:pointer; } .ptab tr.gt:hover td{ background:var(--accent-soft); }
+.ptab.nop tbody td, .ptab tr.nop td{ background:#FDE7E5; } .ptab.nop tr.gt:hover td, .ptab tr.nop.gt:hover td{ background:#F9CFCB; }
 .pppt h2{ font-size:22px; margin:28px 0 10px; }
 .pppt h3{ font-size:16px; margin:22px 0 8px; }
 .ptab{ width:100%; border-collapse:collapse; font-size:14.5px; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
@@ -522,7 +524,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.39";
+const APP_VERSION = "0.1.40";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1731,7 +1733,7 @@ function renderEditor() {
     <div class="ch-title"><input id="chTitle" value="${esc(c.title)}" aria-label="Titre du chapitre">
       <button class="btn ghost small" data-cact="up" ${bi === 0 ? "disabled" : ""} aria-label="Monter le chapitre">↑</button>
       <button class="btn ghost small" data-cact="down" ${bi === b.chapters.length - 1 ? "disabled" : ""} aria-label="Descendre le chapitre">↓</button>
-      <button class="btn small" data-cact="preview" title="Aperçu de ce chapitre tel qu’il sera dans le PDF">Prévisualiser</button><button class="btn small" data-cact="preview2" title="Aperçu avec l’ancienne mise en page (une colonne)">Aperçu ancienne version</button>
+      <button class="btn small" data-cact="preview2" title="Aperçu avec l’ancienne mise en page (une colonne)">Aperçu ancienne version</button>
       <button class="btn ghost small danger" data-cact="del">Supprimer</button></div>
     <div class="etatsel"><span>État d’entretien général</span>${ETATS.map(([k, l, col]) => `<button class="${c.etatGen === k ? "on" : ""}" data-etat="${k}" style="--ec:${col}" aria-pressed="${c.etatGen === k}">${l}</button>`).join("")}<span class="hint">référentiel APC</span></div>
     ${T.cot.length ? `<div class="cots">${T.cot.map(k => `<div class="cot ${k !== "a" ? "th" : ""}"><span>${COT_LBL[k]}</span><span class="pips">${[1, 2, 3].map(n => `<button class="pip" data-cot="${k}" data-n="${n}" aria-label="${COT_LBL[k]} ${n} sur 3" title="${n} sur 3">${iconSvg(COT_ICON[k], c.cot[k] >= n)}</button>`).join("")}</span></div>`).join("")}</div>` : ""}
@@ -3012,14 +3014,14 @@ const PTITLES = { court: "TRAVAUX À COURT TERME (1-3 ans)", moyen: "TRAVAUX À 
 function ppptData() {
   const rows = costRows(); const blds = S.d.buildings;
   const terms = ["court", "moyen", "long", ""].map(t => {
-    const groups = blds.map(b => { const lines = rows.filter(r => r.b === b && (r.l.terme || "") === t).map(r => ({ loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: r.l.scen || "", tot: lineTotal(r.l) })); return { bname: b.name, lines, sub: lines.reduce((s, x) => s + x.tot, 0) }; }).filter(g => g.lines.length);
+    const groups = blds.map(b => { const lines = rows.filter(r => r.b === b && (r.l.terme || "") === t).map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: r.l.scen || "", tot: lineTotal(r.l) })); return { bname: b.name, lines, sub: lines.reduce((s, x) => s + x.tot, 0) }; }).filter(g => g.lines.length);
     return { key: t, title: PTITLES[t], groups, total: groups.reduce((s, g) => s + g.sub, 0) };
   }).filter(t => t.groups.length || t.key);
   const matrix = blds.map(b => { const v = {}; let tot = 0; for (const t of ["court", "moyen", "long", ""]) { v[t] = rows.filter(r => r.b === b && (r.l.terme || "") === t).reduce((s, r) => s + lineTotal(r.l), 0); tot += v[t]; } return { bname: b.name, v, tot, dpe: b.dpe || "" }; });
   S.d.scen = S.d.scen || {};
-  const scen = ["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"].map(n => { const lines = rows.filter(r => r.l.scen === n).map(r => ({ loc: r.b.name + " › " + r.c.title, des: r.l.des || "", terme: TERMES[r.l.terme] || "", tkey: r.l.terme || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); const m = S.d.scen[n] || {}; return { name: n, lines, total: lines.reduce((s, x) => s + x.tot, 0), classe: m.classe || "", gainPct: m.gain || "", travaux: (m.travaux || []).join(" ; "), coutBet: m.cout || "" }; });
+  const scen = ["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"].map(n => { const lines = rows.filter(r => r.l.scen === n).map(r => ({ cid: r.c.id, loc: r.b.name + " › " + r.c.title, des: r.l.des || "", terme: TERMES[r.l.terme] || "", tkey: r.l.terme || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); const m = S.d.scen[n] || {}; return { name: n, lines, total: lines.reduce((s, x) => s + x.tot, 0), classe: m.classe || "", gainPct: m.gain || "", travaux: (m.travaux || []).join(" ; "), coutBet: m.cout || "" }; });
   const hasNP = rows.some(r => !r.l.terme);
-  const byB = blds.map(b => { const ts = ["court", "moyen", "long", ""].map(t => { const lines = rows.filter(r => r.b === b && (r.l.terme || "") === t).map(r => ({ loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: r.l.scen || "", tot: lineTotal(r.l) })); return { key: t, title: PTITLES[t], lines, total: lines.reduce((x, l) => x + l.tot, 0) }; }).filter(t => t.lines.length); return { bname: b.name, dpe: b.dpe || "", terms: ts, total: ts.reduce((x, t) => x + t.total, 0) }; }).filter(b => b.terms.length);
+  const byB = blds.map(b => { const ts = ["court", "moyen", "long", ""].map(t => { const lines = rows.filter(r => r.b === b && (r.l.terme || "") === t).map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: r.l.scen || "", tot: lineTotal(r.l) })); return { key: t, title: PTITLES[t], lines, total: lines.reduce((x, l) => x + l.tot, 0) }; }).filter(t => t.lines.length); return { bname: b.name, dpe: b.dpe || "", terms: ts, total: ts.reduce((x, t) => x + t.total, 0) }; }).filter(b => b.terms.length);
   return { byB, dpeGlobal: S.d.meta?.dpeGlobal || "", terms: terms.filter(t => t.key !== "" || hasNP), matrix, scen, grand: rows.reduce((s, r) => s + lineTotal(r.l), 0), hasNP };
 }
 function renderPPPT() {
@@ -3029,14 +3031,14 @@ function renderPPPT() {
   const cols = ["court", "moyen", "long"].concat(P.hasNP ? [""] : []);
   const colL = { court: "Court terme", moyen: "Moyen terme", long: "Long terme", "": "Non planifié" };
   v.innerHTML = `<div class="pppt">
-    <h2 style="margin-top:0">Projet de plan pluriannuel de travaux</h2>
+    <div class="row" style="margin-bottom:4px"><h2 style="margin:0;flex:1">Projet de plan pluriannuel de travaux</h2><button class="btn" id="btnPpptPv" title="Aperçu des pages PPPT telles qu’elles seront dans le PDF">Prévisualiser</button></div>
     <p class="muted">Reprise automatique des tableaux de coûts de chaque chapitre, par bâtiment et par priorité, dans l’ordre des chapitres. Estimatifs TTC, hors honoraires.</p>
     <h3>Synthèse par bâtiment</h3>
     <div class="tablewrap"><table class="ptab"><thead><tr><th>Bâtiment</th>${cols.map(t => `<th class="n ${TERM_CLS[t] || ""}">${colL[t]}</th>`).join("")}<th class="n">Total TTC</th></tr></thead>
     <tbody>${P.matrix.map(m => `<tr><td><b>${esc(m.bname)}</b>${m.dpe ? ` <small class="muted">· DPE ${m.dpe}</small>` : ""}</td>${cols.map(t => `<td class="n ${TERM_CLS[t] || ""}">${m.v[t] ? euro(m.v[t]) : "—"}</td>`).join("")}<td class="n"><b>${euro(m.tot)}</b></td></tr>`).join("")}</tbody>
     <tfoot><tr><td>Total</td>${cols.map(t => `<td class="n ${TERM_CLS[t] || ""}">${euro(P.matrix.reduce((s, m) => s + m.v[t], 0))}</td>`).join("")}<td class="n">${euro(P.grand)}</td></tr></tfoot></table></div>
     ${P.byB.map(b => `<h3 style="margin-top:26px">${esc(b.bname)}${b.dpe ? ` <small class="muted">· DPE ${b.dpe}</small>` : ""}</h3>
-      ${b.terms.map(t => { const col = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B" }[t.key] || "#888"; let n = 0; return `<div class="tablewrap" style="margin-bottom:16px"><table class="ptab" style="border:2px solid ${col}"><thead><tr><th colspan="6" style="color:${col};background:var(--panel)">${t.title}</th></tr><tr><th style="width:44px">N°</th><th style="width:22%">Localisation</th><th>Désignation des travaux</th><th style="width:80px">Gain énerg.</th><th style="width:110px">Scénario</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>${t.lines.map(l => `<tr><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="5" style="color:${col}">Total ${t.title.toLowerCase()}</td><td class="n">${euro(t.total)}</td></tr></tfoot></table></div>`; }).join("")}
+      ${b.terms.map(t => { const col = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B" }[t.key] || "#D0201A"; const nop = t.key === ""; let n = 0; return `<div class="tablewrap" style="margin-bottom:16px"><table class="ptab ${nop ? "nop" : ""}" style="border:2px solid ${col}"><thead><tr><th colspan="6" style="color:${col};background:var(--panel)">${nop ? "⚠ TRAVAUX SANS ÉCHÉANCE — à planifier" : t.title}</th></tr><tr><th style="width:44px">N°</th><th style="width:22%">Localisation</th><th>Désignation des travaux</th><th style="width:80px">Gain énerg.</th><th style="width:110px">Scénario</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>${t.lines.map(l => `<tr data-goto="${l.cid}" class="gt" title="Ouvrir le chapitre dans Rédaction"><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="5" style="color:${col}">Total ${t.title.toLowerCase()}</td><td class="n">${euro(t.total)}</td></tr></tfoot></table></div>`; }).join("")}
       <div class="n" style="text-align:right;font-weight:800;margin:-4px 0 10px">Total ${esc(b.bname)} : ${euro(b.total)}</div>`).join("")}
     <h2>Scénarios d’amélioration thermique</h2>
     <p class="muted">Lignes de coûts rattachées à un scénario (colonne « Scénario » des chapitres). La classe visée et le gain se renseignent ici, d’après l’étude du BET thermique.</p>
@@ -3047,9 +3049,11 @@ function renderPPPT() {
       <td><input class="field-in" data-sgn="${s.name}" value="${esc(s.gainPct)}" placeholder="ex. 36 %" style="width:110px;padding:3px 6px"></td></tr>`).join("")}</tbody></table></div>
     ${P.scen.filter(s => s.lines.length).map(s => `<h3 class="sc" style="color:var(--violet)">${s.name}${s.classe ? ` — classe visée ${s.classe}` : ""}${s.gainPct ? ` — gain ${esc(s.gainPct)}` : ""}</h3>
       <div class="tablewrap"><table class="ptab"><thead><tr><th style="width:26%">Localisation</th><th>Désignation des travaux</th><th style="width:150px">Échéance</th><th style="width:80px">Gain énerg.</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>
-      ${s.lines.map(l => `<tr><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="${TERM_CLS[l.tkey] || ""}">${esc(l.terme)}</td><td class="gain">${esc(l.gain)}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody>
+      ${s.lines.map(l => `<tr data-goto="${l.cid}" class="gt ${l.tkey ? "" : "nop"}" title="Ouvrir le chapitre dans Rédaction"><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="${TERM_CLS[l.tkey] || ""}">${esc(l.terme || "Sans échéance")}</td><td class="gain">${esc(l.gain)}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody>
       <tfoot><tr><td colspan="4">Total ${s.name}</td><td class="n">${euro(s.total)}</td></tr></tfoot></table></div>`).join("")}
   </div>`;
+  $$("[data-goto]", v).forEach(tr => tr.onclick = () => { S.sel = tr.dataset.goto; setTab("redac"); setTimeout(() => $("#costsSec")?.scrollIntoView({ block: "center" }), 60); });
+  $("#btnPpptPv", v)?.addEventListener("click", async e => { const b = e.currentTarget; b.disabled = true; try { await flushSave(); await exportPDF("pppt"); } catch (err) { toast("Prévisualisation impossible : " + (err?.message || err)); } b.disabled = false; });
   $("#dpeGlob", v)?.addEventListener("change", e => { S.d.meta.dpeGlobal = e.target.value; queueSave("d"); });
   $$("[data-scl]", v).forEach(x => x.onchange = () => { S.d.scen = S.d.scen || {}; (S.d.scen[x.dataset.scl] = S.d.scen[x.dataset.scl] || {}).classe = x.value; queueSave("d"); renderPPPT(); });
   $$("[data-sgn]", v).forEach(x => x.onchange = () => { S.d.scen = S.d.scen || {}; (S.d.scen[x.dataset.sgn] = S.d.scen[x.dataset.sgn] || {}).gain = x.value; queueSave("d"); renderPPPT(); });
@@ -3331,7 +3335,7 @@ async function collectExport(opt, only) {
       (nb.chapters.length || nb.images.length || nb.dpe || nb.photo || nb.info.some(x => x[1])) && data.buildings.push(nb);
     }
     data.oblig = OBLIG.filter(([k]) => S.d.oblig?.[k]?.s).map(([k, l, ref]) => ({ l, ref, s: S.d.oblig[k].s, d: S.d.oblig[k].d || "", c: S.d.oblig[k].c || "" }));
-    if (!only) { const P = ppptData(); if (P.grand || P.scen.some(s => s.lines.length)) data.pppt = { ...P, cols: ["court", "moyen", "long"].concat(P.hasNP ? [""] : []) }; }
+    if (!only || only === "pppt") { const P = ppptData(); if (P.grand || P.scen.some(s => s.lines.length)) data.pppt = { ...P, cols: ["court", "moyen", "long"].concat(P.hasNP ? [""] : []) }; }
     try { data.icons = {}; for (const k of ["a", "t", "e"]) data.icons[k] = { on: await iconPng(COT_ICON[k], true), off: await iconPng(COT_ICON[k], false) }; } catch { data.icons = null; }
   return { data, missing };
 }
@@ -3606,7 +3610,7 @@ async function exportPDF(only, lay) {
       tableSplit(`<th>Bâtiment</th>${P.cols.map(t => `<th class="n" style="color:${TC[t]}">${colL[t]}</th>`).join("")}<th class="n">Total TTC</th>`,
         P.matrix.map(m => `<tr><td><b>${esc(m.bname)}</b>${m.dpe ? ` (DPE ${m.dpe})` : ""}</td>${P.cols.map(t => `<td class="n" style="color:${TC[t]}">${m.v[t] ? fmtE(m.v[t]) : "—"}</td>`).join("")}<td class="n"><b>${fmtE(m.tot)}</b></td></tr>`)
           .concat([`<tr class="tot"><td>TOTAL</td>${P.cols.map(t => `<td class="n" style="color:${TC[t]}">${fmtE(P.matrix.reduce((s, m) => s + m.v[t], 0))}</td>`).join("")}<td class="n">${fmtE(P.grand)}</td></tr>`]));
-      const TT = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B", "": "#444" }, TCL = { court: "tr", moyen: "tb", long: "tg", "": "" };
+      const TT = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B", "": "#D0201A" }, TCL = { court: "tr", moyen: "tb", long: "tg", "": "tr" };
       for (const [bi, b] of P.byB.entries()) {
         if (bi > 0) newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SYNTHÈSE", true);
         place(el(`<div class="psec" style="margin-top:18px">${esc(b.bname)}${b.dpe ? ` <span style="font-weight:400;font-size:9pt">· DPE ${esc(b.dpe)}</span>` : ""}</div>`));
@@ -3659,7 +3663,7 @@ async function exportPDF(only, lay) {
 function showPdfPreview(pages, host, cid) {
   const c = S.chaps[cid];
   const m = document.createElement("div"); m.className = "modal pvmodal";
-  m.innerHTML = `<div class="dlg pvdlg" role="dialog" aria-modal="true"><div class="row" style="margin-bottom:10px"><h3 style="margin:0;flex:1">Prévisualisation — ${esc(c?.title || "")} <small class="muted">(${pages.length} page${pages.length > 1 ? "s" : ""}, rendu identique au PDF)</small></h3><button class="btn small" id="pvZ-">−</button><span class="muted" id="pvZv" style="min-width:42px;text-align:center"></span><button class="btn small" id="pvZ+">+</button><button class="btn primary" id="pvClose">Fermer</button></div><div class="pvscroll" id="pvScroll"></div></div>`;
+  m.innerHTML = `<div class="dlg pvdlg" role="dialog" aria-modal="true"><div class="row" style="margin-bottom:10px"><h3 style="margin:0;flex:1">Prévisualisation — ${esc(c?.title || (cid === "pppt" ? "Projet de plan pluriannuel de travaux" : ""))} <small class="muted">(${pages.length} page${pages.length > 1 ? "s" : ""}, rendu identique au PDF)</small></h3><button class="btn small" id="pvZ-">−</button><span class="muted" id="pvZv" style="min-width:42px;text-align:center"></span><button class="btn small" id="pvZ+">+</button><button class="btn primary" id="pvClose">Fermer</button></div><div class="pvscroll" id="pvScroll"></div></div>`;
   document.body.append(m);
   let z = 0.8; const box = m.querySelector("#pvScroll");
   const apply = () => { m.querySelector("#pvZv").textContent = Math.round(z * 100) + " %"; box.querySelectorAll(".pvwrap").forEach(w => { w.style.width = Math.round(794 * z) + "px"; w.style.height = Math.round(1123 * z) + "px"; w.firstElementChild.style.transform = "scale(" + z + ")"; }); };
@@ -3671,8 +3675,8 @@ function showPdfPreview(pages, host, cid) {
   m.addEventListener("keydown", e => { if (e.key === "Escape") close(); }); m.tabIndex = -1; m.focus();
 }
 async function previewChapter(cid, lay) {
-  if (!S.d || !S.chaps[cid]) return;
-  const btn = $('[data-cact="preview"]'); const old = btn?.innerHTML; if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Aperçu…'; }
+  if (!S.d || (cid !== "pppt" && !S.chaps[cid])) return;
+  const btn = $('[data-cact="preview2"]'); const old = btn?.innerHTML; if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Aperçu…'; }
   try { await flushSave(); await exportPDF(cid, lay); } catch (e) { toast("Prévisualisation impossible : " + (e?.message || e)); }
   if (btn) { btn.disabled = false; btn.innerHTML = old; }
 }
