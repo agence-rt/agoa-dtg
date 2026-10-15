@@ -223,6 +223,8 @@ button{ cursor:pointer; }
 .cin.cost{ font-weight:700; font-size:15px; background:#FFF3A6; border-color:#EBD76A; font-variant-numeric:tabular-nums; }
 .cin.cost:focus{ background:#FFF8CC; border-color:#C9A800; }
 .cin.cost.man{ color:#111; background:#FFE55C; }
+.cin.cost.vio, .cin.cost.vio.man{ color:#3E1A63; background:#E2CEF5; border-color:#B48ADB; }
+.cin.cost.vio:focus{ background:#EBDDF8; border-color:#7030A0; }
 .ctab tr.sub td{ font-weight:600; color:var(--muted); padding-top:4px; }
 .ctab{ --tc:#D0201A; --tm:#1F6FC5; --tl:#2C7A4B; }
 .ctab tbody tr.t-court td:first-child{ box-shadow:inset 4px 0 0 var(--tc); }
@@ -1819,7 +1821,7 @@ function costsHtml(c) {
       <td><textarea class="cin des" data-k="des" rows="1" placeholder="Désignation">${esc(l.des || "")}</textarea></td>
       <td><select class="cin th" data-k="gain"><option value="">—</option>${["+", "++", "+++"].map(g => `<option ${l.gain === g ? "selected" : ""}>${g}</option>`).join("")}</select></td>
       <td><select class="cin th" data-k="scen"><option value="">—</option>${["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"].map(s => `<option value="${s}" ${l.scen === s ? "selected" : ""}>${s.replace("Projet ", "P")}</option>`).join("")}</select></td>
-      <td><input class="cin num cost ${isManual(l) ? "man" : ""}" data-k="manual" type="text" inputmode="decimal" autocomplete="off" value="${fmtAcc(isManual(l) ? l.manual : (calcTotal(l) || ""))}" placeholder="0" title="${isManual(l) ? "Montant saisi manuellement" : "Montant calculé (Qté × PU) — modifiable"}"></td>
+      <td><input class="cin num cost ${isManual(l) ? "man" : ""} ${l.gain || l.scen ? "vio" : ""}" data-k="manual" type="text" inputmode="decimal" autocomplete="off" value="${fmtAcc(isManual(l) ? l.manual : (calcTotal(l) || ""))}" placeholder="0" title="${isManual(l) ? "Montant saisi manuellement" : "Montant calculé (Qté × PU) — modifiable"}"></td>
       <td class="calc"><input class="cin num" data-k="qte" type="number" min="0" step="any" value="${l.qte ?? ""}"></td>
       <td class="calc"><select class="cin" data-k="unite">${UNITES.map(u => `<option ${l.unite === u ? "selected" : ""}>${u}</option>`).join("")}</select></td>
       <td class="calc"><select class="cin" data-k="base">${baseOpts(l.base ?? "")}</select></td>
@@ -1849,6 +1851,7 @@ function bindCosts(c) {
         else if (k === "manual") { const raw = inp.value, pos = inp.selectionStart ?? raw.length; const digitsBefore = raw.slice(0, pos).replace(/[^0-9,.]/g, "").length; l.manual = parseAcc(raw); const [ip, dp] = String(l.manual).split("."); const shown = fmtAcc(ip || 0).replace(/^0$/, ip === "" ? "" : "0") + (dp !== undefined ? "," + dp : ""); inp.value = ip === "" && dp === undefined ? "" : shown; let d = 0, np = 0; while (np < inp.value.length && d < digitsBefore) { if (/[0-9,]/.test(inp.value[np])) d++; np++; } try { inp.setSelectionRange(np, np); } catch {} }
         else { l[k] = inp.value; if (k === "qte" || k === "pu") { l.manual = ""; if (k === "pu") { l.base = ""; $('[data-k="base"]', tr).value = ""; } } if (k === "unite" && inp.value === "forfait" && !l.qte) { l.qte = "1"; $('[data-k="qte"]', tr).value = "1"; l.manual = ""; } }
         if (k !== "manual") syncCost(); else costIn.classList.toggle("man", isManual(l));
+        costIn.classList.toggle("vio", !!(l.gain || l.scen));
         refreshTotals(); queueSave(c.id);
         if (k === "terme" && ev.type === "change") redraw();
       };
