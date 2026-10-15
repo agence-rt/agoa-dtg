@@ -488,8 +488,8 @@ a.btn{ text-decoration:none; color:inherit; display:inline-flex; align-items:cen
     <button class="btn red hidden" id="btnPending"></button>
     <div class="savestate" id="savestate"></div>
     <button class="btn" id="btnSaveDtg" disabled title="Enregistrer le fichier .dtg">Enregistrer .dtg</button>
-    <button class="btn primary" id="btnPdf" disabled title="Générer le PDF du DTG (base de rédaction)">Exporter PDF</button>
-    <button class="btn" id="btnPdf2" disabled title="Ancienne mise en page (une colonne), conservée au cas où">PDF ancienne version</button>
+    <button class="btn hidden" id="btnPdf" disabled aria-hidden="true" tabindex="-1">Exporter PDF (2 colonnes)</button>
+    <button class="btn" id="btnPdf2" disabled style="background:#C00000;border-color:#C00000;color:#fff" title="Générer le PDF du DTG">Exporter PDF</button>
   </header>
   <div class="main">
     <section class="view" id="v-sources"></section>
@@ -525,7 +525,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.41";
+const APP_VERSION = "0.1.42";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
