@@ -220,8 +220,9 @@ button{ cursor:pointer; }
 .ctab th.calc{ color:var(--muted); }
 .ctab th.th{ color:var(--violet); }
 .ctab td.calc + td.acts, .ctab th.calc:last-of-type{ }
-.cin.cost{ font-weight:600; }
-.cin.cost.man{ color:var(--accent); background:var(--accent-soft); }
+.cin.cost{ font-weight:700; font-size:15px; background:#FFF3A6; border-color:#EBD76A; font-variant-numeric:tabular-nums; }
+.cin.cost:focus{ background:#FFF8CC; border-color:#C9A800; }
+.cin.cost.man{ color:#111; background:#FFE55C; }
 .ctab tr.sub td{ font-weight:600; color:var(--muted); padding-top:4px; }
 .ctab{ --tc:#D0201A; --tm:#1F6FC5; --tl:#2C7A4B; }
 .ctab tbody tr.t-court td:first-child{ box-shadow:inset 4px 0 0 var(--tc); }
@@ -519,7 +520,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.37";
+const APP_VERSION = "0.1.38";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1804,19 +1805,21 @@ function bindCover(c) {
   });
   $("#coverRm")?.addEventListener("click", () => { c.cover = null; touch(c); renderEditor(); });
 }
+const fmtAcc = v => { if (v === "" || v == null) return ""; const n = Number(v); return isFinite(n) ? n.toLocaleString("fr-FR", { maximumFractionDigits: 2 }).replace(/[\u202f\u00a0]/g, " ") : String(v); };
+const parseAcc = t => { const x = String(t || "").replace(/[\s\u202f\u00a0]/g, "").replace(",", ".").replace(/[^0-9.]/g, ""); const q = x.split("."); return q.length > 1 ? q[0] + "." + q.slice(1).join("") : x; };
 function costsHtml(c) {
   const L = c.costs || []; const tot = L.reduce((s, l) => s + lineTotal(l), 0);
   const subs = Object.keys(TERMES).map(k => [k, L.filter(l => l.terme === k)]).filter(([, a]) => a.length);
   const baseOpts = sel => `<option value="">—</option>` + COUTS.map((x, i) => `<option value="${i}" ${sel === String(i) ? "selected" : ""}>${esc(x[0])} · ${x[2].toLocaleString("fr-FR")} €/${esc(x[1])}</option>`).join("");
   return `<div class="row" style="margin-bottom:10px"><h4 style="margin:0;flex:1">Tableau des coûts</h4><button class="btn small" id="btnAddCost">Ajouter une ligne</button></div>
-    ${L.length ? `<table class="ctab"><colgroup><col style="width:104px"><col><col style="width:54px"><col style="width:84px"><col style="width:98px"><col style="width:48px"><col style="width:54px"><col style="width:84px"><col style="width:62px"><col style="width:30px"></colgroup>
+    ${L.length ? `<table class="ctab"><colgroup><col style="width:104px"><col><col style="width:54px"><col style="width:84px"><col style="width:128px"><col style="width:48px"><col style="width:54px"><col style="width:84px"><col style="width:62px"><col style="width:30px"></colgroup>
     <thead><tr><th>Échéance</th><th>Désignation des travaux</th><th class="th">Gain énerg.</th><th class="th">Scénario thermique</th><th class="n">Coût TTC</th><th class="calc">Qté</th><th class="calc">Unité</th><th class="calc">Prix de la base</th><th class="calc n">PU TTC</th><th></th></tr></thead><tbody>
     ${sortedIdx(L).map((i, n, arr) => { const l = L[i]; const prev = n ? (L[arr[n - 1]].terme || "") : null; return `${prev !== null && prev !== (l.terme || "") ? `<tr class="gap" aria-hidden="true"><td colspan="10"></td></tr>` : ""}<tr data-ci="${i}" class="t-${l.terme || "none"}">
       <td><select class="cin" data-k="terme"><option value="">—</option>${Object.entries(TERMES).map(([k, v]) => `<option value="${k}" ${l.terme === k ? "selected" : ""} title="${v}">${v.split(" ")[0]} terme</option>`).join("")}</select></td>
       <td><textarea class="cin des" data-k="des" rows="1" placeholder="Désignation">${esc(l.des || "")}</textarea></td>
       <td><select class="cin th" data-k="gain"><option value="">—</option>${["+", "++", "+++"].map(g => `<option ${l.gain === g ? "selected" : ""}>${g}</option>`).join("")}</select></td>
       <td><select class="cin th" data-k="scen"><option value="">—</option>${["Projet 1", "Projet 2", "Projet 3"].map(s => `<option ${l.scen === s ? "selected" : ""}>${s}</option>`).join("")}</select></td>
-      <td><input class="cin num cost ${isManual(l) ? "man" : ""}" data-k="manual" type="number" min="0" step="any" value="${isManual(l) ? l.manual : (calcTotal(l) || "")}" placeholder="0" title="${isManual(l) ? "Montant saisi manuellement" : "Montant calculé (Qté × PU) — modifiable"}"></td>
+      <td><input class="cin num cost ${isManual(l) ? "man" : ""}" data-k="manual" type="text" inputmode="decimal" autocomplete="off" value="${fmtAcc(isManual(l) ? l.manual : (calcTotal(l) || ""))}" placeholder="0" title="${isManual(l) ? "Montant saisi manuellement" : "Montant calculé (Qté × PU) — modifiable"}"></td>
       <td class="calc"><input class="cin num" data-k="qte" type="number" min="0" step="any" value="${l.qte ?? ""}"></td>
       <td class="calc"><select class="cin" data-k="unite">${UNITES.map(u => `<option ${l.unite === u ? "selected" : ""}>${u}</option>`).join("")}</select></td>
       <td class="calc"><select class="cin" data-k="base">${baseOpts(l.base ?? "")}</select></td>
@@ -1838,12 +1841,12 @@ function bindCosts(c) {
   $("#btnAddCost", sec).onclick = () => { c.costs = c.costs || []; c.costs.push({ id: "k" + uid(), des: "", qte: "", unite: "m²", pu: "", base: "", manual: "", terme: "", gain: "", scen: "" }); queueSave(c.id); redraw(); const t = $(`tr[data-ci="${c.costs.length - 1}"] textarea.des`, sec); t && t.focus(); };
   $$("tr[data-ci]", sec).forEach(tr => {
     const l = c.costs[+tr.dataset.ci]; const costIn = $('[data-k="manual"]', tr);
-    const syncCost = () => { if (!isManual(l)) costIn.value = calcTotal(l) || ""; costIn.classList.toggle("man", isManual(l)); };
+    const syncCost = () => { if (!isManual(l)) costIn.value = fmtAcc(calcTotal(l) || ""); costIn.classList.toggle("man", isManual(l)); };
     $$(".cin", tr).forEach(inp => {
       const k = inp.dataset.k;
       const upd = ev => {
         if (k === "base") { const x = COUTS[+inp.value]; l.base = inp.value; if (x) { l.pu = x[2]; l.unite = x[1]; if (!l.des) l.des = x[0]; $('[data-k="pu"]', tr).value = x[2]; $('[data-k="unite"]', tr).value = x[1]; $('[data-k="des"]', tr).value = l.des; } l.manual = ""; }
-        else if (k === "manual") { l.manual = inp.value; }
+        else if (k === "manual") { const raw = inp.value, pos = inp.selectionStart ?? raw.length; const digitsBefore = raw.slice(0, pos).replace(/[^0-9,.]/g, "").length; l.manual = parseAcc(raw); const [ip, dp] = String(l.manual).split("."); const shown = fmtAcc(ip || 0).replace(/^0$/, ip === "" ? "" : "0") + (dp !== undefined ? "," + dp : ""); inp.value = ip === "" && dp === undefined ? "" : shown; let d = 0, np = 0; while (np < inp.value.length && d < digitsBefore) { if (/[0-9,]/.test(inp.value[np])) d++; np++; } try { inp.setSelectionRange(np, np); } catch {} }
         else { l[k] = inp.value; if (k === "qte" || k === "pu") { l.manual = ""; if (k === "pu") { l.base = ""; $('[data-k="base"]', tr).value = ""; } } if (k === "unite" && inp.value === "forfait" && !l.qte) { l.qte = "1"; $('[data-k="qte"]', tr).value = "1"; l.manual = ""; } }
         if (k !== "manual") syncCost(); else costIn.classList.toggle("man", isManual(l));
         refreshTotals(); queueSave(c.id);
