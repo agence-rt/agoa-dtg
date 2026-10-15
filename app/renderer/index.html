@@ -422,8 +422,8 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage.l2 .pbt{ font-weight:300; text-transform:uppercase; color:#C00000; }
 .pdfpage.l2 .pul{ margin:0 0 6px; padding-left:16px; } .pdfpage.l2 .pul li{ margin:0 0 3px; text-align:justify; hyphens:auto; }
 .pdfpage.l2 .pcols.fl .pfld{ break-inside:auto; }
-.pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage.l2 .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage.l2 .tli i{ flex:1; border-bottom:.5px solid #999; transform:translateY(-3px); min-width:12px; } .pdfpage.l2 .tli b{ font-weight:700; color:#D0201A; }
-.pdfpage.l2 .tli.l0{ font-weight:700; margin-top:9px; } .pdfpage.l2 .tli.l1{ padding-left:14px; }
+.pdfpage .ptoc{ font-size:10pt; } .pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage .tli i{ flex:1; border-bottom:.5px solid #999; transform:translateY(-3px); min-width:12px; } .pdfpage .tli b{ font-weight:700; color:#D0201A; }
+.pdfpage .tli.l0{ font-weight:700; margin-top:9px; } .pdfpage .tli.l1{ padding-left:14px; }
 .pdfpage.l2 .pduo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0 0 16px; } .pdfpage.l2 .pph{ height:200px; border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage.l2 .pph.has{ border-style:solid; border-color:#D9D9D9; padding:0; overflow:hidden; } .pdfpage.l2 .pph img{ width:100%; height:100%; object-fit:contain; display:block; }
 .pdfpage.l2 .pduo.tall .pph{ height:330px; }
 .pdfpage.l2 .pk4{ table-layout:fixed; } .pdfpage.l2 .pk4 td{ padding:4px 8px 4px 0; width:26%; } .pdfpage.l2 .pk4 td.k{ width:24%; } .pdfpage.l2 .pnone{ color:#B5BCC6; }
@@ -525,7 +525,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.42";
+const APP_VERSION = "0.1.43";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3499,11 +3499,11 @@ async function exportPDF(only, lay) {
     }
 
     // ---- pages d'ouverture (version 2 colonnes) : préambule, sommaire, cadre réglementaire, fiche d'identification, localisation
-    const marks = []; const mark = (label, lvl) => { if (L2 && cur) marks.push({ label, lvl, pg: cur.pg }); };
-    const headPut = n => { if (L2 && cur.cols) cur.head.append(n); else place(n); };
+    const marks = []; const mark = (label, lvl) => { if (!only && cur) marks.push({ label, lvl, pg: cur.pg }); };
+    const headPut = n => { if (cur.cols) cur.head.append(n); else place(n); };
     const sec = (title, html) => placeSplit(cont => { const d = el(`<div class="pfld"><div class="lb">${esc(title)}${cont ? " (suite)" : ""}</div></div>`); return { root: d, target: d }; }, html);
     let tocBox = null;
-    if (L2 && !only) {
+    if (!only) {
       const M = S.d.meta || {}; const FI = {};
       for (const k of ["cadastre", "aerien", "plan", "vue"]) { try { FI[k] = await getImg("front_" + k) || null; } catch { FI[k] = null; } }
       const frontSecs = key => FRONT_TEXT[key].forEach(([t], i) => sec(t, mdItems(frontText(key, i))));
@@ -3516,9 +3516,11 @@ async function exportPDF(only, lay) {
 
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "CADRE RÉGLEMENTAIRE"); mark("CADRE RÉGLEMENTAIRE DU DTG", 0);
       headPut(el(`<h1 class="pbt">CADRE RÉGLEMENTAIRE DU DTG</h1>`));
-      cur.body.classList.add("fl"); balance();   // tout sur une page, colonnes équilibrées ; le corps de texte se réduit au besoin
-      FRONT_TEXT.cadre.forEach(([t], i) => cur.body.append(el(`<div class="pfld"><div class="lb">${esc(t)}</div>${mdItems(frontText("cadre", i)).join("")}</div>`)));
-      for (let fs = 9; fs > 6.5 && cur.pb.scrollHeight > cur.pb.clientHeight + 1; fs -= .25) cur.body.style.fontSize = fs + "pt";
+      if (L2) {
+        cur.body.classList.add("fl"); balance();   // tout sur une page, colonnes équilibrées ; le corps de texte se réduit au besoin
+        FRONT_TEXT.cadre.forEach(([t], i) => cur.body.append(el(`<div class="pfld"><div class="lb">${esc(t)}</div>${mdItems(frontText("cadre", i)).join("")}</div>`)));
+        for (let fs = 9; fs > 6.5 && cur.pb.scrollHeight > cur.pb.clientHeight + 1; fs -= .25) cur.body.style.fontSize = fs + "pt";
+      } else frontSecs("cadre");
 
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "FICHE D’IDENTIFICATION", true); mark("FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ", 0);
       place(el(`<h1 class="pbt">FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ</h1>`));
@@ -3596,11 +3598,10 @@ async function exportPDF(only, lay) {
             flowWhole(node, () => { if (ttl) flowWhole(el(ttl)); tableSplit(head, rows, "Tableau des coûts", CLS[g.t] || ""); });
           });
           if (groups.length > 1) flowWhole(el(`<div class="ptotch">Total ${esc(c.title)} : ${fmtE(c.costs.reduce((s, l) => s + l.tot, 0))}</div>`));
-          flowWhole(el(`<div class="pnote">Estimatifs TTC sur la base des éléments visités, hors présence d’amiante ou de plomb, hors honoraires.</div>`));
         }
         if (c.photos.length) {
           let n0 = 0;
-          flowItems(() => { const d = el(`<div class="pphotos"></div>`); return { root: d, target: d }; }, c.photos.map(ph => `<figure class="pphoto"><img src="${ph.url}" width="${ph.w}" height="${ph.h}" alt="">${++n0 && ph.legend ? `<figcaption>Photo ${n0} – ${esc(ph.legend)}</figcaption>` : ""}</figure>`));
+          flowItems(() => { const d = el(`<div class="pphotos"></div>`); return { root: d, target: d }; }, c.photos.map(ph => `<figure class="pphoto"><img src="${ph.url}" width="${ph.w}" height="${ph.h}" alt="">${ph.legend ? `<figcaption>${esc(ph.legend)}</figcaption>` : ""}</figure>`));
         }
       }
     }
@@ -3609,7 +3610,6 @@ async function exportPDF(only, lay) {
       const P = data.pppt; const colL = { court: "Court terme", moyen: "Moyen terme", long: "Long terme", "": "Non planifié" }; const TC = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B", "": "#444" };
       newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SYNTHÈSE", true); mark("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", 0);
       place(el(`<h1 class="pbt">PROJET DE PLAN PLURIANNUEL DE TRAVAUX</h1>`));
-      place(el(`<div class="pnote" style="margin-bottom:12px">Estimatifs TTC sur la base des éléments visités, hors présence d’amiante ou de plomb, hors honoraires, CSPS, assurance dommages-ouvrage et frais annexes.</div>`));
       place(el(`<div class="psec">SYNTHÈSE PAR BÂTIMENT</div>`));
       tableSplit(`<th>Bâtiment</th>${P.cols.map(t => `<th class="n" style="color:${TC[t]}">${colL[t]}</th>`).join("")}<th class="n">Total TTC</th>`,
         P.matrix.map(m => `<tr><td><b>${esc(m.bname)}</b>${m.dpe ? ` (DPE ${m.dpe})` : ""}</td>${P.cols.map(t => `<td class="n" style="color:${TC[t]}">${m.v[t] ? fmtE(m.v[t]) : "—"}</td>`).join("")}<td class="n"><b>${fmtE(m.tot)}</b></td></tr>`)
