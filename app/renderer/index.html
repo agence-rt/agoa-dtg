@@ -423,12 +423,13 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage.l2 .pul{ margin:0 0 6px; padding-left:16px; } .pdfpage.l2 .pul li{ margin:0 0 3px; text-align:justify; hyphens:auto; }
 .pdfpage.l2 .pcols.fl .pfld{ break-inside:auto; }
 .pdfpage .pfld.bgr, .pdfpage.l2 .pfld.bgr{ background:#FBE6E6; } .pdfpage .pfld.bgv, .pdfpage.l2 .pfld.bgv{ background:#EFE7F7; }
-.pdfpage .ptoc{ font-size:10pt; } .pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage .tli i{ flex:1; border-bottom:.3px solid #C00000; transform:translateY(-3px); min-width:12px; } .pdfpage .tli b{ font-weight:700; color:#D0201A; }
+.pdfpage .ptoc{ font-size:10pt; } .pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage a.tli{ color:inherit; text-decoration:none; } .pdfpage .tli i{ flex:1; height:.4px; background:#D98C8C; align-self:baseline; transform:translateY(-3px); min-width:12px; } .pdfpage .tli b{ font-weight:700; color:#D0201A; }
 .pdfpage .tli.l0{ font-weight:700; margin-top:9px; } .pdfpage .tli.l1{ padding-left:14px; }
-.pdfpage .pduo{ display:grid; grid-template-columns:1fr; gap:12px; margin:0 0 14px; } .pdfpage .pph{ height:var(--ph,200px); border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage .pph.has{ border-style:solid; border-color:#D9D9D9; padding:0; overflow:hidden; } .pdfpage .pph img{ width:100%; height:100%; object-fit:contain; display:block; }
+.pdfpage .pduo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0 0 14px; } .pdfpage .pph{ height:var(--ph,200px); border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage .pph.has{ border-style:solid; border-color:#D9D9D9; padding:0; overflow:hidden; } .pdfpage .pph img{ width:100%; height:100%; object-fit:contain; display:block; }
 .pdfpage .pk4{ table-layout:fixed; } .pdfpage .pk4 td{ padding:4px 8px 4px 0; width:26%; } .pdfpage .pk4 td.k{ width:24%; } .pdfpage .pnone{ color:#B5BCC6; }
 .pdfpage .gpill{ display:inline-block; color:#fff; font-size:7pt; font-weight:700; padding:1px 8px; border-radius:9px; letter-spacing:.2px; }
 .pdfpage .pduo2 table{ align-self:start; } .pdfpage .pduo2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; } .pdfpage .pcb{ width:18px; color:#555; font-size:11pt; }
+.pdfpage .ppt{ text-align:center; } .pdfpage .pbx{ display:inline-block; width:12px; height:12px; border:1px solid #444; border-radius:2px; background:#fff; vertical-align:middle; } .pdfpage .pfield{ display:inline-block; min-width:120px; height:18px; border:1px solid #BBB; border-radius:3px; vertical-align:middle; }
 .pdfpage .pnote{ font-size:8pt; font-style:italic; color:#7F7F7F; }
 .pdfpage .pkv{ border-collapse:collapse; width:100%; } .pdfpage .pkv td{ padding:3px 6px 3px 0; vertical-align:top; } .pdfpage .pkv td.k{ font-weight:700; color:#1F4E79; width:38%; }
 .pdfpage .pimgs{ display:flex; gap:22px; justify-content:center; margin:6px 0 14px; } .pdfpage figure{ margin:0; text-align:center; }
@@ -525,7 +526,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.45";
+const APP_VERSION = "0.1.46";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3509,6 +3510,15 @@ async function exportPDF(only, lay) {
     const TCOL = { "Court terme (1-3 ans)": "#D0201A", "Moyen terme (3-6 ans)": "#1F6FC5", "Long terme (6-10 ans)": "#2C7A4B" };
     const tableSplit = (head, rows, caption, xc = "") => placeSplit(cont => { const t = el(`<table class="ptbl ${xc}">${caption && cont ? `<caption>${esc(caption)} (suite)</caption>` : ""}<thead><tr>${head}</tr></thead><tbody></tbody></table>`); return { root: t, target: $("tbody", t) }; }, rows);
 
+    const tableKeep = (head, rows, caption, xc = "", pre = "") => {   // tableau non coupé : saut de page si besoin (coupé seulement s'il dépasse une page entière)
+      const mk = () => el(`<div>${pre}<table class="ptbl ${xc}"><thead><tr>${head}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`);
+      let node = mk(); cur.body.append(node); if (fits()) return;
+      node.remove();
+      if (cur.body.children.length) { newPage(cur.r1, cur.r2, !cur.cols); node = mk(); cur.body.append(node); if (fits()) return; node.remove(); }
+      if (pre) place(el(pre));
+      tableSplit(head, rows, caption, xc);
+    };
+
     // ---- couverture
     if (!only) {
     const firstCover = data.photoUrl || data.buildings.flatMap(b => b.chapters).find(c => c.coverUrl && /FACADE/.test(c.type || ""))?.coverUrl || data.buildings.flatMap(b => b.chapters).find(c => c.coverUrl)?.coverUrl || null;
@@ -3536,7 +3546,7 @@ async function exportPDF(only, lay) {
       onePage(fs => {   // le préambule tient sur une page (texte réduit au besoin)
         newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "PRÉAMBULE"); mark("PRÉAMBULE", 0); cur.pb.style.fontSize = fs + "pt";
         headPut(el(`<h1 class="pbt">PRÉAMBULE</h1>`)); frontSecs("preambule");
-      }, 10, 8, .5);
+      }, 9.5, 7, .25);
 
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "CADRE RÉGLEMENTAIRE"); mark("CADRE RÉGLEMENTAIRE DU DTG", 0);
       headPut(el(`<h1 class="pbt">CADRE RÉGLEMENTAIRE DU DTG</h1>`));
@@ -3556,7 +3566,7 @@ async function exportPDF(only, lay) {
       place(el(`<div class="pduo" style="--ph:${h}px">${ph(FI.cadastre, "Cadastre")}${ph(FI.aerien, "Vue aérienne")}</div>`));
       place(el(`<div class="pfld"><div class="lb">Description de l’immeuble</div><table class="pkv pk4"><tr><td class="k">Immatriculation</td><td>${val(M.immatriculation)}</td><td class="k">Nombre de bâtiments</td><td>${val(nbB)}</td></tr><tr><td class="k">SIRET</td><td>${val(M.siret)}</td><td class="k">Nombre de lots</td><td>${val(M.lots)}</td></tr><tr><td class="k">Typologie</td><td>${val(M.typologie)}</td><td class="k">Période de construction</td><td>${val(M.annee)}</td></tr><tr><td class="k">Ascenseurs</td><td>${val(M.ascenseurs)}</td><td class="k">Stationnements en sous-sol</td><td>${val(M.stationnements)}</td></tr></table></div>`));
       const geoL = geoLevels();
-      const box = t => `<tr><td style="width:26px;padding-right:6px">${geoImg(t, 22)}</td><td>${t}</td><td style="text-align:right;white-space:nowrap">${geoL[t] ? `<span class="gpill" style="background:${geoCol(geoL[t])}">${geoL[t]}</span>` : `<span class="pnone">—</span>`}</td></tr>`;
+      const box = t => `<tr><td style="width:26px;padding-right:6px">${geoImg(t, 22)}</td><td style="width:46%">${t}</td><td style="text-align:left;white-space:nowrap">${geoL[t] ? `<span class="gpill" style="background:${geoCol(geoL[t])}">${geoL[t]}</span>` : `<span class="pnone">—</span>`}</td></tr>`;
       place(el(`<div class="pfld"><div class="lb">Géorisques</div><div class="pduo2"><table class="pkv"><tr><td colspan="3" class="k">Risques naturels identifiés</td></tr>${GEO_NAT.map(box).join("")}</table><table class="pkv"><tr><td colspan="3" class="k">Risques technologiques identifiés</td></tr>${GEO_TECH.map(box).join("")}</table></div></div>`));
 
       }, 250, 70);
@@ -3568,7 +3578,7 @@ async function exportPDF(only, lay) {
       const ic = (k, n) => [1, 2, 3].map(i => `<img src="${i <= n ? icons[k].on : icons[k].off}" width="17" height="17" alt="">`).join("");
       const nomen = (lbl, k) => `<tr><td class="k">${lbl} de 1 à 3 :</td><td>${[1, 2, 3].map(n => ic(k, n)).join(' <span class="pslash">/</span> ')}</td></tr>`;
       place(el(`<div class="pfld"><div class="lb">Nomenclature</div><table class="pkv">${nomen("Qualité architecturale", "a")}${nomen("Qualité thermique", "t")}${nomen("Confort d’été", "e")}<tr><td class="k">Caractéristique thermique et gain de 1 à 3 :</td><td><b style="color:#7030A0">+ &nbsp;/&nbsp; ++ &nbsp;/&nbsp; +++</b></td></tr></table><p style="margin-top:8px;color:#7030A0">La couleur violette (écriture / tableau / icônes) est dédiée aux caractéristiques thermiques.</p><p style="color:#C00000">Les zones de textes en rouge sont dédiées aux éléments nécessitant des travaux : pathologies, non-conformités, entretiens, etc.</p></div>`));
-      }, 360, 90);
+      }, 470, 100);
     }
     // ---- obligations
     if (!only && data.oblig && data.oblig.length) {
@@ -3639,34 +3649,42 @@ async function exportPDF(only, lay) {
       const P = data.pppt; const colL = { court: "Court terme", moyen: "Moyen terme", long: "Long terme", "": "Non planifié" }; const TC = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B", "": "#444" };
       newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SYNTHÈSE", true); mark("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", 0);
       place(el(`<h1 class="pbt">PROJET DE PLAN PLURIANNUEL DE TRAVAUX</h1>`));
-      place(el(`<div class="psec">SYNTHÈSE PAR BÂTIMENT</div>`));
-      tableSplit(`<th>Bâtiment</th>${P.cols.map(t => `<th class="n" style="color:${TC[t]}">${colL[t]}</th>`).join("")}<th class="n">Total TTC</th>`,
+      tableKeep(`<th>Bâtiment</th>${P.cols.map(t => `<th class="n" style="color:${TC[t]}">${colL[t]}</th>`).join("")}<th class="n">Total TTC</th>`,
         P.matrix.map(m => `<tr><td><b>${esc(m.bname)}</b>${m.dpe ? ` (DPE ${m.dpe})` : ""}</td>${P.cols.map(t => `<td class="n" style="color:${TC[t]}">${m.v[t] ? fmtE(m.v[t]) : "—"}</td>`).join("")}<td class="n"><b>${fmtE(m.tot)}</b></td></tr>`)
-          .concat([`<tr class="tot"><td>TOTAL</td>${P.cols.map(t => `<td class="n" style="color:${TC[t]}">${fmtE(P.matrix.reduce((s, m) => s + m.v[t], 0))}</td>`).join("")}<td class="n">${fmtE(P.grand)}</td></tr>`]));
+          .concat([`<tr class="tot"><td>TOTAL</td>${P.cols.map(t => `<td class="n" style="color:${TC[t]}">${fmtE(P.matrix.reduce((s, m) => s + m.v[t], 0))}</td>`).join("")}<td class="n">${fmtE(P.grand)}</td></tr>`]), "Synthèse par bâtiment", "", `<div class="psec">SYNTHÈSE PAR BÂTIMENT</div>`);
       const TT = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B", "": "#D0201A" }, TCL = { court: "tr", moyen: "tb", long: "tg", "": "tr" };
       for (const [bi, b] of P.byB.entries()) {
         if (bi > 0) newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SYNTHÈSE", true);
-        place(el(`<div class="psec" style="margin-top:18px">${esc(b.bname)}${b.dpe ? ` <span style="font-weight:400;font-size:9pt">· DPE ${esc(b.dpe)}</span>` : ""}</div>`));
-        for (const t of b.terms) {
-          let n = 0; const rows = t.lines.map(l => `<tr><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td><td class="n">${fmtE(l.tot)}</td></tr>`);
-          rows.push(`<tr class="tot"><td colspan="5" style="color:${TT[t.key]}">Total ${esc(t.title.toLowerCase())}</td><td class="n">${fmtE(t.total)}</td></tr>`);
-          tableSplit(`<th colspan="6" class="ttl" style="color:${TT[t.key]}">${esc(t.title)}</th></tr><tr><th style="width:6%">N°</th><th style="width:20%">Localisation</th><th>Désignation des travaux</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th><th class="n" style="width:14%">Estimatif TTC</th>`, rows, t.title, TCL[t.key] + " pgap");
+        const bTitle = `<div class="psec" style="margin-top:18px">${esc(b.bname)}${b.dpe ? ` <span style="font-weight:400;font-size:9pt">· DPE ${esc(b.dpe)}</span>` : ""}</div>`;
+        if (!b.terms.length) place(el(bTitle));
+        for (const [ti, t] of b.terms.entries()) {
+          let n = 0; const rows = t.lines.map(l => `<tr><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td><td class="n">${fmtE(l.tot)}</td><td class="ppt"><span class="pbx" data-amt="${Math.round(l.tot || 0)}" data-g="${bi}"></span></td></tr>`);
+          rows.push(`<tr class="tot"><td colspan="5" style="color:${TT[t.key]}">Total ${esc(t.title.toLowerCase())}</td><td class="n">${fmtE(t.total)}</td><td></td></tr>`);
+          tableKeep(`<th colspan="7" class="ttl" style="color:${TT[t.key]}">${esc(t.title)}</th></tr><tr><th style="width:6%">N°</th><th style="width:20%">Localisation</th><th>Désignation des travaux</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th><th class="n" style="width:14%">Estimatif TTC</th><th class="ppt" style="width:6%">PPT</th>`, rows, t.title, TCL[t.key] + " pgap", ti === 0 ? bTitle : "");
         }
         place(el(`<div class="ptotch">Total ${esc(b.bname)} : ${fmtE(b.total)}</div>`));
+      }
+      if (P.byB.length) {
+        const selRows = P.byB.map((b, bi) => `<tr><td>${esc(b.bname)}</td><td class="n"><span class="pfield" data-tot="${bi}"></span></td></tr>`);
+        selRows.push(`<tr class="tot"><td>TOTAL DES TRAVAUX RETENUS PAR LA COPROPRIÉTÉ</td><td class="n"><span class="pfield" data-tot="all"></span></td></tr>`);
+        tableKeep(`<th>Bâtiment</th><th class="n" style="width:34%">Montant retenu TTC</th>`, selRows, "Sélection de la copropriété", "", `<div class="psec" style="margin-top:18px">SÉLECTION DE LA COPROPRIÉTÉ</div><p class="pnote" style="margin:0 0 8px">Cochez les lignes retenues dans la colonne PPT : le total retenu se calcule ci-dessous, indépendamment du total général proposé.</p>`);
       }
       newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SCÉNARIOS D’AMÉLIORATION", true); mark("SYNTHÈSE DES AMÉLIORATIONS THERMIQUES ENVISAGÉES", 1);
       place(el(`<h1 class="pbt" style="color:#7030A0">SCÉNARIOS D’AMÉLIORATION THERMIQUE</h1>`));
       if (P.dpeGlobal) place(el(`<div style="margin:0 0 12px;font-weight:700">Performance actuelle de la copropriété : <span style="color:#7030A0">classe ${esc(P.dpeGlobal)}</span></div>`));
-      tableSplit(`<th style="width:13%">Scénario</th><th>Travaux préconisés (BET)</th><th class="n" style="width:9%">Nb lignes</th><th class="n" style="width:14%">Estimatif TTC</th><th style="width:10%">Classe visée</th><th style="width:16%">Gain énergétique</th>`,
+      tableKeep(`<th style="width:13%">Scénario</th><th>Travaux préconisés (BET)</th><th class="n" style="width:9%">Nb lignes</th><th class="n" style="width:14%">Estimatif TTC</th><th style="width:10%">Classe visée</th><th style="width:16%">Gain énergétique</th>`,
         P.scen.map(s => `<tr><td class="sc"><b>${s.name}</b></td><td>${esc(s.travaux || "—")}</td><td class="n">${s.lines.length}</td><td class="n"><b>${fmtE(s.total)}</b></td><td><b>${esc(s.classe || "—")}</b></td><td class="sc">${esc(s.gainPct || "En attente de l’étude thermique")}</td></tr>`));
       for (const s of P.scen.filter(s => s.lines.length)) {
-        place(el(`<div class="psec" style="color:#7030A0;margin-top:18px">${esc(s.name.toUpperCase())}${s.classe ? " — classe visée " + esc(s.classe) : ""}${s.gainPct ? " — gain " + esc(s.gainPct) : ""}</div>`));
-        tableSplit(`<th style="width:24%">Localisation</th><th>Désignation des travaux</th><th style="width:17%">Échéance</th><th class="th" style="width:8%">Gain</th><th class="n" style="width:14%">Estimatif TTC</th>`,
-          s.lines.map(l => `<tr><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td style="color:${TC[l.tkey] || "#333"}">${esc(l.terme)}</td><td class="gain">${esc(l.gain)}</td><td class="n">${fmtE(l.tot)}</td></tr>`).concat([`<tr class="tot"><td colspan="4">Total ${s.name}</td><td class="n">${fmtE(s.total)}</td></tr>`]), s.name);
+        tableKeep(`<th style="width:24%">Localisation</th><th>Désignation des travaux</th><th style="width:17%">Échéance</th><th class="th" style="width:8%">Gain</th><th class="n" style="width:14%">Estimatif TTC</th>`,
+          s.lines.map(l => `<tr><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td style="color:${TC[l.tkey] || "#333"}">${esc(String(l.terme || "").replace(/ \(.*\)/, ""))}</td><td class="gain">${esc(l.gain)}</td><td class="n">${fmtE(l.tot)}</td></tr>`).concat([`<tr class="tot"><td colspan="4">Total ${s.name}</td><td class="n">${fmtE(s.total)}</td></tr>`]), s.name, "", `<div class="psec" style="color:#7030A0;margin-top:18px">${esc(s.name.toUpperCase())}${s.classe ? " — classe visée " + esc(s.classe) : ""}${s.gainPct ? " — gain " + esc(s.gainPct) : ""}</div>`);
       }
     }
-    if (tocBox) tocBox.innerHTML = marks.map(m => `<div class="tli l${m.lvl}"><span>${esc(m.label)}</span><i></i><b>${pages.indexOf(m.pg) + 1}</b></div>`).join("");
+    pages.forEach((pg, i) => { pg.id = "p" + (i + 1); });
+    if (tocBox) tocBox.innerHTML = marks.map(m => { const n = pages.indexOf(m.pg) + 1; return `<a class="tli l${m.lvl}" href="#p${n}" data-pg="${n}"><span>${esc(m.label)}</span><i></i><b>${n}</b></a>`; }).join("");
     // ---- numérotation et rendu
+    const ppt = { boxes: [], tots: [] };   // positions des cases PPT et des champs de total (PDF interactif)
+    pages.forEach((pg, pi) => { const pr = pg.getBoundingClientRect(); const rc = n => { const r = n.getBoundingClientRect(); return { pi, pw: pr.width || 794, x: r.left - pr.left, y: r.top - pr.top, w: r.width, h: r.height }; };
+      pg.querySelectorAll(".pbx").forEach(n => ppt.boxes.push({ ...rc(n), amt: +n.dataset.amt || 0, g: n.dataset.g })); pg.querySelectorAll(".pfield").forEach(n => ppt.tots.push({ ...rc(n), key: n.dataset.tot })); });
     const N = pages.length; pages.forEach((pg, i) => { const f = $(".pf", pg); if (f) f.textContent = "Page " + (i + 1) + " | " + N; });
     await Promise.all([...host.querySelectorAll("img")].map(i => i.decode ? i.decode().catch(() => {}) : null));
     if (only) { showPdfPreview(pages, host, only); return; }
@@ -3675,7 +3693,8 @@ async function exportPDF(only, lay) {
         btn.innerHTML = '<span class="spin"></span> PDF vectoriel…';
         const css = pdfCss(); const body = pages.map(p => p.outerHTML).join("");
         const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>@page{size:210mm 297mm;margin:0} html,body{margin:0;padding:0;background:#fff} ${css} .pdfpage{ width:210mm !important; height:297mm !important; break-after:page; page-break-after:always; overflow:hidden; } .pdfpage:last-child{ break-after:auto; page-break-after:auto; }</style></head><body>${body}</body></html>`;
-        const u8 = await window.dtgDesktop.pdfFromHtml(html);
+        let u8 = await window.dtgDesktop.pdfFromHtml(html);
+        if (ppt.boxes.length) { try { u8 = await addPptForm(u8, ppt); } catch (e) { console.warn("Cases PPT interactives indisponibles", e); } }
         await saveBlob(new Blob([u8], { type: "application/pdf" }), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
         host.remove(); btn.disabled = !S.d; btn.textContent = btnLbl; return;
       } catch (e) { console.warn("PDF vectoriel indisponible, export en image", e); }
@@ -3686,10 +3705,32 @@ async function exportPDF(only, lay) {
       const canvas = await window.html2canvas(pages[i], { scale: 3.5, backgroundColor: "#ffffff", logging: false, useCORS: false, width: 794, height: 1123, windowWidth: 1200 });
       if (i) pdf.addPage("a4", "portrait");
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, 210, 297, undefined, "SLOW");
+      { const pr = pages[i].getBoundingClientRect(); pages[i].querySelectorAll("a.tli").forEach(a => { const r = a.getBoundingClientRect(); try { pdf.link((r.left - pr.left) * 210 / 794, (r.top - pr.top) * 297 / 1123, r.width * 210 / 794, r.height * 297 / 1123, { pageNumber: +a.dataset.pg }); } catch {} }); }
     }
     await saveBlob(pdf.output("blob"), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
   } catch (e) { console.error(e); toast("Erreur pendant l’export PDF : " + (e?.message || e)); if (only) host.remove(); }
   if (!only) { host.remove(); btn.disabled = !S.d; btn.textContent = btnLbl; }
+}
+
+async function addPptForm(u8, ppt) {   // ajoute au PDF les cases à cocher « PPT » et les totaux calculés (formulaire PDF)
+  await loadScript("vendor/pdf-lib.min.js", () => window.PDFLib);
+  const { PDFDocument, PDFName, PDFString, StandardFonts, TextAlignment, rgb } = window.PDFLib;
+  const doc = await PDFDocument.load(u8); const form = doc.getForm(); const pgs = doc.getPages();
+  const font = await doc.embedFont(StandardFonts.HelveticaBold);
+  const box = r => { const pg = pgs[r.pi]; const { width: W, height: H } = pg.getSize(); const k = W / r.pw; return { pg, x: r.x * k, y: H - (r.y + r.h) * k, width: r.w * k, height: r.h * k }; };
+  ppt.boxes.forEach((b, i) => { b.name = "ppt_" + b.g + "_" + i; const o = box(b); const cb = form.createCheckBox(b.name); cb.addToPage(o.pg, { x: o.x, y: o.y, width: o.width, height: o.height, borderWidth: 0, textColor: rgb(0.75, 0.1, 0.1) }); });
+  const co = [];
+  ppt.tots.forEach(t => {
+    const o = box(t); const tf = form.createTextField("tot_" + t.key); tf.setText("0 €");
+    tf.addToPage(o.pg, { x: o.x, y: o.y, width: o.width, height: o.height, font, borderWidth: 0, textColor: rgb(0, 0, 0) });
+    tf.setFontSize(9); tf.setAlignment(TextAlignment.Right); tf.enableReadOnly();
+    const sel = ppt.boxes.filter(b => t.key === "all" || String(b.g) === String(t.key));
+    const js = "var N=" + JSON.stringify(sel.map(b => b.name)) + ",A=" + JSON.stringify(sel.map(b => b.amt)) + ",t=0;for(var i=0;i<N.length;i++){var f=this.getField(N[i]);if(f&&f.value!=='Off')t+=A[i];}var s=String(Math.round(t)),o='';for(var j=0;j<s.length;j++){if(j>0&&(s.length-j)%3===0)o+=' ';o+=s.charAt(j);}event.value=o+' '+String.fromCharCode(8364);";
+    const act = doc.context.obj({ Type: "Action", S: "JavaScript", JS: PDFString.of(js) });
+    tf.acroField.dict.set(PDFName.of("AA"), doc.context.obj({ C: act })); co.push(tf.acroField.ref);
+  });
+  if (co.length) form.acroForm.dict.set(PDFName.of("CO"), doc.context.obj(co));
+  return await doc.save();
 }
 
 /* ============ prévisualisation d'un chapitre (mêmes pages que le PDF) ============ */
