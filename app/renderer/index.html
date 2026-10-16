@@ -386,10 +386,10 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .pb{ position:absolute; left:76px; right:76px; top:104px; bottom:84px; overflow:hidden; }
 .pdfpage .pf{ position:absolute; right:110px; bottom:38px; font-size:9pt; letter-spacing:1px; }
 .pdfpage .pl{ display:none; position:absolute; left:0; right:0; bottom:24px; height:2px; background:#C00000; }
-.pdfpage .pbt{ color:#3A5F8C; font-size:18pt; font-weight:700; margin:0 0 14px; line-height:1.2; }
+.pdfpage .pbt{ color:#C00000; font-size:18pt; font-weight:700; margin:0 0 14px; line-height:1.2; }
 .pdfpage .chead{ display:flex; gap:18px; align-items:center; margin:0 0 14px; }
 .pdfpage .ccov{ width:118px; height:118px; border-radius:18px; object-fit:cover; display:block; }
-.pdfpage .pct{ font-size:15pt; font-weight:700; margin:0 0 8px; color:#111; line-height:1.2; }
+.pdfpage .pct{ font-size:15pt; font-weight:700; margin:0 0 8px; color:#C00000; line-height:1.2; }
 .pdfpage .pcot{ display:flex; gap:30px; } .pdfpage .pcot div{ text-align:center; font-size:9pt; line-height:1.5; } .pdfpage .pcot img{ margin:0 1px; vertical-align:middle; }
 .pdfpage .pfld{ background:#F7F7F7; border-radius:12px; padding:10px 14px 9px; margin:0 0 12px; }
 .pdfpage .pfld.etat{ background:#EAF2FB; } .pdfpage .pfld.th{ background:#F4ECFB; }
@@ -422,13 +422,13 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage.l2 .pbt{ font-weight:300; text-transform:uppercase; color:#C00000; }
 .pdfpage.l2 .pul{ margin:0 0 6px; padding-left:16px; } .pdfpage.l2 .pul li{ margin:0 0 3px; text-align:justify; hyphens:auto; }
 .pdfpage.l2 .pcols.fl .pfld{ break-inside:auto; }
-.pdfpage .ptoc{ font-size:10pt; } .pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage .tli i{ flex:1; border-bottom:.5px solid #999; transform:translateY(-3px); min-width:12px; } .pdfpage .tli b{ font-weight:700; color:#D0201A; }
+.pdfpage .pfld.bgr, .pdfpage.l2 .pfld.bgr{ background:#FBE6E6; } .pdfpage .pfld.bgv, .pdfpage.l2 .pfld.bgv{ background:#EFE7F7; }
+.pdfpage .ptoc{ font-size:10pt; } .pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage .tli i{ flex:1; border-bottom:.3px solid #C00000; transform:translateY(-3px); min-width:12px; } .pdfpage .tli b{ font-weight:700; color:#D0201A; }
 .pdfpage .tli.l0{ font-weight:700; margin-top:9px; } .pdfpage .tli.l1{ padding-left:14px; }
-.pdfpage.l2 .pduo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0 0 16px; } .pdfpage.l2 .pph{ height:200px; border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage.l2 .pph.has{ border-style:solid; border-color:#D9D9D9; padding:0; overflow:hidden; } .pdfpage.l2 .pph img{ width:100%; height:100%; object-fit:contain; display:block; }
-.pdfpage.l2 .pduo.tall .pph{ height:330px; }
-.pdfpage.l2 .pk4{ table-layout:fixed; } .pdfpage.l2 .pk4 td{ padding:4px 8px 4px 0; width:26%; } .pdfpage.l2 .pk4 td.k{ width:24%; } .pdfpage.l2 .pnone{ color:#B5BCC6; }
+.pdfpage .pduo{ display:grid; grid-template-columns:1fr; gap:12px; margin:0 0 14px; } .pdfpage .pph{ height:var(--ph,200px); border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage .pph.has{ border-style:solid; border-color:#D9D9D9; padding:0; overflow:hidden; } .pdfpage .pph img{ width:100%; height:100%; object-fit:contain; display:block; }
+.pdfpage .pk4{ table-layout:fixed; } .pdfpage .pk4 td{ padding:4px 8px 4px 0; width:26%; } .pdfpage .pk4 td.k{ width:24%; } .pdfpage .pnone{ color:#B5BCC6; }
 .pdfpage .gpill{ display:inline-block; color:#fff; font-size:7pt; font-weight:700; padding:1px 8px; border-radius:9px; letter-spacing:.2px; }
-.pdfpage.l2 .pduo2 table{ align-self:start; } .pdfpage.l2 .pduo2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; } .pdfpage.l2 .pcb{ width:18px; color:#555; font-size:11pt; }
+.pdfpage .pduo2 table{ align-self:start; } .pdfpage .pduo2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; } .pdfpage .pcb{ width:18px; color:#555; font-size:11pt; }
 .pdfpage .pnote{ font-size:8pt; font-style:italic; color:#7F7F7F; }
 .pdfpage .pkv{ border-collapse:collapse; width:100%; } .pdfpage .pkv td{ padding:3px 6px 3px 0; vertical-align:top; } .pdfpage .pkv td.k{ font-weight:700; color:#1F4E79; width:38%; }
 .pdfpage .pimgs{ display:flex; gap:22px; justify-content:center; margin:6px 0 14px; } .pdfpage figure{ margin:0; text-align:center; }
@@ -525,7 +525,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.44";
+const APP_VERSION = "0.1.45";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1469,6 +1469,17 @@ function ask(msg, buttons) {
     m.innerHTML = `<div class="dlg small" role="dialog" aria-modal="true"><p style="margin:0 0 16px">${esc(msg)}</p><div class="row" style="justify-content:flex-end">${buttons.map(([l, v], i) => `<button class="btn ${i === 0 ? "primary" : ""}" data-v="${esc(v)}">${esc(l)}</button>`).join("")}</div></div>`;
     m.addEventListener("click", e => { const v = e.target.closest("[data-v]")?.dataset.v; if (v !== undefined) { m.remove(); res(v); } else if (e.target === m) { m.remove(); res(null); } });
     document.body.append(m); $("button", m).focus();
+  });
+}
+
+function askDate(def) {
+  return new Promise(res => {
+    const m = document.createElement("div"); m.className = "modal";
+    m.innerHTML = `<div class="dlg small" role="dialog" aria-modal="true"><p style="margin:0 0 10px"><b>Date à inscrire sur la première page</b></p><input type="date" id="adVal" class="field-in" style="width:100%;margin-bottom:16px" value="${esc(def)}"><div class="row" style="justify-content:flex-end"><button class="btn" data-v="n">Annuler</button><button class="btn primary" data-v="y">Exporter</button></div></div>`;
+    const done = v => { m.remove(); res(v); };
+    m.addEventListener("click", e => { const v = e.target.closest("[data-v]")?.dataset.v; if (v === "y") done($("#adVal", m).value || def); else if (v === "n" || e.target === m) done(null); });
+    m.addEventListener("keydown", e => { if (e.key === "Enter") done($("#adVal", m).value || def); if (e.key === "Escape") done(null); });
+    document.body.append(m); $("#adVal", m).focus();
   });
 }
 
@@ -3438,6 +3449,12 @@ async function exportPDF(only, lay) {
   const L2 = lay !== "classic";   // la mise en page 2 colonnes est la version courante ; « classic » = ancienne mise en page conservée
   if (!S.d) return;
   const opt = "all";   // export direct, sans question
+  let dateCover = null;
+  if (!only) {   // date inscrite sur la page de garde
+    const today = new Date().toISOString().slice(0, 10);
+    dateCover = await askDate(S.d.meta.dateRapport || today); if (!dateCover) return;
+    if (S.d.meta.dateRapport !== dateCover) { S.d.meta.dateRapport = dateCover; queueSave("d"); }
+  }
   const btn = L2 ? $("#btnPdf") : $("#btnPdf2"); const btnLbl = btn.textContent; if (!only) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> PDF…'; }
   const host = document.createElement("div"); host.className = "pdfhost"; document.body.append(host);
   try {
@@ -3447,6 +3464,7 @@ async function exportPDF(only, lay) {
     }
     await flushSave();
     const { data, missing } = await collectExport(opt, only);
+    if (dateCover) data.date = new Date(dateCover + "T12:00:00").toLocaleDateString("fr-FR");
     try { await document.fonts.load("400 12px Montserrat"); await document.fonts.load("700 12px Montserrat"); await document.fonts.load("italic 400 12px Montserrat"); } catch {}
     const icons = {}; for (const k of ["a", "t", "e"]) icons[k] = { on: u8ToDataUrl(await iconPng(COT_ICON[k], true), "image/png"), off: u8ToDataUrl(await iconPng(COT_ICON[k], false), "image/png") };
     const pages = []; let cur = null;
@@ -3501,18 +3519,24 @@ async function exportPDF(only, lay) {
     // ---- pages d'ouverture (version 2 colonnes) : préambule, sommaire, cadre réglementaire, fiche d'identification, localisation
     const marks = []; const mark = (label, lvl) => { if (!only && cur) marks.push({ label, lvl, pg: cur.pg }); };
     const headPut = n => { if (cur.cols) cur.head.append(n); else place(n); };
-    const sec = (title, html) => placeSplit(cont => { const d = el(`<div class="pfld"><div class="lb">${esc(title)}${cont ? " (suite)" : ""}</div></div>`); return { root: d, target: d }; }, html);
+    const sec = (title, html) => placeSplit(cont => { const d = el(`<div class="pfld ${/architecte/i.test(title) ? "bgr" : /BE thermique/i.test(title) ? "bgv" : ""}"><div class="lb">${esc(title)}${cont ? " (suite)" : ""}</div></div>`); return { root: d, target: d }; }, html);
+    const onePage = (build, h0, hmin, step = 12) => {   // construit une page unique ; réduit la taille (images / texte) jusqu'à ce que tout tienne
+      const n0 = pages.length, m0 = marks.length;
+      for (let h = h0; ; h -= step) { build(h); if (pages.length === n0 + 1 || h - step < hmin) return; pages.splice(n0).forEach(pg => pg.remove()); marks.length = m0; }
+    };
     let tocBox = null;
     if (!only) {
       const M = S.d.meta || {}; const FI = {};
       for (const k of ["cadastre", "aerien", "plan", "vue"]) { try { FI[k] = await getImg("front_" + k) || null; } catch { FI[k] = null; } }
       const frontSecs = key => FRONT_TEXT[key].forEach(([t], i) => sec(t, mdItems(frontText(key, i))));
-      newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "PRÉAMBULE"); mark("PRÉAMBULE", 0);
-      headPut(el(`<h1 class="pbt">PRÉAMBULE</h1>`)); frontSecs("preambule");
-
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "SOMMAIRE"); mark("SOMMAIRE", 0);
       headPut(el(`<h1 class="pbt">SOMMAIRE</h1>`));
       tocBox = el(`<div class="ptoc"></div>`); headPut(tocBox);
+
+      onePage(fs => {   // le préambule tient sur une page (texte réduit au besoin)
+        newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "PRÉAMBULE"); mark("PRÉAMBULE", 0); cur.pb.style.fontSize = fs + "pt";
+        headPut(el(`<h1 class="pbt">PRÉAMBULE</h1>`)); frontSecs("preambule");
+      }, 10, 8, .5);
 
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "CADRE RÉGLEMENTAIRE"); mark("CADRE RÉGLEMENTAIRE DU DTG", 0);
       headPut(el(`<h1 class="pbt">CADRE RÉGLEMENTAIRE DU DTG</h1>`));
@@ -3522,24 +3546,29 @@ async function exportPDF(only, lay) {
         for (let fs = 9; fs > 6.5 && cur.pb.scrollHeight > cur.pb.clientHeight + 1; fs -= .25) cur.body.style.fontSize = fs + "pt";
       } else frontSecs("cadre");
 
-      newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "FICHE D’IDENTIFICATION", true); mark("FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ", 0);
-      place(el(`<h1 class="pbt">FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ</h1>`));
       const nbB = M.batiments || S.d.buildings.length || "";
       const val = v => v ? esc(String(v)) : `<span class="pnone">—</span>`;
       const ph = (img, lbl) => `<div class="pph ${img ? "has" : ""}">${img ? `<img src="${img}" alt="">` : esc(lbl)}</div>`;
+      onePage(h => {
+      newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "FICHE D’IDENTIFICATION", true); mark("FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ", 0);
+      place(el(`<h1 class="pbt">FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ</h1>`));
       place(el(`<div class="pfld"><div class="lb">Localisation de l’immeuble</div><table class="pkv"><tr><td class="k">Adresse</td><td>${val(M.adresse || data.adresse)}</td></tr><tr><td class="k">Référence cadastrale</td><td>${val(M.parcelle)}</td></tr></table></div>`));
-      place(el(`<div class="pduo">${ph(FI.cadastre, "Cadastre")}${ph(FI.aerien, "Vue aérienne")}</div>`));
+      place(el(`<div class="pduo" style="--ph:${h}px">${ph(FI.cadastre, "Cadastre")}${ph(FI.aerien, "Vue aérienne")}</div>`));
       place(el(`<div class="pfld"><div class="lb">Description de l’immeuble</div><table class="pkv pk4"><tr><td class="k">Immatriculation</td><td>${val(M.immatriculation)}</td><td class="k">Nombre de bâtiments</td><td>${val(nbB)}</td></tr><tr><td class="k">SIRET</td><td>${val(M.siret)}</td><td class="k">Nombre de lots</td><td>${val(M.lots)}</td></tr><tr><td class="k">Typologie</td><td>${val(M.typologie)}</td><td class="k">Période de construction</td><td>${val(M.annee)}</td></tr><tr><td class="k">Ascenseurs</td><td>${val(M.ascenseurs)}</td><td class="k">Stationnements en sous-sol</td><td>${val(M.stationnements)}</td></tr></table></div>`));
       const geoL = geoLevels();
       const box = t => `<tr><td style="width:26px;padding-right:6px">${geoImg(t, 22)}</td><td>${t}</td><td style="text-align:right;white-space:nowrap">${geoL[t] ? `<span class="gpill" style="background:${geoCol(geoL[t])}">${geoL[t]}</span>` : `<span class="pnone">—</span>`}</td></tr>`;
       place(el(`<div class="pfld"><div class="lb">Géorisques</div><div class="pduo2"><table class="pkv"><tr><td colspan="3" class="k">Risques naturels identifiés</td></tr>${GEO_NAT.map(box).join("")}</table><table class="pkv"><tr><td colspan="3" class="k">Risques technologiques identifiés</td></tr>${GEO_TECH.map(box).join("")}</table></div></div>`));
 
+      }, 250, 70);
+
+      onePage(h => {
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "LOCALISATION DES OUVRAGES", true); mark("LOCALISATION DES OUVRAGES", 0);
       place(el(`<h1 class="pbt">LOCALISATION DES OUVRAGES</h1>`));
-      place(el(`<div class="pduo tall">${ph(FI.plan, "Plan")}${ph(FI.vue, "Vue aérienne")}</div>`));
+      place(el(`<div class="pduo" style="--ph:${h}px">${ph(FI.plan, "Plan")}${ph(FI.vue, "Vue aérienne")}</div>`));
       const ic = (k, n) => [1, 2, 3].map(i => `<img src="${i <= n ? icons[k].on : icons[k].off}" width="17" height="17" alt="">`).join("");
       const nomen = (lbl, k) => `<tr><td class="k">${lbl} de 1 à 3 :</td><td>${[1, 2, 3].map(n => ic(k, n)).join(' <span class="pslash">/</span> ')}</td></tr>`;
       place(el(`<div class="pfld"><div class="lb">Nomenclature</div><table class="pkv">${nomen("Qualité architecturale", "a")}${nomen("Qualité thermique", "t")}${nomen("Confort d’été", "e")}<tr><td class="k">Caractéristique thermique et gain de 1 à 3 :</td><td><b style="color:#7030A0">+ &nbsp;/&nbsp; ++ &nbsp;/&nbsp; +++</b></td></tr></table><p style="margin-top:8px;color:#7030A0">La couleur violette (écriture / tableau / icônes) est dédiée aux caractéristiques thermiques.</p><p style="color:#C00000">Les zones de textes en rouge sont dédiées aux éléments nécessitant des travaux : pathologies, non-conformités, entretiens, etc.</p></div>`));
+      }, 360, 90);
     }
     // ---- obligations
     if (!only && data.oblig && data.oblig.length) {
