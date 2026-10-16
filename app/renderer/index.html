@@ -429,7 +429,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .pk4{ table-layout:fixed; } .pdfpage .pk4 td{ padding:4px 8px 4px 0; width:26%; } .pdfpage .pk4 td.k{ width:24%; } .pdfpage .pnone{ color:#B5BCC6; }
 .pdfpage .gpill{ display:inline-block; color:#fff; font-size:7pt; font-weight:700; padding:1px 8px; border-radius:9px; letter-spacing:.2px; }
 .pdfpage .pduo2 table{ align-self:start; } .pdfpage .pduo2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; } .pdfpage .pcb{ width:18px; color:#555; font-size:11pt; }
-.pdfpage .ppt{ text-align:center; } .pdfpage .pbx{ display:inline-block; width:12px; height:12px; border:1px solid #444; border-radius:2px; background:#fff; vertical-align:middle; } .pdfpage .pfield{ display:inline-block; min-width:120px; height:18px; border:1px solid #BBB; border-radius:3px; vertical-align:middle; }
+.pdfpage .ptbl tr.ret td{ font-weight:700; background:#FFF8D6; } .pdfpage .ppt{ text-align:center; } .pdfpage .pbx{ display:inline-block; width:12px; height:12px; border:1px solid #444; border-radius:2px; background:#fff; vertical-align:middle; } .pdfpage .pfield{ display:inline-block; min-width:120px; height:18px; border:1px solid #BBB; border-radius:3px; vertical-align:middle; }
 .pdfpage .pnote{ font-size:8pt; font-style:italic; color:#7F7F7F; }
 .pdfpage .pkv{ border-collapse:collapse; width:100%; } .pdfpage .pkv td{ padding:3px 6px 3px 0; vertical-align:top; } .pdfpage .pkv td.k{ font-weight:700; color:#1F4E79; width:38%; }
 .pdfpage .pimgs{ display:flex; gap:22px; justify-content:center; margin:6px 0 14px; } .pdfpage figure{ margin:0; text-align:center; }
@@ -526,7 +526,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.46";
+const APP_VERSION = "0.1.47";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3658,8 +3658,9 @@ async function exportPDF(only, lay) {
         const bTitle = `<div class="psec" style="margin-top:18px">${esc(b.bname)}${b.dpe ? ` <span style="font-weight:400;font-size:9pt">· DPE ${esc(b.dpe)}</span>` : ""}</div>`;
         if (!b.terms.length) place(el(bTitle));
         for (const [ti, t] of b.terms.entries()) {
-          let n = 0; const rows = t.lines.map(l => `<tr><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td><td class="n">${fmtE(l.tot)}</td><td class="ppt"><span class="pbx" data-amt="${Math.round(l.tot || 0)}" data-g="${bi}"></span></td></tr>`);
+          let n = 0; const rows = t.lines.map(l => `<tr><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td><td class="n">${fmtE(l.tot)}</td><td class="ppt"><span class="pbx" data-amt="${Math.round(l.tot || 0)}" data-g="${bi}" data-t="${bi}_${ti}"></span></td></tr>`);
           rows.push(`<tr class="tot"><td colspan="5" style="color:${TT[t.key]}">Total ${esc(t.title.toLowerCase())}</td><td class="n">${fmtE(t.total)}</td><td></td></tr>`);
+          rows.push(`<tr class="ret"><td colspan="5">Montant retenu TTC (lignes cochées)</td><td class="n"><span class="pfield" data-tot="t_${bi}_${ti}"></span></td><td></td></tr>`);
           tableKeep(`<th colspan="7" class="ttl" style="color:${TT[t.key]}">${esc(t.title)}</th></tr><tr><th style="width:6%">N°</th><th style="width:20%">Localisation</th><th>Désignation des travaux</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th><th class="n" style="width:14%">Estimatif TTC</th><th class="ppt" style="width:6%">PPT</th>`, rows, t.title, TCL[t.key] + " pgap", ti === 0 ? bTitle : "");
         }
         place(el(`<div class="ptotch">Total ${esc(b.bname)} : ${fmtE(b.total)}</div>`));
@@ -3684,7 +3685,7 @@ async function exportPDF(only, lay) {
     // ---- numérotation et rendu
     const ppt = { boxes: [], tots: [] };   // positions des cases PPT et des champs de total (PDF interactif)
     pages.forEach((pg, pi) => { const pr = pg.getBoundingClientRect(); const rc = n => { const r = n.getBoundingClientRect(); return { pi, pw: pr.width || 794, x: r.left - pr.left, y: r.top - pr.top, w: r.width, h: r.height }; };
-      pg.querySelectorAll(".pbx").forEach(n => ppt.boxes.push({ ...rc(n), amt: +n.dataset.amt || 0, g: n.dataset.g })); pg.querySelectorAll(".pfield").forEach(n => ppt.tots.push({ ...rc(n), key: n.dataset.tot })); });
+      pg.querySelectorAll(".pbx").forEach(n => ppt.boxes.push({ ...rc(n), amt: +n.dataset.amt || 0, g: n.dataset.g, t: n.dataset.t })); pg.querySelectorAll(".pfield").forEach(n => ppt.tots.push({ ...rc(n), key: n.dataset.tot })); });
     const N = pages.length; pages.forEach((pg, i) => { const f = $(".pf", pg); if (f) f.textContent = "Page " + (i + 1) + " | " + N; });
     await Promise.all([...host.querySelectorAll("img")].map(i => i.decode ? i.decode().catch(() => {}) : null));
     if (only) { showPdfPreview(pages, host, only); return; }
@@ -3724,7 +3725,7 @@ async function addPptForm(u8, ppt) {   // ajoute au PDF les cases à cocher « P
     const o = box(t); const tf = form.createTextField("tot_" + t.key); tf.setText("0 €");
     tf.addToPage(o.pg, { x: o.x, y: o.y, width: o.width, height: o.height, font, borderWidth: 0, textColor: rgb(0, 0, 0) });
     tf.setFontSize(9); tf.setAlignment(TextAlignment.Right); tf.enableReadOnly();
-    const sel = ppt.boxes.filter(b => t.key === "all" || String(b.g) === String(t.key));
+    const sel = ppt.boxes.filter(b => t.key === "all" || (t.key.startsWith("t_") ? "t_" + b.t === t.key : String(b.g) === String(t.key)));
     const js = "var N=" + JSON.stringify(sel.map(b => b.name)) + ",A=" + JSON.stringify(sel.map(b => b.amt)) + ",t=0;for(var i=0;i<N.length;i++){var f=this.getField(N[i]);if(f&&f.value!=='Off')t+=A[i];}var s=String(Math.round(t)),o='';for(var j=0;j<s.length;j++){if(j>0&&(s.length-j)%3===0)o+=' ';o+=s.charAt(j);}event.value=o+' '+String.fromCharCode(8364);";
     const act = doc.context.obj({ Type: "Action", S: "JavaScript", JS: PDFString.of(js) });
     tf.acroField.dict.set(PDFName.of("AA"), doc.context.obj({ C: act })); co.push(tf.acroField.ref);
