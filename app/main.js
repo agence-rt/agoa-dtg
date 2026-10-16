@@ -218,6 +218,16 @@ ipcMain.handle("google:switch", wrap(async () => { googleSignOut(); return true;
 /* ---------- fichiers ---------- */
 ipcMain.handle("dtg:remember", wrap(async ({ ref, path: p }) => { if (ref && p) rememberPath(String(ref), p); return true; }));
 ipcMain.handle("file:readDropbox", wrap(async (p) => fs.readFileSync(toLocal(p))));
+// Lecture / inventaire d'un dossier de photos choisi sur le poste (chemin absolu mémorisé avec le dossier DTG)
+const MEDIA_RE = /\.(jpe?g|png|webp|gif|bmp|tiff?|hei[cf]|mp4|mov|m4v|webm|avi|mkv)$/i;
+ipcMain.handle("file:readAbs", wrap(async (p) => { p = String(p || ""); if (!path.isAbsolute(p) || !MEDIA_RE.test(p)) throw new Error("Chemin non autorisé"); return fs.readFileSync(p); }));
+ipcMain.handle("file:scanAbs", wrap(async (dir) => {
+  dir = String(dir || ""); if (!path.isAbsolute(dir) || !isDir(dir)) return null;
+  const out = []; const rec = (d, rel) => { let list = []; try { list = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+    for (const e of list) { if (out.length >= 20000 || e.name.startsWith(".")) continue; const r = rel ? rel + "/" + e.name : e.name;
+      if (e.isDirectory()) rec(path.join(d, e.name), r); else if (MEDIA_RE.test(e.name)) out.push(r); } };
+  rec(dir, ""); return out;
+}));
 ipcMain.handle("file:saveAs", wrap(async ({ filename, buf }) => {
   const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath("documents"), filename) });
   if (r.canceled || !r.filePath) return null; fs.writeFileSync(r.filePath, Buffer.from(buf)); shell.showItemInFolder(r.filePath); return r.filePath;

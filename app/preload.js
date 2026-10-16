@@ -1,7 +1,7 @@
 // Pont entre l'interface de l'atelier et l'application Windows.
 // Reproduit les capacités utilisées par l'atelier sur claude.ai (db, sample, mcp, downloads)
 // avec un stockage local, la Dropbox synchronisée, l'API Ragic et l'API Anthropic.
-const { ipcRenderer } = require("electron");
+const { ipcRenderer, webUtils } = require("electron");
 
 async function call(ch, arg) {
   const r = await ipcRenderer.invoke(ch, arg);
@@ -79,6 +79,7 @@ window.dtgDesktop = {
   isDesktop: true,
   version: (() => { try { return ipcRenderer.sendSync("app:version"); } catch { return ""; } })(),
   readFile: p => call("file:readDropbox", p),
+  readAbs: p => call("file:readAbs", p), scanAbs: d => call("file:scanAbs", d), pathOf: f => { try { return webUtils.getPathForFile(f) || ""; } catch { return ""; } },
   saveDtg: (fname, buf, opDisplay) => call("dtg:save", { fname, buf, opDisplay }),
   cfgGet: () => call("cfg:get"), cfgSet: c => call("cfg:set", c), pickDropbox: () => call("cfg:pickDropbox"), testAI: () => call("cfg:testAI"), testRagic: () => call("cfg:testRagic"), pdfFromHtml: html => call("pdf:render", html), openSettings: () => call("app:openSettings"), googleInfo: () => call("google:info"), googleSwitch: () => call("google:switch")
 };

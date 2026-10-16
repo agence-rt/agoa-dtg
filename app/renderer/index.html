@@ -377,6 +377,18 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .ptab .sc{ color:var(--violet); }
 .tc{ color:#D0201A; } .tm{ color:#1F6FC5; } .tl{ color:#2C7A4B; }
 /* ---- pages PDF (hors écran) ---- */
+.prbar{ display:flex; gap:10px; align-items:center; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+.prscroll{ background:#8a9199; padding:18px 16px 40px; display:flex; flex-direction:column; align-items:center; gap:16px; min-height:calc(100vh - 110px); }
+.prscroll .pvwrap{ flex:none; position:relative; box-shadow:0 1px 10px rgba(0,0,0,.4); background:#fff; } .prscroll .pvwrap > .pdfpage{ transform-origin:0 0; position:absolute; left:0; top:0; }
+.prwait{ color:#fff; display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:80px; }
+.btn.pdfred{ background:#C00000; border-color:#C00000; color:#fff; }
+.expov{ position:fixed; inset:0; z-index:9999; background:rgba(20,24,30,.55); display:grid; place-items:center; }
+.expbox{ background:#fff; color:#151515; border-radius:14px; padding:26px 34px 24px; min-width:320px; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,.35); }
+.expsheets{ position:relative; width:64px; height:80px; margin:0 auto 16px; } .expsheets i{ position:absolute; left:0; top:0; width:52px; height:70px; background:#fff; border:2px solid #C00000; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,.25); animation:expsh 1.6s ease-in-out infinite; }
+.expsheets i:nth-child(2){ animation-delay:.25s; } .expsheets i:nth-child(3){ animation-delay:.5s; background:#C00000; }
+@keyframes expsh{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(12px,8px); } }
+.expbar{ height:4px; background:#eee; border-radius:2px; overflow:hidden; margin-top:14px; } .expbar b{ display:block; height:100%; width:40%; background:#C00000; border-radius:2px; animation:expbar 1.2s ease-in-out infinite; }
+@keyframes expbar{ 0%{ transform:translateX(-100%); } 100%{ transform:translateX(250%); } }
 .pdfhost{ position:fixed; left:0; top:0; z-index:-5; width:794px; pointer-events:none; }
 .pdfpage{ width:794px; height:1123px; background:#fff; color:#151515; position:relative; overflow:hidden; font:10pt/1.5 Arial, Helvetica, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 .pdfpage *{ box-sizing:border-box; }
@@ -484,19 +496,19 @@ a.btn{ text-decoration:none; color:inherit; display:inline-flex; align-items:cen
       <button role="tab" data-tab="redac" aria-selected="false">Rédaction</button>
       <button role="tab" data-tab="pppt" aria-selected="false">PPPT</button>
       <button role="tab" data-tab="photos" aria-selected="false">Photos</button>
+      <button role="tab" data-tab="print" aria-selected="false">Impression</button>
     </nav>
     <div class="spacer"></div>
     <button class="btn red hidden" id="btnPending"></button>
     <div class="savestate" id="savestate"></div>
     <button class="btn" id="btnSaveDtg" disabled title="Enregistrer le fichier .dtg">Enregistrer .dtg</button>
-    <button class="btn hidden" id="btnPdf" disabled aria-hidden="true" tabindex="-1">Exporter PDF (2 colonnes)</button>
-    <button class="btn" id="btnPdf2" disabled style="background:#C00000;border-color:#C00000;color:#fff" title="Générer le PDF du DTG">Exporter PDF</button>
   </header>
   <div class="main">
     <section class="view" id="v-sources"></section>
     <section class="view hidden" id="v-redac"><div class="redac" id="redacGrid"><aside class="tree" id="tree"></aside><div class="editor" id="editor"></div><aside class="drawer hidden" id="drawer" aria-label="Photos du dossier"></aside></div></section>
     <section class="view hidden" id="v-pppt"></section>
     <section class="view hidden" id="v-photos"></section>
+    <section class="view hidden" id="v-print"></section>
   </div>
 </div>
 <input type="file" id="dirpick" webkitdirectory directory multiple class="vh" tabindex="-1" aria-hidden="true">
@@ -526,13 +538,13 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.49";
+const APP_VERSION = "0.1.50";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
 const MAXDOC = DESKTOP ? Infinity : 5 * 1024 * 1024;
-const hasSrc = p => !!(p && (p.file || p.dpath));
-async function photoBlob(p) { if (!p) return null; if (p.file) return p.file; if (DESKTOP && p.dpath) { try { return new Blob([await window.dtgDesktop.readFile(p.dpath)]); } catch { return null; } } return null; }
+const hasSrc = p => !!(p && (p.file || p.dpath || p.apath));
+async function photoBlob(p) { if (!p) return null; if (p.file) return p.file; if (DESKTOP && p.dpath) { try { return new Blob([await window.dtgDesktop.readFile(p.dpath)]); } catch {} } if (DESKTOP && p.apath && window.dtgDesktop.readAbs) { try { return new Blob([await window.dtgDesktop.readAbs(p.apath)]); } catch { return null; } } return null; return null; }
 /* ============ capabilities ============ */
 const useCap = n => (window.claude && typeof window.claude.use === "function") ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
 const CAP = { mcp: useCap("mcp"), sample: useCap("sample"), db: useCap("db"), downloads: useCap("downloads") };
@@ -803,6 +815,7 @@ const fmtWhen = t => { const d = new Date(t); const today = new Date().toDateStr
 function showLastSaved() { if (!S.d) { setSaveState(""); return; } setSaveState(S.lastSaved ? "Sauvegardé " + fmtWhen(S.lastSaved) + (Store.local ? " (navigateur)" : "") : "Pas encore sauvegardé"); const el = $("#lastSavedSrc"); if (el) el.textContent = S.lastSaved ? "Dernière sauvegarde : " + fmtWhen(S.lastSaved) : ""; }
 function queueSave(what) {
   if (!S.slug) return;
+  S.rev = (S.rev || 0) + 1;
   if (what === "d") pending.d = true; else if (what) pending.c.add(what);
   setSaveState("Modifié…");
   clearTimeout(pending.t);
@@ -1370,6 +1383,9 @@ async function openDossier(ref) {
       S.d.src.rvs = (S.d.src.rvs || []).map(fix);
       scanRV(S.d.src.rvPath).then(items => { S.d.inv = items.map(({ r, k, s, i }) => ({ r, k, s, i })); S.photos = new Map(); queueSave("d"); renderAll(); }).catch(e => logLine("Dossier de visite introuvable sur ce poste : " + (e?.message || ""), "er"));
     }
+    if (DESKTOP && S.d.localDir && window.dtgDesktop.scanAbs && !(S.d.src && S.d.src.rvPath)) {   // dossier de photos retenu : relecture automatique à l'ouverture
+      window.dtgDesktop.scanAbs(S.d.localDir).then(list => { if (!list) return; S.d.inv = list.map(r => ({ r, k: EXT.vid.test(r) ? "vid" : "img", s: 0, i: "" })); S.photos = new Map(); renderAll(); }).catch(() => {});
+    }
     for (const c of Object.values(S.chaps)) for (const f of c.fields) if (isNoInfo(f.paras)) { f.paras = []; queueSave(c.id); }
     S.sel = S.d.buildings[0]?.chapters[0] || null;
     loadStyleRefs(false).then(renderSources);
@@ -1482,6 +1498,69 @@ function askDate(def) {
     m.addEventListener("keydown", e => { if (e.key === "Enter") done($("#adVal", m).value || def); if (e.key === "Escape") done(null); });
     document.body.append(m); $("#adVal", m).focus();
   });
+}
+
+function askExportInfo(defDate, defVer) {
+  return new Promise(res => {
+    const m = document.createElement("div"); m.className = "modal";
+    m.innerHTML = `<div class="dlg small" role="dialog" aria-modal="true"><p style="margin:0 0 12px"><b>Exporter le PDF</b></p>
+      <label class="muted" for="eiDate">Date inscrite sur la première page</label><input type="date" id="eiDate" class="field-in" style="width:100%;margin:4px 0 12px" value="${esc(defDate)}">
+      <label class="muted" for="eiVer">Version</label><input type="text" id="eiVer" class="field-in" style="width:100%;margin:4px 0 16px" value="${esc(defVer)}">
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-v="n">Annuler</button><button class="btn pdfred" data-v="y">Exporter</button></div></div>`;
+    const done = v => { m.remove(); res(v); };
+    const ok = () => done({ date: $("#eiDate", m).value || defDate, version: $("#eiVer", m).value.trim() || defVer });
+    m.addEventListener("click", e => { const v = e.target.closest("[data-v]")?.dataset.v; if (v === "y") ok(); else if (v === "n" || e.target === m) done(null); });
+    m.addEventListener("keydown", e => { if (e.key === "Enter") ok(); if (e.key === "Escape") done(null); });
+    document.body.append(m); $("#eiDate", m).focus();
+  });
+}
+function exportAnim() {
+  const o = document.createElement("div"); o.className = "expov"; o.setAttribute("role", "status");
+  o.innerHTML = `<div class="expbox"><div class="expsheets"><i></i><i></i><i></i></div><b>Export du PDF en cours</b><div class="muted" id="expMsg" style="margin-top:6px;min-height:1.4em">Préparation…</div><div class="expbar"><b></b></div></div>`;
+  document.body.append(o);
+  return { set: m => { const e = $("#expMsg", o); if (e) e.textContent = m; }, close: () => o.remove() };
+}
+let printBusy = false;
+function prApplyZoom() {
+  const z = (S.prZoom || 80) / 100; const box = $("#prScroll"); if (!box) return;
+  const zv = $("#prZv"); if (zv) zv.textContent = Math.round(z * 100) + " %";
+  box.querySelectorAll(".pvwrap").forEach(w => { w.style.width = Math.round(794 * z) + "px"; w.style.height = Math.round(1123 * z) + "px"; w.firstElementChild.style.transform = "scale(" + z + ")"; });
+}
+async function buildPrintPreview() {
+  if (printBusy) return; printBusy = true;
+  const box = $("#prScroll"); const info = $("#prInfo");
+  box.innerHTML = `<div class="prwait"><span class="spin" style="width:26px;height:26px"></span><span>Mise en page de l’aperçu…</span></div>`;
+  try {
+    await flushSave();
+    const r = await exportPDF(undefined, "classic", { preview: true });
+    if (!r) { box.innerHTML = ""; return; }
+    box.innerHTML = "";
+    r.pages.forEach(pg => { const w = document.createElement("div"); w.className = "pvwrap"; pg.style.boxShadow = "none"; w.append(pg); box.append(w); });
+    r.host.remove(); S.prRev = S.rev || 0; S.prRef = S.d.ref; if (info) info.textContent = r.pages.length + " pages";
+    prApplyZoom();
+  } catch (e) { box.innerHTML = `<div class="prwait">Aperçu impossible : ${esc(e?.message || e)}</div>`; }
+  finally { printBusy = false; }
+}
+async function renderPrint() {
+  const v = $("#v-print");
+  if (!S.d) { v.innerHTML = `<div class="empty">Ouvrez un dossier dans l’onglet Options.</div>`; return; }
+  if (!$("#prScroll", v)) {
+    v.innerHTML = `<div class="prbar"><button class="btn" id="prRefresh">Actualiser l’aperçu</button><span class="muted" id="prInfo"></span><span class="spacer"></span><label class="muted" style="display:flex;gap:6px;align-items:center">Zoom <input type="range" id="prZoom" min="40" max="140" step="5" value="${S.prZoom || 80}"><span id="prZv"></span></label><button class="btn pdfred" id="prExport">Exporter PDF</button></div><div class="prscroll" id="prScroll"></div>`;
+    $("#prRefresh").onclick = () => buildPrintPreview();
+    $("#prZoom").oninput = e => { S.prZoom = +e.target.value; prApplyZoom(); };
+    $("#prScroll").addEventListener("click", e => { const a = e.target.closest("a.tli"); if (!a) return; e.preventDefault(); const t = $("#prScroll").querySelector("#p" + a.dataset.pg); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); });
+    $("#prExport").onclick = async () => {
+      if (!S.d || printBusy) return;
+      const today = new Date().toISOString().slice(0, 10);
+      const info = await askExportInfo(S.d.meta.dateRapport || today, S.d.meta.version || "1"); if (!info) return;
+      S.d.meta.dateRapport = info.date; S.d.meta.version = info.version; queueSave("d");
+      const anim = exportAnim(); printBusy = true;
+      try { await exportPDF(undefined, "classic", { date: info.date, version: info.version, onStatus: anim.set }); }
+      finally { printBusy = false; anim.close(); }
+      buildPrintPreview();
+    };
+  }
+  if (S.prRev !== (S.rev || 0) || S.prRef !== S.d.ref) buildPrintPreview();
 }
 
 /* ============ render: sources ============ */
@@ -2103,6 +2182,7 @@ function ensurePhotoEntries() {
     const k = photoKey(it.r);
     if (!S.photos.has(k)) S.photos.set(k, { key: k, rel: it.r, folder: folderOf(it.r) || "(racine)", name: baseName(it.r), file: null, thumb: null });
     if (DESKTOP && S.d?.src?.rvPath) S.photos.get(k).dpath = S.d.src.rvPath + "/" + it.r;
+    if (DESKTOP && S.d?.localDir) S.photos.get(k).apath = S.d.localDir.replace(/[\\/]+$/, "") + "\\" + it.r.replace(/\//g, "\\");
   }
 }
 $("#filepick").addEventListener("change", e => {
@@ -2116,6 +2196,10 @@ $("#filepick").addEventListener("change", e => {
 $("#dirpick").addEventListener("change", e => {
   const files = [...e.target.files]; e.target.value = "";
   if (!files.length) { toast("Aucun fichier reçu. Si l’import du dossier est bloqué, utilisez « Choisir des photos » et sélectionnez les fichiers (Ctrl+A).", 6000); return; }
+  if (DESKTOP && S.d && window.dtgDesktop.pathOf) {   // on retient l'emplacement du dossier : plus besoin de le recharger après une mise à jour
+    try { const f0 = files[0]; const abs = window.dtgDesktop.pathOf(f0); const n = (f0.webkitRelativePath || "").split("/").length - 1;
+      if (abs && n >= 0) { const segs = abs.split(/[\\/]/); const dir = segs.slice(0, segs.length - n).join("\\"); if (dir && S.d.localDir !== dir) { S.d.localDir = dir; queueSave("d"); } } } catch {}
+  }
   const vids = files.filter(f => EXT.vid.test(f.name));
   vids.forEach(f => S.videos.set(stem(f.name), f));
   const imgs = files.filter(f => EXT.img.test(f.name));
@@ -2155,7 +2239,7 @@ async function pumpThumbs() {
 }
 async function getSourceBlob(p, key) {
   if (p?.file && !/\.hei[cf]$/i.test(p.name)) return p.file;
-  if (p?.dpath && !/\.hei[cf]$/i.test(p.name)) { const b = await photoBlob(p); if (b) return b; }
+  if ((p?.dpath || p?.apath) && !/\.hei[cf]$/i.test(p.name)) { const b = await photoBlob(p); if (b) return b; }
   return await IDB.get(S.slug + "|" + key);
 }
 async function cacheProcessed(p) {
@@ -3445,26 +3529,28 @@ function pdfCss() {
   for (const sh of document.styleSheets) { let rules; try { rules = sh.cssRules; } catch { continue; } for (const r of rules) if (r.cssText && /\.pdfpage|\.pdfhost/.test(r.selectorText || "")) out += r.cssText + "\n"; }
   return out;
 }
-async function exportPDF(only, lay) {
+async function exportPDF(only, lay, opts) {
   if (typeof only !== "string") only = undefined;
   const L2 = lay !== "classic";   // la mise en page 2 colonnes est la version courante ; « classic » = ancienne mise en page conservée
   if (!S.d) return;
   const opt = "all";   // export direct, sans question
-  let dateCover = null;
-  if (!only) {   // date inscrite sur la page de garde
+  const preview = !!(opts && opts.preview); const prog = m => { try { opts && opts.onStatus && opts.onStatus(m); } catch {} };
+  let dateCover = (opts && opts.date) || null;
+  if (!only && !dateCover) {   // date inscrite sur la page de garde
     const today = new Date().toISOString().slice(0, 10);
-    dateCover = await askDate(S.d.meta.dateRapport || today); if (!dateCover) return;
-    if (S.d.meta.dateRapport !== dateCover) { S.d.meta.dateRapport = dateCover; queueSave("d"); }
+    dateCover = preview ? (S.d.meta.dateRapport || today) : await askDate(S.d.meta.dateRapport || today); if (!dateCover) return;
+    if (!preview && S.d.meta.dateRapport !== dateCover) { S.d.meta.dateRapport = dateCover; queueSave("d"); }
   }
-  const btn = L2 ? $("#btnPdf") : $("#btnPdf2"); const btnLbl = btn.textContent; if (!only) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> PDF…'; }
+  prog("Préparation du rapport…");
   const host = document.createElement("div"); host.className = "pdfhost"; document.body.append(host);
   try {
-    if (!only) {
+    if (!only && !preview) {
       await loadScript("vendor/html2canvas.min.js", () => window.html2canvas);
       await loadScript("vendor/jspdf.umd.min.js", () => window.jspdf && window.jspdf.jsPDF);
     }
     await flushSave();
     const { data, missing } = await collectExport(opt, only);
+    if (opts && opts.version) data.version = opts.version;
     if (dateCover) data.date = new Date(dateCover + "T12:00:00").toLocaleDateString("fr-FR");
     try { await document.fonts.load("400 12px Montserrat"); await document.fonts.load("700 12px Montserrat"); await document.fonts.load("italic 400 12px Montserrat"); } catch {}
     const icons = {}; for (const k of ["a", "t", "e"]) icons[k] = { on: u8ToDataUrl(await iconPng(COT_ICON[k], true), "image/png"), off: u8ToDataUrl(await iconPng(COT_ICON[k], false), "image/png") };
@@ -3705,29 +3791,31 @@ async function exportPDF(only, lay) {
       pg.querySelectorAll(".pbx").forEach(n => ppt.boxes.push({ ...rc(n), amt: +n.dataset.amt || 0, g: n.dataset.g, t: n.dataset.t })); pg.querySelectorAll(".pfield").forEach(n => ppt.tots.push({ ...rc(n), key: n.dataset.tot })); });
     const N = pages.length; pages.forEach((pg, i) => { const f = $(".pf", pg); if (f) f.textContent = "Page " + (i + 1) + " | " + N; });
     await Promise.all([...host.querySelectorAll("img")].map(i => i.decode ? i.decode().catch(() => {}) : null));
+    if (preview) return { pages, host };
     if (only) { showPdfPreview(pages, host, only); return; }
+    prog("Mise en page de " + N + " pages…");
     if (DESKTOP && window.dtgDesktop.pdfFromHtml) {   // PDF vectoriel : texte net et sélectionnable
       try {
-        btn.innerHTML = '<span class="spin"></span> PDF vectoriel…';
+        prog("Génération du PDF vectoriel…");
         const css = pdfCss(); const body = pages.map(p => p.outerHTML).join("");
         const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>@page{size:210mm 297mm;margin:0} html,body{margin:0;padding:0;background:#fff} ${css} .pdfpage{ width:210mm !important; height:297mm !important; break-after:page; page-break-after:always; overflow:hidden; } .pdfpage:last-child{ break-after:auto; page-break-after:auto; }</style></head><body>${body}</body></html>`;
         let u8 = await window.dtgDesktop.pdfFromHtml(html);
         if (ppt.boxes.length) { try { u8 = await addPptForm(u8, ppt); } catch (e) { console.warn("Cases PPT interactives indisponibles", e); } }
         await saveBlob(new Blob([u8], { type: "application/pdf" }), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
-        host.remove(); btn.disabled = !S.d; btn.textContent = btnLbl; return;
+        host.remove(); return;
       } catch (e) { console.warn("PDF vectoriel indisponible, export en image", e); }
     }
     const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
     for (let i = 0; i < N; i++) {
-      btn.innerHTML = `<span class="spin"></span> PDF ${i + 1}/${N}`;
+      prog(`Page ${i + 1} / ${N}…`);
       const canvas = await window.html2canvas(pages[i], { scale: 3.5, backgroundColor: "#ffffff", logging: false, useCORS: false, width: 794, height: 1123, windowWidth: 1200 });
       if (i) pdf.addPage("a4", "portrait");
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, 210, 297, undefined, "SLOW");
       { const pr = pages[i].getBoundingClientRect(); pages[i].querySelectorAll("a.tli").forEach(a => { const r = a.getBoundingClientRect(); try { pdf.link((r.left - pr.left) * 210 / 794, (r.top - pr.top) * 297 / 1123, r.width * 210 / 794, r.height * 297 / 1123, { pageNumber: +a.dataset.pg }); } catch {} }); }
     }
     await saveBlob(pdf.output("blob"), S.d.ref + "-DTG base V" + (S.d.meta.version || "1") + ".pdf", "PDF", missing);
-  } catch (e) { console.error(e); toast("Erreur pendant l’export PDF : " + (e?.message || e)); if (only) host.remove(); }
-  if (!only) { host.remove(); btn.disabled = !S.d; btn.textContent = btnLbl; }
+  } catch (e) { console.error(e); toast("Erreur pendant l’export PDF : " + (e?.message || e)); if (only || preview) host.remove(); }
+  if (!only) host.remove();
 }
 
 async function addPptForm(u8, ppt) {   // ajoute au PDF les cases à cocher « PPT » et les totaux calculés (formulaire PDF)
@@ -3777,12 +3865,10 @@ async function previewChapter(cid, lay) {
 function setTab(t) {
   S.tab = t;
   $$(".tabs [data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
-  ["sources", "redac", "pppt", "photos"].forEach(x => $("#v-" + x).classList.toggle("hidden", x !== t));
-  if (t === "sources") renderSources(); if (t === "redac") { renderTree(); renderEditor(); } else renderDrawer(); if (t === "photos") renderPhotos(); if (t === "pppt") renderPPPT();
+  ["sources", "redac", "pppt", "photos", "print"].forEach(x => $("#v-" + x).classList.toggle("hidden", x !== t));
+  if (t === "sources") renderSources(); if (t === "redac") { renderTree(); renderEditor(); } else renderDrawer(); if (t === "photos") renderPhotos(); if (t === "pppt") renderPPPT(); if (t === "print") renderPrint();
 }
 $$(".tabs [data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
-$("#btnPdf").onclick = () => exportPDF();
-$("#btnPdf2").onclick = () => exportPDF(undefined, "classic");
 $("#btnSaveDtg").onclick = () => saveDtgFile();
 async function closeDossier() {
   if (pending.c.size || pending.d) { clearTimeout(pending.t); await flushSave(); }
@@ -3796,10 +3882,10 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 $("#btnPending").onclick = () => openIdentify(pendingTx(), 0);
 function renderAll() {
   const rc = $("#refchip"); if (S.d) { rc.textContent = S.d.ref; rc.classList.remove("hidden"); } else rc.classList.add("hidden");
-  $("#btnPdf").disabled = !S.d; $("#btnPdf2").disabled = !S.d; $("#btnClose").classList.toggle("hidden", !S.d); $("#btnSaveDtg").disabled = !S.d;
+  $("#btnClose").classList.toggle("hidden", !S.d); $("#btnSaveDtg").disabled = !S.d;
   const pn = S.d ? pendingTx().length : 0; const bp = $("#btnPending");
   bp.classList.toggle("hidden", !pn); bp.textContent = pn + " vidéo(s) à identifier";
-  if (S.tab === "sources") renderSources(); else if (S.tab === "redac") { renderTree(); renderEditor(); } else if (S.tab === "pppt") renderPPPT(); else renderPhotos();
+  if (S.tab === "sources") renderSources(); else if (S.tab === "redac") { renderTree(); renderEditor(); } else if (S.tab === "pppt") renderPPPT(); else if (S.tab === "print") renderPrint(); else renderPhotos();
 }
 (function showVersion() { const el = document.getElementById("appVer"); if (!el) return; const v = DESKTOP && window.dtgDesktop.version ? window.dtgDesktop.version : APP_VERSION; el.textContent = "v" + v + (DESKTOP ? " · version de test" : " · en ligne"); if (DESKTOP) document.title = "Atelier DTG " + v + " (test)"; })();
 (async function boot() {
