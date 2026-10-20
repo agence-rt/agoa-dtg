@@ -435,7 +435,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage.l2 .pul{ margin:0 0 6px; padding-left:16px; } .pdfpage.l2 .pul li{ margin:0 0 3px; text-align:justify; hyphens:auto; }
 .pdfpage.l2 .pcols.fl .pfld{ break-inside:auto; }
 .pdfpage .pfld.bgr, .pdfpage.l2 .pfld.bgr{ background:#FBE6E6; } .pdfpage .pfld.bgv, .pdfpage.l2 .pfld.bgv{ background:#EFE7F7; }
-.pdfpage .ptoc{ font-size:10pt; } .pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage a.tli{ color:inherit; text-decoration:none; } .pdfpage .tli i{ flex:1; height:2px; background:#C00000; align-self:baseline; transform:translateY(-3px); min-width:12px; } .pdfpage .tli b{ font-weight:700; color:#D0201A; }
+.pdfpage .ptoc{ font-size:10pt; } .pdfpage.l2 .ptoc{ font-size:9pt; column-count:2; column-gap:30px; } .pdfpage .tli{ display:flex; align-items:baseline; gap:4px; margin:0 0 3px; line-height:1.4; break-inside:avoid; } .pdfpage a.tli{ color:inherit; text-decoration:none; } .pdfpage .tli i{ flex:1; height:1px; background:#C00000; align-self:baseline; transform:translateY(-3px); min-width:12px; } .pdfpage .tli b{ font-weight:700; color:#D0201A; }
 .pdfpage .tli.l0{ font-weight:700; margin-top:9px; } .pdfpage .tli.l1{ padding-left:14px; }
 .pdfpage .pduo{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0 0 14px; } .pdfpage .pph{ height:var(--ph,200px); border:1.5px dashed #BFC6CF; border-radius:6px; display:grid; place-items:center; color:#9AA3AE; font-size:9pt; text-transform:uppercase; letter-spacing:.6px; } .pdfpage .pph.has{ border-style:solid; border-color:#D9D9D9; padding:0; overflow:hidden; } .pdfpage .pph img{ width:100%; height:100%; object-fit:contain; display:block; }
 .pdfpage .pk4{ table-layout:fixed; } .pdfpage .pk4 td{ padding:4px 8px 4px 0; width:26%; } .pdfpage .pk4 td.k{ width:24%; } .pdfpage .pnone{ color:#B5BCC6; }
@@ -454,7 +454,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .pdfpage .pphoto{ width:auto; } .pdfpage .pphoto figcaption{ font-size:8pt; }
 .pdfpage.cover .cbg{ position:absolute; inset:0; width:794px; height:1123px; }
 .pdfpage.cover .ctxt{ position:absolute; left:520px; right:26px; top:400px; color:#fff; }
-.pdfpage.cover .big{ font-size:80px; font-weight:800; line-height:1.08; text-align:center; margin-bottom:22px; }
+.pdfpage.cover .big{ font-size:60px; font-weight:800; line-height:1.08; text-align:center; margin-bottom:22px; }
 .pdfpage.cover .sub{ font-size:14px; font-weight:700; letter-spacing:1px; line-height:1.4; margin-bottom:28px; }
 .pdfpage.cover .ver{ font-size:12px; margin-bottom:26px; } .pdfpage.cover .adr{ font-size:21px; font-weight:800; margin-bottom:110px; } .pdfpage.cover .ag{ font-size:13px; line-height:1.8; } .pdfpage.cover .ag b{ font-size:16px; }
 
@@ -538,7 +538,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.50";
+const APP_VERSION = "0.1.51";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
