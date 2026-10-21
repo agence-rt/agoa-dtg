@@ -2,6 +2,8 @@ name: Installateur Windows
 on:
   push:
     tags: ["v*"]
+    branches: [main]
+    paths: ["app/package.json", ".github/workflows/release.yml"]   # nouvelle version sur main : publication automatique
   workflow_dispatch:
 permissions:
   contents: write

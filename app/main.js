@@ -18,9 +18,23 @@ function dec(s) { if (!s) return ""; if (!String(s).startsWith("enc:")) return s
 const cleanHost = h => String(h || "").trim().replace(/^https?:\/\//i, "").replace(/\/.*$/, "") || "eu2.ragic.com";
 function loadCfg() { let c = {}; try { c = JSON.parse(fs.readFileSync(CFG_FILE, "utf8")); } catch {} c = { ...DEFAULTS, ...c }; if (!c.ragicHost || c.ragicHost === "www.ragic.com") c.ragicHost = "eu2.ragic.com"; c.ragicHost = cleanHost(c.ragicHost); const raw = { anthropicKey: c.anthropicKey, ragicKey: c.ragicKey, googleClientSecret: c.googleClientSecret, refresh: c.google && c.google.refresh }; c.anthropicKey = dec(c.anthropicKey); c.ragicKey = dec(c.ragicKey); c.googleClientSecret = dec(c.googleClientSecret); if (c.google) c.google = { ...c.google, refresh: dec(c.google.refresh) }; Object.defineProperty(c, "_raw", { value: raw, enumerable: false, writable: true }); return c; }
 let cfgReady = false;
+/* ---------- connexions partagées (AGOA Launcher > CONNEXIONS) : clé Ragic, clé Claude, compte Google ---------- */
+const { readShared } = require("./shared");
+let OVER = {};   // valeurs reprises du launcher (non recopiées dans le fichier de paramètres de ce poste)
+function applyShared(sh) {
+  OVER = {};
+  if (sh.ragic && sh.ragic.key && sh.ragic.host) { cfg.ragicKey = OVER.ragicKey = sh.ragic.key; cfg.ragicHost = cleanHost(sh.ragic.host); }
+  if (sh.anthropic && sh.anthropic.key) cfg.anthropicKey = OVER.anthropicKey = sh.anthropic.key;
+  const g = sh.google;   // jeton utilisable seulement s'il couvre Google Agenda (portée calendar.readonly) et vient du même client
+  if (g && g.refresh_token && g.email && /calendar\.readonly/.test(g.scopes || "")) {
+    const c = googleClient();
+    if ((!g.client_id || g.client_id === c.clientId) && G.emailAllowed(g.email, c.allowed, c.domain) && !(cfg.google && cfg.google.refresh === g.refresh_token))
+      cfg.google = { email: String(g.email).toLowerCase(), name: g.name || g.email, refresh: g.refresh_token, ver: "launcher" };   // revérifié au démarrage (ver ≠ version)
+  }
+}
 function saveCfg(c) { if (!cfgReady) return;   // jamais d'écriture avant le chargement complet (évite d'effacer les clés)
   const R = c._raw || {}; const keep = (v, r) => (v ? enc(v) : (r || ""));
-  const o = { ...c, anthropicKey: keep(c.anthropicKey, R.anthropicKey), ragicKey: keep(c.ragicKey, R.ragicKey), googleClientSecret: keep(c.googleClientSecret, R.googleClientSecret), google: c.google ? { email: c.google.email, name: c.google.name, ver: c.google.ver, refresh: keep(c.google.refresh, R.refresh) } : null }; fs.mkdirSync(USER, { recursive: true }); fs.writeFileSync(CFG_FILE, JSON.stringify(o, null, 2)); }
+  const o = { ...c, anthropicKey: keep(c.anthropicKey === OVER.anthropicKey ? "" : c.anthropicKey, R.anthropicKey), ragicKey: keep(c.ragicKey === OVER.ragicKey ? "" : c.ragicKey, R.ragicKey), googleClientSecret: keep(c.googleClientSecret, R.googleClientSecret), google: c.google ? { email: c.google.email, name: c.google.name, ver: c.google.ver, refresh: keep(c.google.refresh, R.refresh) } : null }; fs.mkdirSync(USER, { recursive: true }); fs.writeFileSync(CFG_FILE, JSON.stringify(o, null, 2)); }
 let cfg = { ...DEFAULTS };   // rechargé après app.whenReady (le chiffrement des clés n'est disponible qu'ensuite)
 
 /* ---------- fenêtre ---------- */
@@ -182,7 +196,7 @@ async function startup() {
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on("second-instance", (e, argv) => { const f = dtgArg(argv); if (win) { if (win.isMinimized()) win.restore(); win.focus(); } if (f) queueOpen(f); });
-  app.whenReady().then(() => { cfg = loadCfg(); cfgReady = true; const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
+  app.whenReady().then(async () => { cfg = loadCfg(); cfgReady = true; try { applyShared(await readShared()); } catch {} const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
   app.on("window-all-closed", () => { if (!splash && !loginWin) app.quit(); });
 }
 

@@ -66,3 +66,8 @@ et `calendar.readonly` (l'écran de consentement du client doit les autoriser).
 
 ## Écran d'accueil (0.1.7)
 Sans dossier ouvert : **Créer un DTG** (saisie de la référence), **Ouvrir un DTG** (fichier `.dtg`) et **DTG récents**.
+
+## Connexions partagées (0.1.52)
+Au démarrage, l'application reprend les connexions saisies dans **AGOA Launcher > CONNEXIONS** : clé Ragic, clé Claude et compte Google
+(à condition que la connexion Google du launcher inclue l'autorisation Google Agenda). Ces valeurs ne sont pas recopiées dans les paramètres du poste ;
+sans launcher, les écrans de saisie habituels restent utilisables.
