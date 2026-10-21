@@ -294,8 +294,8 @@ async function dbx(tool, input) {
 }
 async function ragic(tool, input) {
   if (!cfg.ragicKey) throw { code: "server_not_connected", message: "Clé API Ragic absente (menu Fichier > Paramètres)" };
-  const H = { Authorization: "Basic " + cfg.ragicKey };
-  const rf = async url => { let r; try { r = await fetch(url, { headers: H }); } catch (e) { throw { code: "tool_error", message: "Ragic injoignable (" + cfg.ragicHost + ") : " + (e.cause?.code || e.message) }; } if (r.status === 401 || r.status === 403) throw { code: "tool_error", message: "Ragic a refusé la clé API (" + r.status + ") : vérifiez la clé dans Fichier > Paramètres." }; if (!r.ok) throw { code: "tool_error", message: "Ragic " + r.status + " sur " + cfg.ragicHost + " : vérifiez le serveur (eu2.ragic.com)." }; const j = await r.json(); if (j && j.status === "ERROR") throw { code: "tool_error", message: "Ragic : " + (j.msg || "erreur") }; return j; };
+  const KEY = encodeURIComponent(String(cfg.ragicKey).replace(/[^A-Za-z0-9+\/=_-]/g, ""));   // clé dans l'adresse : méthode documentée par Ragic pour une clé API seule
+  const rf = async url => { let r; try { r = await fetch(url + (url.includes("?") ? "&" : "?") + "APIKey=" + KEY); } catch (e) { throw { code: "tool_error", message: "Ragic injoignable (" + cfg.ragicHost + ") : " + (e.cause?.code || e.message) }; } if (r.status === 401 || r.status === 403) throw { code: "tool_error", message: "Ragic a refusé la clé API (" + r.status + ") : vérifiez la clé dans Fichier > Paramètres." }; if (!r.ok) throw { code: "tool_error", message: "Ragic " + r.status + " sur " + cfg.ragicHost + " : vérifiez le serveur (eu2.ragic.com)." }; const j = await r.json(); if (j && j.status === "ERROR") throw { code: "tool_error", message: "Ragic : " + (j.msg || "erreur") }; return j; };
   const ap = input.apname || cfg.ragicAp;
   if (tool === "full_text_search") {
     const url = `https://${cfg.ragicHost}/${ap}${cfg.ragicSheet}?api&v=3&limit=20&fts=${encodeURIComponent(input.query || "")}`;
