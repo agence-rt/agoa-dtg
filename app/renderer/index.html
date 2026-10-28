@@ -539,7 +539,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.55";
+const APP_VERSION = "0.1.56";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1839,7 +1839,7 @@ function renderEditor() {
       ${c.photos.length ? `<div class="pgrid">${c.photos.map((p, i) => `<div class="pitem" data-pk="${esc(p.key)}" data-pi="${i}" draggable="true"><span class="pnum" title="Position dans le chapitre">${i + 1}</span>
         <div class="im" data-open="${esc(p.key)}" draggable="true" title="Cliquer pour annoter, glisser pour déplacer"><canvas data-thumb="${esc(p.key)}"></canvas></div>
         <textarea class="leg" data-leg="${i}" placeholder="Légende">${esc(p.legend || "")}</textarea>
-        <div class="bar"><button class="btn ghost small" data-pmv="${i}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Avancer">←</button><button class="btn ghost small" data-pmv="${i}" data-d="1" ${i === c.photos.length - 1 ? "disabled" : ""} aria-label="Reculer">→</button><span class="spacer"></span><button class="btn ghost small" data-open="${esc(p.key)}">Flèches</button><button class="btn ghost small danger" data-prm="${i}">Retirer</button></div></div>`).join("")}</div>`
+        <div class="bar"><button class="btn ghost small" data-pmv="${i}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Avancer">←</button><button class="btn ghost small" data-pmv="${i}" data-d="1" ${i === c.photos.length - 1 ? "disabled" : ""} aria-label="Reculer">→</button><span class="spacer"></span><button class="btn ghost small" data-open="${esc(p.key)}" title="Annoter : flèches, zoom et recadrage">Flèches</button><button class="btn ghost small" data-zoom="${esc(p.key)}" title="Zoomer / recadrer la photo (molette sur l’image pour zoomer)">${p.crop ? "Zoom ×" + (+p.crop.z).toFixed(1) : "Zoom"}</button><button class="btn ghost small danger" data-prm="${i}">Retirer</button></div></div>`).join("")}</div>`
       : ""}
       ${desktopBanner()}<label class="dropzone" id="dropzone">Glissez ici des photos depuis l’explorateur Windows ou depuis le panneau « Photos du dossier », ou <u>cliquez pour choisir des fichiers</u>.<br><small>Les photos sont intégrées à 5,5 cm dans leur plus grande dimension, 3 par ligne.</small><input type="file" class="dzinput" id="dzinput" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.heic" aria-label="Ajouter des photos au chapitre"></label>
     </div></div>`;
@@ -1872,6 +1872,13 @@ function renderEditor() {
   $$("[data-pmv]", ed).forEach(bt => bt.onclick = () => { const i = +bt.dataset.pmv, j = i + (+bt.dataset.d); [c.photos[i], c.photos[j]] = [c.photos[j], c.photos[i]]; queueSave(c.id); renderEditor(); });
   $$("[data-prm]", ed).forEach(bt => bt.onclick = async () => { const i = +bt.dataset.prm, p = c.photos[i]; if (!(await toTrash("photo", (S.photos.get(p.key)?.name || p.key.split("/").pop()) + (p.legend ? " — " + p.legend : ""), p, { cid: c.id, ctitle: c.title, index: i, where: c.title }))) return; c.photos.splice(c.photos.indexOf(p), 1); queueSave(c.id); renderEditor(); renderTree(); });
   $$("[data-open]", ed).forEach(x => x.onclick = () => openAnnotator(x.dataset.open));
+  $$("[data-zoom]", ed).forEach(bt => bt.onclick = () => openAnnotator(bt.dataset.zoom, "zoom"));
+  $$(".pitem .im", ed).forEach(im => im.addEventListener("wheel", e => {
+    const cv = $("canvas[data-thumb]", im); if (!cv) return; const ent = c.photos.find(x => x.key === cv.dataset.thumb); if (!ent) return;
+    e.preventDefault(); const r = cv.getBoundingClientRect(); const cr = cropOf(ent);
+    const n = cropZoomAt(cr, cr.z * (e.deltaY < 0 ? 1.15 : 1 / 1.15), (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    ent.crop = cropSave(n); drawThumbCanvas(cv, ent.key, ent); const zb = $(`[data-zoom="${CSS.escape(ent.key)}"]`, im.closest(".pitem")); if (zb) zb.textContent = ent.crop ? "Zoom ×" + ent.crop.z.toFixed(1) : "Zoom"; queueSave(c.id);
+  }, { passive: false }));
   $$("canvas[data-thumb]", ed).forEach(cv => drawThumbCanvas(cv, cv.dataset.thumb, c.photos.find(p => p.key === cv.dataset.thumb)));
   $("#btnDrawer").onclick = () => { S.drawer = !S.drawer; renderDrawer(); renderEditor(); };
   $$(".pitem[draggable]", ed).forEach(it => { it.addEventListener("dragstart", e => { if (e.target.closest?.("textarea")) { e.preventDefault(); return; } e.dataTransfer.setData("text/x-dtg-move", it.dataset.pi); e.dataTransfer.effectAllowed = "move"; }); });
@@ -2296,14 +2303,21 @@ async function cacheProcessed(p) {
     await IDB.put(S.slug + "|" + p.key, blob);
   } catch {}
 }
+/* zoom / recadrage d'une photo intégrée : entry.crop = { z (1–8), x, y } ; fenêtre visible = carré normalisé (x, y, 1/z) */
+function cropOf(e) { const z = Math.max(1, Math.min(8, +(e && e.crop && e.crop.z) || 1)), w = 1 / z; return { z, w, x: Math.min(1 - w, Math.max(0, +(e && e.crop && e.crop.x) || 0)), y: Math.min(1 - w, Math.max(0, +(e && e.crop && e.crop.y) || 0)) }; }
+function cropArrows(arrows, cr) { return cr.z <= 1 ? (arrows || []) : (arrows || []).map(a => [(a[0] - cr.x) / cr.w, (a[1] - cr.y) / cr.w, (a[2] - cr.x) / cr.w, (a[3] - cr.y) / cr.w]); }
+function cropZoomAt(cr, z, vx, vy) { z = Math.max(1, Math.min(8, z)); const w = 1 / z, px = cr.x + vx * cr.w, py = cr.y + vy * cr.w; return { z, w, x: Math.min(1 - w, Math.max(0, px - vx * w)), y: Math.min(1 - w, Math.max(0, py - vy * w)) }; }
+const cropSave = cr => cr.z > 1.001 ? { z: Math.round(cr.z * 100) / 100, x: Math.round(cr.x * 10000) / 10000, y: Math.round(cr.y * 10000) / 10000 } : undefined;
 async function drawThumbCanvas(cv, key, entry) {
   const p = S.photos.get(key);
   const blob = await getSourceBlob(p, key);
   if (!blob) { const ctx = cv.getContext("2d"); cv.width = 400; cv.height = 300; ctx.fillStyle = "#888"; ctx.font = "16px Archivo, sans-serif"; ctx.fillText("Photo non chargée", 20, 150); return; }
   try {
-    const bmp = await createImageBitmap(blob, { resizeWidth: 520 });
-    cv.width = bmp.width; cv.height = bmp.height; const ctx = cv.getContext("2d"); ctx.drawImage(bmp, 0, 0); bmp.close?.();
-    (entry?.arrows || []).forEach(a => drawArrow(ctx, a, cv.width, cv.height));
+    const cr = cropOf(entry);
+    const bmp = await createImageBitmap(blob, { resizeWidth: Math.min(4000, Math.round(520 * cr.z)) });
+    cv.width = Math.round(bmp.width / cr.z); cv.height = Math.round(bmp.height / cr.z); const ctx = cv.getContext("2d");
+    ctx.drawImage(bmp, cr.x * bmp.width, cr.y * bmp.height, cr.w * bmp.width, cr.w * bmp.height, 0, 0, cv.width, cv.height); bmp.close?.();
+    cropArrows(entry?.arrows, cr).forEach(a => drawArrow(ctx, a, cv.width, cv.height));
   } catch {}
 }
 function drawArrow(ctx, a, w, h) {
@@ -2408,10 +2422,11 @@ async function refreshPhotosFromDropbox() {
   renderPhotos();
 }
 /* ============ annotator ============ */
-async function openAnnotator(key) {
+async function openAnnotator(key, startMode) {
   const p = S.photos.get(key) || { key, name: key.split("/").pop(), folder: folderOf(key) };
   const pi = photoIndex(); const ex = pi.get(key);
   let arrows = ex ? JSON.parse(JSON.stringify(ex.p.arrows || [])) : [];
+  let cr = cropOf(ex && ex.p); let mode = startMode === "zoom" ? "zoom" : "arrow";
   const m = document.createElement("div"); m.className = "modal";
   m.innerHTML = `<div class="dlg" role="dialog" aria-modal="true" aria-label="Annoter la photo">
     <div class="row" style="margin-bottom:10px"><h3 style="margin:0;flex:1">${esc(p.name)} <small class="muted" style="font-weight:400">${esc(p.folder || "")}</small></h3><button class="btn ghost" data-x aria-label="Fermer">Fermer</button></div>
@@ -2419,6 +2434,10 @@ async function openAnnotator(key) {
     <div class="side">
       <label for="annCh">Chapitre</label><select id="annCh" class="field-in">${chapterOptions(ex ? ex.chap.id : suggestChapterFor(p.folder || ""))}</select>
       <label for="annLeg">Légende</label><textarea id="annLeg" class="field-in" placeholder="Ex. : Descente EP fonte corrodée, joint fuyard">${esc(ex?.p.legend || "")}</textarea>
+      <label>Zoom et recadrage</label>
+      <div class="row"><button class="btn small" id="annModeA" aria-pressed="false">Flèches</button><button class="btn small" id="annModeZ" aria-pressed="false">Zoom / déplacer</button></div>
+      <div class="row" style="gap:8px"><input type="range" id="annZoom" min="1" max="8" step="0.05" value="1" style="flex:1" aria-label="Zoom"><span id="annZv" class="muted" style="min-width:36px">×1</span><button class="btn ghost small" id="annZ0">Ajuster</button></div>
+      <p class="hint">Mode « Zoom / déplacer » : glissez la photo pour la cadrer. La molette zoome dans les deux modes. Le cadrage est conservé dans le rapport.</p>
       <label>Flèches rouges</label>
       <div class="row"><button class="btn small" id="annUndo">Annuler la dernière</button><button class="btn small" id="annClear">Tout effacer</button></div>
       <p class="hint">Cliquez-glissez sur la photo : départ de la flèche au clic, pointe au relâchement.</p>
@@ -2438,15 +2457,23 @@ async function openAnnotator(key) {
   let drag = null;
   const redraw = () => {
     ctx.clearRect(0, 0, cv.width, cv.height);
-    if (bmp) ctx.drawImage(bmp, 0, 0, cv.width, cv.height); else { ctx.fillStyle = "#333"; ctx.fillRect(0, 0, cv.width, cv.height); ctx.fillStyle = "#ccc"; ctx.font = "20px Archivo, sans-serif"; ctx.fillText("Photo non chargée : chargez le dossier local dans l’onglet Photos.", 30, 250); }
-    arrows.forEach(a => drawArrow(ctx, a, cv.width, cv.height));
-    if (drag && drag.moved) drawArrow(ctx, [drag.x1, drag.y1, drag.x2, drag.y2], cv.width, cv.height);
+    if (bmp) ctx.drawImage(bmp, cr.x * bmp.width, cr.y * bmp.height, cr.w * bmp.width, cr.w * bmp.height, 0, 0, cv.width, cv.height); else { ctx.fillStyle = "#333"; ctx.fillRect(0, 0, cv.width, cv.height); ctx.fillStyle = "#ccc"; ctx.font = "20px Archivo, sans-serif"; ctx.fillText("Photo non chargée : chargez le dossier local dans l’onglet Photos.", 30, 250); }
+    cropArrows(arrows, cr).forEach(a => drawArrow(ctx, a, cv.width, cv.height));
+    if (drag && drag.moved && mode === "arrow") drawArrow(ctx, [drag.x1, drag.y1, drag.x2, drag.y2], cv.width, cv.height);
+    const zs = $("#annZoom", m); if (zs) { zs.value = cr.z; $("#annZv", m).textContent = "×" + cr.z.toFixed(1); }
+    $("#annModeA", m).setAttribute("aria-pressed", String(mode === "arrow")); $("#annModeZ", m).setAttribute("aria-pressed", String(mode === "zoom")); $("#annModeA", m).classList.toggle("primary", mode === "arrow"); $("#annModeZ", m).classList.toggle("primary", mode === "zoom"); cv.style.cursor = mode === "zoom" ? "grab" : "crosshair";
   };
   redraw();
   const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
   cv.addEventListener("pointerdown", e => { if (!bmp) return; cv.setPointerCapture(e.pointerId); const [x, y] = pos(e); drag = { x1: x, y1: y, x2: x, y2: y, moved: false }; });
-  cv.addEventListener("pointermove", e => { if (!drag) return; const [x, y] = pos(e); drag.x2 = x; drag.y2 = y; drag.moved = Math.hypot((x - drag.x1) * cv.width, (y - drag.y1) * cv.height) > 12; redraw(); });
-  cv.addEventListener("pointerup", () => { if (drag?.moved) arrows.push([drag.x1, drag.y1, drag.x2, drag.y2].map(v => Math.round(Math.min(1, Math.max(0, v)) * 10000) / 10000)); drag = null; redraw(); });
+  cv.addEventListener("pointermove", e => { if (!drag) return; const [x, y] = pos(e);
+    if (mode === "zoom") { cr = { ...cr, x: Math.min(1 - cr.w, Math.max(0, cr.x - (x - drag.x2) * cr.w)), y: Math.min(1 - cr.w, Math.max(0, cr.y - (y - drag.y2) * cr.w)) }; drag.x2 = x; drag.y2 = y; redraw(); return; }
+    drag.x2 = x; drag.y2 = y; drag.moved = Math.hypot((x - drag.x1) * cv.width, (y - drag.y1) * cv.height) > 12; redraw(); });
+  cv.addEventListener("pointerup", () => { if (drag?.moved && mode === "arrow") arrows.push([drag.x1 * cr.w + cr.x, drag.y1 * cr.w + cr.y, drag.x2 * cr.w + cr.x, drag.y2 * cr.w + cr.y].map(v => Math.round(Math.min(1, Math.max(0, v)) * 10000) / 10000)); drag = null; redraw(); });
+  cv.addEventListener("wheel", e => { if (!bmp) return; e.preventDefault(); const [x, y] = pos(e); cr = cropZoomAt(cr, cr.z * (e.deltaY < 0 ? 1.15 : 1 / 1.15), x, y); redraw(); }, { passive: false });
+  $("#annZoom", m).oninput = e => { cr = cropZoomAt(cr, +e.target.value, .5, .5); redraw(); };
+  $("#annZ0", m).onclick = () => { cr = cropOf(null); redraw(); };
+  $("#annModeA", m).onclick = () => { mode = "arrow"; redraw(); }; $("#annModeZ", m).onclick = () => { mode = "zoom"; redraw(); };
   $("#annUndo", m).onclick = () => { arrows.pop(); redraw(); };
   $("#annClear", m).onclick = () => { arrows = []; redraw(); };
   const save = () => {
@@ -2456,7 +2483,8 @@ async function openAnnotator(key) {
     if (cur && cur.chap.id !== id) { cur.chap.photos.splice(cur.i, 1); queueSave(cur.chap.id); }
     const c = S.chaps[id];
     const ent = c.photos.find(x => x.key === key);
-    if (ent) { ent.legend = legend; ent.arrows = arrows; } else c.photos.push({ key, legend, arrows });
+    const cs = cropSave(cr);
+    if (ent) { ent.legend = legend; ent.arrows = arrows; if (cs) ent.crop = cs; else delete ent.crop; } else c.photos.push(cs ? { key, legend, arrows, crop: cs } : { key, legend, arrows });
     if (hasSrc(p)) cacheProcessed(p);
     queueSave(id); return true;
   };
@@ -3442,12 +3470,12 @@ function buildDocx(D, data) {
     }]
   });
 }
-async function renderPhotoForExport(key, arrows) {
+async function renderPhotoForExport(key, arrows, crop) {
   const p = S.photos.get(key); const blob = await getSourceBlob(p, key); if (!blob) return null;
-  const bmp = await createImageBitmap(blob); const sc = Math.min(1, 1400 / Math.max(bmp.width, bmp.height));
-  const cv = document.createElement("canvas"); cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc);
-  const ctx = cv.getContext("2d"); ctx.drawImage(bmp, 0, 0, cv.width, cv.height); bmp.close?.();
-  (arrows || []).forEach(a => drawArrow(ctx, a, cv.width, cv.height));
+  const bmp = await createImageBitmap(blob); const cr = cropOf({ crop }); const sw = bmp.width * cr.w, sh = bmp.height * cr.w; const sc = Math.min(1, 1400 / Math.max(sw, sh));
+  const cv = document.createElement("canvas"); cv.width = Math.max(1, Math.round(sw * sc)); cv.height = Math.max(1, Math.round(sh * sc));
+  const ctx = cv.getContext("2d"); ctx.drawImage(bmp, cr.x * bmp.width, cr.y * bmp.height, sw, sh, 0, 0, cv.width, cv.height); bmp.close?.();
+  cropArrows(arrows, cr).forEach(a => drawArrow(ctx, a, cv.width, cv.height));
   const out = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.85));
   const MAXPX = Math.round(PHOTO_CM / 2.54 * 96); // 3 photos par ligne sur A4
   let w, h; if (cv.width >= cv.height) { w = MAXPX; h = Math.round(MAXPX * cv.height / cv.width); } else { h = MAXPX; w = Math.round(MAXPX * cv.width / cv.height); }
@@ -3472,7 +3500,7 @@ async function collectExport(opt, only) {
         const fields = c.fields.map(f => ({ label: f.label, th: f.kind === "th", kind: f.kind, noinfo: isNoInfo(f.paras), paras: f.paras.filter(r => r.length) }))
           .filter(f => opt === "all" ? true : (f.paras.length && !f.noinfo));
         const photos = [];
-        for (const p of c.photos) { try { const r = await renderPhotoForExport(p.key, p.arrows); if (r) photos.push({ ...r, url: u8ToDataUrl(r.data, "image/jpeg"), legend: p.legend }); else missing++; } catch { missing++; } }
+        for (const p of c.photos) { try { const r = await renderPhotoForExport(p.key, p.arrows, p.crop); if (r) photos.push({ ...r, url: u8ToDataUrl(r.data, "image/jpeg"), legend: p.legend }); else missing++; } catch { missing++; } }
         let coverPng = null;
         if (c.cover) { try { const [, b64] = c.cover.split(","); const bin = atob(b64); const u8 = new Uint8Array(bin.length); for (let q = 0; q < bin.length; q++) u8[q] = bin.charCodeAt(q); const bmp = await createImageBitmap(new Blob([u8], { type: "image/jpeg" })); const cv = document.createElement("canvas"); cv.width = cv.height = 300; const ctx = cv.getContext("2d"); ctx.beginPath(); ctx.roundRect(0, 0, 300, 300, 42); ctx.clip(); ctx.drawImage(bmp, 0, 0, 300, 300); const pb = await new Promise(r => cv.toBlob(r, "image/png")); coverPng = new Uint8Array(await pb.arrayBuffer()); } catch {} }
         nb.chapters.push({ id: c.id, etat: (ETATS.find(e => e[0] === c.etatGen) || [])[1] || "", etatCol: (ETATS.find(e => e[0] === c.etatGen) || [])[2] || "", cover: coverPng, coverUrl: c.cover || null, type: c.type, costs: sortedIdx(c.costs || []).map(i => c.costs[i]).filter(l => l.des || lineTotal(l)).map(l => ({ des: l.des || "", qte: !isManual(l) && l.qte ? (+l.qte).toLocaleString("fr-FR") + " " + (l.unite || "") : "", pu: !isManual(l) && l.pu ? euro(+l.pu) : "", tot: lineTotal(l), terme: TERMES[l.terme] || "", gain: l.gain || "", scen: l.scen || "" })), title: c.title, cot: T.cot.map(k => ({ k, label: COT_LBL[k], v: c.cot[k] || 0, th: k !== "a" })).filter(x => x.v), fields, photos });
