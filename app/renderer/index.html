@@ -199,6 +199,7 @@ button{ cursor:pointer; }
 .lrow{ display:grid; grid-template-columns:200px 1fr auto; gap:10px; align-items:center; padding:7px 0; border-top:1px solid var(--line); } .lrow:first-of-type{ border-top:0; } .lname{ display:flex; flex-direction:column; } .lst{ font-size:13.5px; color:var(--muted,#5A6570); } .lst.ok{ color:#1e7a3c; } .lst.er{ color:var(--red,#c0392b); } @media (max-width:700px){ .lrow{ grid-template-columns:1fr; } }
 .pvdlg{ max-width:min(940px,100%); height:100%; display:flex; flex-direction:column; } .pvscroll{ flex:1; overflow:auto; background:#8a9199; padding:16px; display:flex; flex-direction:column; align-items:center; gap:14px; } .pvwrap{ flex:none; overflow:hidden; }
 .rprog{ display:block; margin-top:4px; } .rprog small{ display:block; color:var(--muted); margin-top:2px; }
+.fmt.mic.rec{ background:#c0392b; color:#fff; border-color:#c0392b; animation:micp 1.1s ease-in-out infinite; } @keyframes micp{ 50%{ opacity:.55; } }
 .fmt.spl{ font-size:12px; letter-spacing:-.2px; } .sp-list{ display:flex; flex-direction:column; gap:4px; } .sp-it{ display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; } .sp-b{ color:var(--red,#c0392b); text-decoration:line-through; } .sp-a{ color:#1e7a3c; font-weight:600; }
 .fmt.u{ text-decoration:underline; } .fmt.b{ font-weight:800; } .fmt.i{ font-style:italic; font-family:var(--doc); }
 .fmt.v{ color:var(--violet); border-color:var(--violet) !important; }
@@ -538,7 +539,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.54";
+const APP_VERSION = "0.1.55";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1954,6 +1955,48 @@ function bindCosts(c) {
   });
   $$("[data-cdel]", sec).forEach(b => b.onclick = async () => { const i = +b.dataset.cdel, l = c.costs[i]; if (!(await toTrash("cost", l.des || "Ligne sans désignation", l, { cid: c.id, ctitle: c.title, index: i, where: c.title + (lineTotal(l) ? " · " + euro(lineTotal(l)) : "") }))) return; c.costs.splice(c.costs.indexOf(l), 1); queueSave(c.id); redraw(); });
 }
+/* ============ dictée vocale ============ */
+let DICT = null;
+function dictFix(t) {   // commandes parlées → ponctuation
+  return " " + t.trim()
+    .replace(/\s*\b(?:point final)\b\s*/gi, ". ").replace(/\s*\bvirgule\b\s*/gi, ", ")
+    .replace(/\s*\bpoint-virgule\b\s*/gi, " ; ").replace(/\s*\bdeux[- ]points\b\s*/gi, " : ")
+    .replace(/\s*\bpoint d['’]interrogation\b\s*/gi, " ? ").replace(/\s*\bpoint d['’]exclamation\b\s*/gi, " ! ")
+    .replace(/\s{2,}/g, " ");
+}
+function dictate(c, f, ed, btn) {
+  if (DICT) { const d = DICT; DICT = null; try { d.rec.stop(); } catch {} return; }
+  if (DESKTOP) { ed.focus(); toast("Dictée Windows : appuyez sur les touches Windows + H, parlez, puis recliquez dans le texte pour arrêter. (La reconnaissance du navigateur n’est pas disponible dans l’application.)", 7000); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast("La dictée n’est pas disponible dans ce navigateur : utilisez Chrome ou Edge.", 5000); return; }
+  const rec = new SR(); rec.lang = "fr-FR"; rec.continuous = true; rec.interimResults = false;
+  let started = false;
+  rec.onstart = () => { started = true; btn.classList.add("rec"); };
+  rec.onresult = e => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+      let t = e.results[i][0].transcript || ""; if (!t.trim()) continue;
+      const parts = t.split(/(?:^|\s)à la ligne(?=\s|$)/i);
+      parts.forEach((part, k) => {
+        if (part.trim()) {
+          ed.focus(); { const sl = window.getSelection(); if (!sl.rangeCount || !ed.contains(sl.anchorNode)) { const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); sl.removeAllRanges(); sl.addRange(r); } }
+          const before = ed.textContent;
+          let out = dictFix(part); if (DICT && DICT.cap || !before.trim() || /[.!?]\s*$/.test(before)) out = out.trimStart().replace(/^./, m => m.toUpperCase()); else if (/\s$/.test(before)) out = out.trimStart();
+          document.execCommand("insertText", false, out); if (DICT) DICT.cap = false;
+        }
+        if (k < parts.length - 1) { ed.focus(); document.execCommand("insertParagraph"); if (DICT) DICT.cap = true; }
+      });
+      f.paras = domToParas(ed); touch(c);
+    }
+  };
+  rec.onerror = e => {
+    const m = { "not-allowed": "Accès au micro refusé : autorisez le micro pour ce site dans le navigateur.", "service-not-allowed": "Dictée bloquée par le navigateur ou par la page.", "no-speech": "", "aborted": "", "network": "Dictée indisponible (connexion au service de reconnaissance impossible)." }[e.error];
+    if (m === undefined) toast("Erreur de dictée : " + e.error, 4000); else if (m) toast(m, 5000);
+  };
+  rec.onend = () => { btn.classList.remove("rec"); if (DICT && DICT.rec === rec && started) { try { rec.start(); return; } catch {} } DICT = null; };
+  DICT = { rec };
+  try { rec.start(); } catch (e) { DICT = null; toast("Impossible de démarrer la dictée.", 4000); }
+}
 function touch(c) { if (c.state !== "edit") c.state = "edit"; clearTimeout(touch.t); touch.t = setTimeout(() => { renderTree(); const pe = $("#editor .ch-prog"); if (pe && S.sel === c.id) pe.innerHTML = `${bar(chapProgress(c))}<span>${c.fields.filter(fieldFilled).length} / ${c.fields.length} rubriques renseignées</span>`; }, 500); queueSave(c.id); }
 const fieldFilled = f => (f.paras || []).some(r => r.some(x => x.t.trim())) && !isNoInfo(f.paras);
 function chapProgress(c) { const n = c.fields.length; return n ? c.fields.filter(fieldFilled).length / n : 0; }
@@ -1973,6 +2016,7 @@ function fieldHtml(c, f) {
         <button class="btn ghost small fmt u" data-ft="underline" title="Souligné (Ctrl+U)" aria-label="Souligné">S</button>
         <button class="btn ghost small fmt" data-ft="ul" title="Liste à puces (paragraphes sélectionnés)" aria-label="Liste à puces">•</button>
         <button class="btn ghost small fmt" data-ft="ol" title="Liste numérotée (paragraphes sélectionnés)" aria-label="Liste numérotée">1.</button>
+        <button class="btn ghost small fmt mic" data-ft="mic" title="Dicter le texte (reconnaissance vocale) — recliquer pour arrêter" aria-label="Dicter le texte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
         <button class="btn ghost small fmt" data-ft="undo" title="Annuler (Ctrl+Z)" aria-label="Annuler">↶</button>
         <button class="btn ghost small fmt" data-ft="redo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir">↷</button>
         <button class="btn ghost small fmt" data-ft="clear" title="Effacer la mise en forme de la sélection" aria-label="Effacer la mise en forme">Tx</button>
@@ -2031,6 +2075,7 @@ function bindFields(c) {
       btn.addEventListener("mousedown", e => e.preventDefault());
       btn.onclick = async () => {
         const a = btn.dataset.ft;
+        if (a === "mic") { dictate(c, f, ed, btn); return; }
         if (a === "undo" || a === "redo") { ed.focus(); document.execCommand(a); f.paras = domToParas(ed); touch(c); return; }
         if (a === "ul" || a === "ol") { listToggle(c, f, ed, a); return; }
         if (a === "clear") {
