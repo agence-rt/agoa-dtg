@@ -80,6 +80,7 @@ window.dtgDesktop = {
   version: (() => { try { return ipcRenderer.sendSync("app:version"); } catch { return ""; } })(),
   readFile: p => call("file:readDropbox", p),
   readAbs: p => call("file:readAbs", p), scanAbs: d => call("file:scanAbs", d), pathOf: f => { try { return webUtils.getPathForFile(f) || ""; } catch { return ""; } },
+  stt: { status: () => call("stt:status"), prepare: () => call("stt:prepare"), transcribe: (wav, language) => call("stt:transcribe", { wav, language }), onProgress: fn => { ipcRenderer.removeAllListeners("stt-progress"); ipcRenderer.on("stt-progress", (e, v) => fn(v)); } },
   saveDtg: (fname, buf, opDisplay) => call("dtg:save", { fname, buf, opDisplay }),
   cfgGet: () => call("cfg:get"), cfgSet: c => call("cfg:set", c), pickDropbox: () => call("cfg:pickDropbox"), testAI: () => call("cfg:testAI"), testRagic: () => call("cfg:testRagic"), pdfFromHtml: html => call("pdf:render", html), openSettings: () => call("app:openSettings"), googleInfo: () => call("google:info"), googleSwitch: () => call("google:switch")
 };

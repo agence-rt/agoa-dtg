@@ -71,3 +71,9 @@ Sans dossier ouvert : **Créer un DTG** (saisie de la référence), **Ouvrir un 
 Au démarrage, l'application reprend les connexions saisies dans **AGOA Launcher > CONNEXIONS** : clé Ragic, clé Claude et compte Google
 (à condition que la connexion Google du launcher inclue l'autorisation Google Agenda). Ces valeurs ne sont pas recopiées dans les paramètres du poste ;
 sans launcher, les écrans de saisie habituels restent utilisables.
+
+## Dictée vocale locale (Whisper) — branche `whisper-local`, non publiée
+- Moteur : whisper.cpp (`whisper-cli.exe` + DLL), récupéré par le workflow dans `app/whisper-bin/` et embarqué dans l'installateur (`extraResources` → `resources/whisper`).
+- Modèle : `ggml-small-q5_1.bin` (~190 Mo), téléchargé une seule fois au premier clic sur le micro, dans `%APPDATA%/Atelier DTG/models`.
+- Tout est hors ligne après le téléchargement ; l'audio n'est jamais envoyé sur Internet.
+- `app/whisper-wip/dtg-redaction.html` = source de l'atelier avec la dictée Whisper (à fusionner dans le fichier source principal avant publication).

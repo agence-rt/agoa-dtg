@@ -30,6 +30,19 @@ jobs:
           if (g.clientId && process.env.GOOGLE_CLIENT_SECRET) { g.clientSecret = process.env.GOOGLE_CLIENT_SECRET; fs.writeFileSync('package.json', JSON.stringify(p, null, 2)); console.log('Secret Google injecté pour la fabrication (non enregistré dans le dépôt).'); }
           else console.log('::warning::Secret GOOGLE_CLIENT_SECRET absent : connexion Google désactivée dans cette version.');
           "
+      - name: Moteur Whisper (whisper.cpp, reconnaissance vocale locale)
+        shell: bash
+        run: |
+          mkdir -p whisper-bin tmp-w
+          for u in https://github.com/ggml-org/whisper.cpp/releases/download/v1.9.5/whisper-bin-x64.zip https://github.com/ggml-org/whisper.cpp/releases/latest/download/whisper-bin-x64.zip; do
+            curl -fL --retry 3 -o tmp-w/w.zip "$u" && break
+          done
+          unzip -q tmp-w/w.zip -d tmp-w/x || 7z x -y -otmp-w/x tmp-w/w.zip
+          D=$(dirname "$(find tmp-w/x -name whisper-cli.exe | head -1)")
+          test -f "$D/whisper-cli.exe"
+          cp -r "$D"/. whisper-bin/
+          rm -rf tmp-w
+          ls -la whisper-bin
       - run: npm ci
       - run: npm run dist
       - name: Publier l'installateur dans la release

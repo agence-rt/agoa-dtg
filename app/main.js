@@ -197,7 +197,7 @@ async function startup() {
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on("second-instance", (e, argv) => { const f = dtgArg(argv); if (win) { if (win.isMinimized()) win.restore(); win.focus(); } if (f) queueOpen(f); });
-  app.whenReady().then(async () => { cfg = loadCfg(); cfgReady = true; try { applyShared(await readShared()); } catch {} const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
+  app.whenReady().then(async () => { try { require("electron").session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => cb(true)); } catch {} cfg = loadCfg(); cfgReady = true; try { applyShared(await readShared()); } catch {} const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
   app.on("window-all-closed", () => { if (!splash && !loginWin) app.quit(); });
 }
 
@@ -233,6 +233,11 @@ ipcMain.handle("google:switch", wrap(async () => { googleSignOut(); return true;
 /* ---------- fichiers ---------- */
 ipcMain.handle("dtg:remember", wrap(async ({ ref, path: p }) => { if (ref && p) rememberPath(String(ref), p); return true; }));
 ipcMain.handle("file:readDropbox", wrap(async (p) => fs.readFileSync(toLocal(p))));
+/* ---------- dictée vocale locale (Whisper) ---------- */
+let STT = null; const stt = () => (STT = STT || require("./whisper").create(app));
+ipcMain.handle("stt:status", wrap(async () => stt().status()));
+ipcMain.handle("stt:prepare", wrap(async () => { await stt().download(p => { try { win && !win.isDestroyed() && win.webContents.send("stt-progress", p); } catch {} }); return stt().status(); }));
+ipcMain.handle("stt:transcribe", wrap(async ({ wav, language }) => stt().transcribe(Buffer.from(wav), { language })));
 // Lecture / inventaire d'un dossier de photos choisi sur le poste (chemin absolu mémorisé avec le dossier DTG)
 const MEDIA_RE = /\.(jpe?g|png|webp|gif|bmp|tiff?|hei[cf]|mp4|mov|m4v|webm|avi|mkv)$/i;
 ipcMain.handle("file:readAbs", wrap(async (p) => { p = String(p || ""); if (!path.isAbsolute(p) || !MEDIA_RE.test(p)) throw new Error("Chemin non autorisé"); return fs.readFileSync(p); }));

@@ -199,7 +199,7 @@ button{ cursor:pointer; }
 .lrow{ display:grid; grid-template-columns:200px 1fr auto; gap:10px; align-items:center; padding:7px 0; border-top:1px solid var(--line); } .lrow:first-of-type{ border-top:0; } .lname{ display:flex; flex-direction:column; } .lst{ font-size:13.5px; color:var(--muted,#5A6570); } .lst.ok{ color:#1e7a3c; } .lst.er{ color:var(--red,#c0392b); } @media (max-width:700px){ .lrow{ grid-template-columns:1fr; } }
 .pvdlg{ max-width:min(940px,100%); height:100%; display:flex; flex-direction:column; } .pvscroll{ flex:1; overflow:auto; background:#8a9199; padding:16px; display:flex; flex-direction:column; align-items:center; gap:14px; } .pvwrap{ flex:none; overflow:hidden; }
 .rprog{ display:block; margin-top:4px; } .rprog small{ display:block; color:var(--muted); margin-top:2px; }
-.fmt.mic.rec{ background:#c0392b; color:#fff; border-color:#c0392b; animation:micp 1.1s ease-in-out infinite; } @keyframes micp{ 50%{ opacity:.55; } }
+.fmt.mic.busy{ opacity:.55; pointer-events:none; animation:micp 1.1s ease-in-out infinite; } .fmt.mic.rec{ background:#c0392b; color:#fff; border-color:#c0392b; animation:micp 1.1s ease-in-out infinite; } @keyframes micp{ 50%{ opacity:.55; } }
 .fmt.spl{ font-size:12px; letter-spacing:-.2px; } .sp-list{ display:flex; flex-direction:column; gap:4px; } .sp-it{ display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; } .sp-b{ color:var(--red,#c0392b); text-decoration:line-through; } .sp-a{ color:#1e7a3c; font-weight:600; }
 .fmt.u{ text-decoration:underline; } .fmt.b{ font-weight:800; } .fmt.i{ font-style:italic; font-family:var(--doc); }
 .fmt.v{ color:var(--violet); border-color:var(--violet) !important; }
@@ -1971,8 +1971,64 @@ function dictFix(t) {   // commandes parlées → ponctuation
     .replace(/\s*\bpoint d['’]interrogation\b\s*/gi, " ? ").replace(/\s*\bpoint d['’]exclamation\b\s*/gi, " ! ")
     .replace(/\s{2,}/g, " ");
 }
+function dictInsert(c, f, ed, t, raw) {
+  const parts = t.split(/(?:^|\s)à la ligne(?=\s|$)/i);
+  parts.forEach((part, k) => {
+    if (part.trim()) {
+      ed.focus(); { const sl = window.getSelection(); if (!sl.rangeCount || !ed.contains(sl.anchorNode)) { const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); sl.removeAllRanges(); sl.addRange(r); } }
+      const before = ed.textContent;
+      let out = raw ? " " + part.trim() : dictFix(part); if (DICT && DICT.cap || !before.trim() || /[.!?]\s*$/.test(before)) out = out.trimStart().replace(/^./, m => m.toUpperCase()); else if (/\s$/.test(before)) out = out.trimStart();
+      document.execCommand("insertText", false, out); if (DICT) DICT.cap = false;
+    }
+    if (k < parts.length - 1) { ed.focus(); document.execCommand("insertParagraph"); if (DICT) DICT.cap = true; }
+  });
+  f.paras = domToParas(ed); touch(c);
+}
+async function toWav16k(arrayBuf) {   // audio enregistré → WAV 16 kHz mono 16 bits (entrée de Whisper)
+  const AC = window.AudioContext || window.webkitAudioContext; const ctx = new AC({ sampleRate: 16000 });
+  const au = await ctx.decodeAudioData(arrayBuf); try { ctx.close(); } catch {}
+  const n = au.length, mono = new Float32Array(n);
+  for (let k = 0; k < au.numberOfChannels; k++) { const d = au.getChannelData(k); for (let i = 0; i < n; i++) mono[i] += d[i] / au.numberOfChannels; }
+  const out = new DataView(new ArrayBuffer(44 + n * 2)); const W = (o, t) => { for (let i = 0; i < t.length; i++) out.setUint8(o + i, t.charCodeAt(i)); };
+  W(0, "RIFF"); out.setUint32(4, 36 + n * 2, true); W(8, "WAVEfmt "); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
+  out.setUint32(24, 16000, true); out.setUint32(28, 32000, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); W(36, "data"); out.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, mono[i])) * 32767, true);
+  return { wav: new Uint8Array(out.buffer), sec: n / 16000 };
+}
+async function dictateWhisper(c, f, ed, btn) {   // application Windows : Whisper local (hors ligne)
+  const T = window.dtgDesktop.stt;
+  if (btn.classList.contains("busy")) return;
+  let st; try { st = await T.status(); } catch (e) { toast("Dictée indisponible : " + e.message, 5000); return; }
+  if (!st.engine) { ed.focus(); toast("Le moteur de reconnaissance vocale n’est pas inclus dans cette installation. Utilisez la dictée Windows (touches Windows + H).", 7000); return; }
+  if (!st.model) {
+    const r = await ask("La dictée fonctionne hors ligne grâce au moteur Whisper. Il faut télécharger une seule fois son modèle de langue (environ 190 Mo). Télécharger maintenant ?", [["Télécharger", "y"], ["Plus tard", "n"]]);
+    if (r !== "y") return;
+    btn.classList.add("busy"); let lastPct = -1;
+    T.onProgress(p => { const pc = p.total ? Math.floor(p.got / p.total * 100) : 0; if (pc !== lastPct && pc % 5 === 0) { lastPct = pc; toast("Téléchargement du modèle de dictée : " + pc + " %", 1800); } });
+    try { await T.prepare(); toast("Modèle de dictée installé. Cliquez à nouveau sur le micro pour dicter.", 5000); } catch (e) { toast(e.message, 7000); } finally { btn.classList.remove("busy"); }
+    return;
+  }
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }); }
+  catch { toast("Accès au micro impossible : vérifiez Paramètres Windows > Confidentialité > Microphone.", 7000); return; }
+  const mr = new MediaRecorder(stream); const chunks = []; mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const stopped = new Promise(res => { mr.onstop = res; });
+  DICT = { whisper: true, stop: () => { try { mr.stop(); } catch {} } };
+  btn.classList.add("rec"); mr.start(500); toast("Dictée en cours : parlez, puis recliquez sur le micro pour transcrire.", 4000);
+  await stopped; stream.getTracks().forEach(t => t.stop()); DICT = null; btn.classList.remove("rec"); btn.classList.add("busy");
+  try {
+    const { wav, sec } = await toWav16k(await new Blob(chunks).arrayBuffer());
+    if (sec < 0.5) { toast("Enregistrement trop court."); return; }
+    toast("Transcription en cours…", 2500);
+    const text = await T.transcribe(wav, "fr");
+    if (!text) { toast("Aucun texte reconnu."); return; }
+    if (!ed.isConnected) { toast("Texte dicté : " + text, 12000); return; }
+    dictInsert(c, f, ed, text, true);
+  } catch (e) { toast("Transcription impossible : " + (e.message || e), 7000); }
+  finally { btn.classList.remove("busy"); }
+}
 function dictate(c, f, ed, btn) {
-  if (DICT) { const d = DICT; DICT = null; try { d.rec.stop(); } catch {} return; }
+  if (DICT) { const d = DICT; if (d.whisper) { d.stop(); return; } DICT = null; try { d.rec.stop(); } catch {} return; }
+  if (DESKTOP && window.dtgDesktop.stt) { dictateWhisper(c, f, ed, btn); return; }
   if (DESKTOP) { ed.focus(); toast("Dictée Windows : appuyez sur les touches Windows + H, parlez, puis recliquez dans le texte pour arrêter. (La reconnaissance du navigateur n’est pas disponible dans l’application.)", 7000); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { toast("La dictée n’est pas disponible dans ce navigateur : utilisez Chrome ou Edge.", 5000); return; }
@@ -1983,17 +2039,7 @@ function dictate(c, f, ed, btn) {
     for (let i = e.resultIndex; i < e.results.length; i++) {
       if (!e.results[i].isFinal) continue;
       let t = e.results[i][0].transcript || ""; if (!t.trim()) continue;
-      const parts = t.split(/(?:^|\s)à la ligne(?=\s|$)/i);
-      parts.forEach((part, k) => {
-        if (part.trim()) {
-          ed.focus(); { const sl = window.getSelection(); if (!sl.rangeCount || !ed.contains(sl.anchorNode)) { const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); sl.removeAllRanges(); sl.addRange(r); } }
-          const before = ed.textContent;
-          let out = dictFix(part); if (DICT && DICT.cap || !before.trim() || /[.!?]\s*$/.test(before)) out = out.trimStart().replace(/^./, m => m.toUpperCase()); else if (/\s$/.test(before)) out = out.trimStart();
-          document.execCommand("insertText", false, out); if (DICT) DICT.cap = false;
-        }
-        if (k < parts.length - 1) { ed.focus(); document.execCommand("insertParagraph"); if (DICT) DICT.cap = true; }
-      });
-      f.paras = domToParas(ed); touch(c);
+      dictInsert(c, f, ed, t, false);
     }
   };
   rec.onerror = e => {
@@ -2023,7 +2069,7 @@ function fieldHtml(c, f) {
         <button class="btn ghost small fmt u" data-ft="underline" title="Souligné (Ctrl+U)" aria-label="Souligné">S</button>
         <button class="btn ghost small fmt" data-ft="ul" title="Liste à puces (paragraphes sélectionnés)" aria-label="Liste à puces">•</button>
         <button class="btn ghost small fmt" data-ft="ol" title="Liste numérotée (paragraphes sélectionnés)" aria-label="Liste numérotée">1.</button>
-        <button class="btn ghost small fmt mic" data-ft="mic" title="Dicter le texte (reconnaissance vocale) — recliquer pour arrêter" aria-label="Dicter le texte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
+        <button class="btn ghost small fmt mic" data-ft="mic" title="Dicter le texte (reconnaissance vocale, hors ligne dans l’application) — recliquer pour arrêter et transcrire" aria-label="Dicter le texte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
         <button class="btn ghost small fmt" data-ft="undo" title="Annuler (Ctrl+Z)" aria-label="Annuler">↶</button>
         <button class="btn ghost small fmt" data-ft="redo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir">↷</button>
         <button class="btn ghost small fmt" data-ft="clear" title="Effacer la mise en forme de la sélection" aria-label="Effacer la mise en forme">Tx</button>

@@ -37,12 +37,16 @@
       "google.js",
       "shared.js",
       "pdf.js",
+      "whisper.js",
       "splash.html",
       "renderer/**/*",
       "build/app.ico",
       "build/dtg-file.ico",
       "build/logo.png",
       "package.json"
+    ],
+    "extraResources": [
+      { "from": "whisper-bin", "to": "whisper", "filter": ["**/*"] }
     ],
     "fileAssociations": [
       {
