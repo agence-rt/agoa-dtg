@@ -46,6 +46,7 @@ button{ cursor:pointer; }
 .brand{ display:flex; align-items:baseline; gap:10px; }
 .brand b{ font-weight:700; font-size:18px; letter-spacing:-.01em; }
 .brand span{ color:var(--muted); font-size:14.5px; }
+.timechip{ font-size:12px; color:var(--muted,#777); white-space:nowrap; font-variant-numeric:tabular-nums; opacity:.85; } .timechip.paused{ opacity:.55; font-style:italic; }
 .refchip{ font-weight:600; padding:3px 10px; border:1.5px solid var(--ink); border-radius:3px; letter-spacing:.02em; }
 .tabs{ display:flex; gap:2px; background:var(--soft); padding:3px; border-radius:var(--r); }
 .tabs button{ border:0; background:transparent; padding:6px 14px; border-radius:4px; color:var(--muted); font-weight:500; }
@@ -491,6 +492,7 @@ a.btn{ text-decoration:none; color:inherit; display:inline-flex; align-items:cen
   <header class="top">
     <div class="brand"><b>Atelier DTG</b><span class="appver" id="appVer" title="Version de l’atelier"></span><span>Rémi Thollet Architecte</span></div>
     <div id="refchip" class="refchip hidden"></div>
+    <span id="timechip" class="timechip hidden" title="Temps passé sur la rédaction de ce dossier (se met en pause après 5 min sans activité)"></span>
     <button class="btn small ghost hidden" id="btnClose" title="Revenir au choix du dossier">← Changer de dossier</button>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="sources" aria-selected="true">Options</button>
@@ -539,7 +541,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.56";
+const APP_VERSION = "0.1.57";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3954,6 +3956,7 @@ $("#dtgpick").addEventListener("change", async e => { const f = e.target.files[0
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("[data-close-dossier]")) closeDossier(); });
 $("#btnPending").onclick = () => openIdentify(pendingTx(), 0);
 function renderAll() {
+  tickTimer(true);
   const rc = $("#refchip"); if (S.d) { rc.textContent = S.d.ref; rc.classList.remove("hidden"); } else rc.classList.add("hidden");
   $("#btnClose").classList.toggle("hidden", !S.d); $("#btnSaveDtg").disabled = !S.d;
   const pn = S.d ? pendingTx().length : 0; const bp = $("#btnPending");
@@ -3967,6 +3970,22 @@ function renderAll() {
   recentCache = null; renderSources();
   if (!(window.claude && window.claude.use)) logLine("Cette page doit être ouverte depuis claude.ai pour accéder à Dropbox et à l’assistant IA.", "er");
 })();
+/* ============ Compteur de temps de rédaction ============ */
+const TIMER_IDLE = 5 * 60 * 1000;
+const TM = { last: Date.now(), act: Date.now(), saved: 0, shown: "" };
+["keydown", "pointerdown", "mousemove", "wheel", "touchstart", "input", "scroll"].forEach(ev => window.addEventListener(ev, () => { TM.act = Date.now(); }, { capture: true, passive: true }));
+const fmtDur = ms => { const m = Math.floor(ms / 60000); return Math.floor(m / 60) + " h " + String(m % 60).padStart(2, "0"); };
+function tickTimer(force) {
+  const el = document.getElementById("timechip"); if (!el) return;
+  const now = Date.now(), dt = Math.min(now - TM.last, 5000); TM.last = now;
+  if (!S.d || !S.slug) { el.classList.add("hidden"); return; }
+  const active = !document.hidden && now - TM.act <= TIMER_IDLE;
+  if (active && dt > 0) { S.d.timeMs = (S.d.timeMs || 0) + dt; if (now - TM.saved > 30000) { TM.saved = now; pending.d = true; clearTimeout(pending.t); pending.t = setTimeout(flushSave, 1200); } }
+  const txt = "⏱ " + fmtDur(S.d.timeMs || 0) + (active ? "" : " · en pause");
+  if (force || txt !== TM.shown) { TM.shown = txt; el.textContent = txt; el.classList.remove("hidden"); el.classList.toggle("paused", !active); }
+}
+setInterval(tickTimer, 1000);
+document.addEventListener("visibilitychange", () => { TM.last = Date.now(); if (!document.hidden) TM.act = Date.now(); });
 window.addEventListener("beforeunload", () => { if (pending.c.size || pending.d) flushSave(); });
 </script>
 </body>
