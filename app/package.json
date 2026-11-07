@@ -1,7 +1,7 @@
 {
   "name": "atelier-dtg",
   "productName": "AGOA DTG",
-  "version": "0.1.57",
+  "version": "0.1.58",
   "description": "AGOA DTG - Rémi Thollet Architecte",
   "author": "Agence Rémi Thollet Architecte",
   "main": "main.js",
@@ -30,6 +30,7 @@
     },
     "files": [
       "main.js",
+      "temps.js",
       "preload.js",
       "settings.html",
       "google-client.json",

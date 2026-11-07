@@ -541,7 +541,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.57";
+const APP_VERSION = "0.1.58";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3975,18 +3975,25 @@ const TIMER_IDLE = 5 * 60 * 1000;
 const TM = { last: Date.now(), act: Date.now(), saved: 0, shown: "" };
 ["keydown", "pointerdown", "mousemove", "wheel", "touchstart", "input", "scroll"].forEach(ev => window.addEventListener(ev, () => { TM.act = Date.now(); }, { capture: true, passive: true }));
 const fmtDur = ms => { const m = Math.floor(ms / 60000); return Math.floor(m / 60) + " h " + String(m % 60).padStart(2, "0"); };
+/* Journal partagé avec le launcher AGOA : un créneau par minute d'activité réelle, rattaché à la référence du dossier. */
+const TJ = {
+  ref: null, ms: 0,
+  add(ref, dt) { if (this.ref !== ref) { this.flush(); this.ref = ref; } this.ms += dt; if (this.ms >= 60000) this.flush(); },
+  flush() { if (this.ref && this.ms >= 1000 && DESKTOP && window.dtgDesktop.logTime) window.dtgDesktop.logTime(this.ref, this.ms / 1000); this.ms = 0; }
+};
 function tickTimer(force) {
   const el = document.getElementById("timechip"); if (!el) return;
   const now = Date.now(), dt = Math.min(now - TM.last, 5000); TM.last = now;
   if (!S.d || !S.slug) { el.classList.add("hidden"); return; }
   const active = !document.hidden && now - TM.act <= TIMER_IDLE;
-  if (active && dt > 0) { S.d.timeMs = (S.d.timeMs || 0) + dt; if (now - TM.saved > 30000) { TM.saved = now; pending.d = true; clearTimeout(pending.t); pending.t = setTimeout(flushSave, 1200); } }
+  if (active && dt > 0) { TJ.add(S.d.ref, dt); S.d.timeMs = (S.d.timeMs || 0) + dt; if (now - TM.saved > 30000) { TM.saved = now; pending.d = true; clearTimeout(pending.t); pending.t = setTimeout(flushSave, 1200); } }
+  if (!active) TJ.flush();
   const txt = "⏱ " + fmtDur(S.d.timeMs || 0) + (active ? "" : " · en pause");
   if (force || txt !== TM.shown) { TM.shown = txt; el.textContent = txt; el.classList.remove("hidden"); el.classList.toggle("paused", !active); }
 }
 setInterval(tickTimer, 1000);
 document.addEventListener("visibilitychange", () => { TM.last = Date.now(); if (!document.hidden) TM.act = Date.now(); });
-window.addEventListener("beforeunload", () => { if (pending.c.size || pending.d) flushSave(); });
+window.addEventListener("beforeunload", () => { TJ.flush(); if (pending.c.size || pending.d) flushSave(); });
 </script>
 </body>
 </html>

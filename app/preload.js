@@ -77,6 +77,7 @@ const CAPS = { db, sample, mcp, downloads };
 window.claude = { use: async n => CAPS[n] || null };
 window.dtgDesktop = {
   isDesktop: true,
+  logTime: (ref, sec) => { try { ipcRenderer.send("temps:log", ref, sec); } catch {} },   // journal de temps partagé avec le launcher AGOA
   version: (() => { try { return ipcRenderer.sendSync("app:version"); } catch { return ""; } })(),
   readFile: p => call("file:readDropbox", p),
   readAbs: p => call("file:readAbs", p), scanAbs: d => call("file:scanAbs", d), pathOf: f => { try { return webUtils.getPathForFile(f) || ""; } catch { return ""; } },

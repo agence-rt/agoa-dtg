@@ -126,6 +126,7 @@ function showLogin() {
   });
 }
 const googleConfigured = () => { const c = googleClient(); return !!(c.clientId && c.clientSecret); };   // un client « application de bureau » exige son code secret
+ipcMain.on("temps:log", (e, ref, sec) => { try { require("./temps").logTime("dtg", ref, sec); } catch {} });   // temps de rédaction -> journal du launcher
 ipcMain.handle("google:state", () => ({ configured: googleConfigured(), version: app.getVersion() }));
 ipcMain.handle("google:settings", () => { openSettings(true); });
 ipcMain.handle("google:skip", () => { if (googleConfigured()) return; if (loginDone) { const d = loginDone; loginDone = null; d("skip"); loginWin && loginWin.close(); } });
