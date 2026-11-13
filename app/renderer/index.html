@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!doctype html>
 <html lang="fr">
 <head>
@@ -543,7 +544,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.59";
+const APP_VERSION = "0.1.60";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3190,19 +3191,17 @@ function scLabel(l) { return scList(l).map(x => x.replace("Projet ", "P")).join(
 function scTxt(l) { return scList(l).join(", "); }
 document.addEventListener("click", e => { document.querySelectorAll("details.scsel[open]").forEach(d => { if (!d.contains(e.target)) d.removeAttribute("open"); }); });
 const PTITLES = { court: "TRAVAUX À COURT TERME (1-3 ans)", moyen: "TRAVAUX À MOYEN TERME (3-6 ans)", long: "TRAVAUX À LONG TERME (6-10 ans)", "": "TRAVAUX NON PLANIFIÉS" };
-// une ligne de coût rattachée à plusieurs scénarios apparaît une fois par scénario (dup = répétition) ; sans scénario : une seule ligne
-function expandSc(rs, mk) { const out = []; rs.forEach(r => { const sc = scList(r.l); const base = mk(r); if (!sc.length) out.push({ ...base, scen: "" }); else sc.forEach((x, i) => out.push({ ...base, scen: x, dup: i > 0 })); }); return out; }
 function ppptData() {
   const rows = costRows(); const blds = S.d.buildings;
   const terms = ["court", "moyen", "long", ""].map(t => {
-    const groups = blds.map(b => { const rs = rows.filter(r => r.b === b && (r.l.terme || "") === t); const lines = expandSc(rs, r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); return { bname: b.name, lines, sub: rs.reduce((s, r) => s + lineTotal(r.l), 0) }; }).filter(g => g.lines.length);
+    const groups = blds.map(b => { const rs = rows.filter(r => r.b === b && (r.l.terme || "") === t); const lines = rs.map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: scTxt(r.l), tot: lineTotal(r.l) })); return { bname: b.name, lines, sub: lines.reduce((s, x) => s + x.tot, 0) }; }).filter(g => g.lines.length);
     return { key: t, title: PTITLES[t], groups, total: groups.reduce((s, g) => s + g.sub, 0) };
   }).filter(t => t.groups.length || t.key);
   const matrix = blds.map(b => { const v = {}; let tot = 0; for (const t of ["court", "moyen", "long", ""]) { v[t] = rows.filter(r => r.b === b && (r.l.terme || "") === t).reduce((s, r) => s + lineTotal(r.l), 0); tot += v[t]; } return { bname: b.name, v, tot, dpe: b.dpe || "" }; });
   S.d.scen = S.d.scen || {};
   const scen = ["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"].map(n => { const lines = rows.filter(r => scList(r.l).includes(n)).map(r => ({ cid: r.c.id, loc: r.b.name + " › " + r.c.title, des: r.l.des || "", terme: TERMES[r.l.terme] || "", tkey: r.l.terme || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); const m = S.d.scen[n] || {}; return { name: n, lines, total: lines.reduce((s, x) => s + x.tot, 0), classe: m.classe || "", gainPct: m.gain || "", travaux: (m.travaux || []).join(" ; "), coutBet: m.cout || "" }; });
   const hasNP = rows.some(r => !r.l.terme);
-  const byB = blds.map(b => { const ts = ["court", "moyen", "long", ""].map(t => { const rs = rows.filter(r => r.b === b && (r.l.terme || "") === t); const lines = expandSc(rs, r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); return { key: t, title: PTITLES[t], lines, total: rs.reduce((x, r) => x + lineTotal(r.l), 0), dup: lines.some(l => l.dup) }; }).filter(t => t.lines.length); return { bname: b.name, dpe: b.dpe || "", terms: ts, total: ts.reduce((x, t) => x + t.total, 0) }; }).filter(b => b.terms.length);
+  const byB = blds.map(b => { const ts = ["court", "moyen", "long", ""].map(t => { const rs = rows.filter(r => r.b === b && (r.l.terme || "") === t); const lines = rs.map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: scTxt(r.l), tot: lineTotal(r.l) })); return { key: t, title: PTITLES[t], lines, total: lines.reduce((x, l) => x + l.tot, 0) }; }).filter(t => t.lines.length); return { bname: b.name, dpe: b.dpe || "", terms: ts, total: ts.reduce((x, t) => x + t.total, 0) }; }).filter(b => b.terms.length);
   return { byB, dpeGlobal: S.d.meta?.dpeGlobal || "", terms: terms.filter(t => t.key !== "" || hasNP), matrix, scen, grand: rows.reduce((s, r) => s + lineTotal(r.l), 0), hasNP };
 }
 function renderPPPT() {
@@ -3219,7 +3218,7 @@ function renderPPPT() {
     <tbody>${P.matrix.map(m => `<tr><td><b>${esc(m.bname)}</b>${m.dpe ? ` <small class="muted">· DPE ${m.dpe}</small>` : ""}</td>${cols.map(t => `<td class="n ${TERM_CLS[t] || ""}">${m.v[t] ? euro(m.v[t]) : "—"}</td>`).join("")}<td class="n"><b>${euro(m.tot)}</b></td></tr>`).join("")}</tbody>
     <tfoot><tr><td>Total</td>${cols.map(t => `<td class="n ${TERM_CLS[t] || ""}">${euro(P.matrix.reduce((s, m) => s + m.v[t], 0))}</td>`).join("")}<td class="n">${euro(P.grand)}</td></tr></tfoot></table></div>
     ${P.byB.map(b => `<h3 style="margin-top:26px">${esc(b.bname)}${b.dpe ? ` <small class="muted">· DPE ${b.dpe}</small>` : ""}</h3>
-      ${b.terms.map(t => { const col = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B" }[t.key] || "#D0201A"; const nop = t.key === ""; let n = 0; return `<div class="tablewrap" style="margin-bottom:16px"><table class="ptab ${nop ? "nop" : ""}" style="border:2px solid ${col}"><thead><tr><th colspan="6" style="color:${col};background:var(--panel)">${nop ? "⚠ TRAVAUX SANS ÉCHÉANCE — à planifier" : t.title}</th></tr><tr><th style="width:44px">N°</th><th style="width:22%">Localisation</th><th>Désignation des travaux</th><th style="width:80px">Gain énerg.</th><th style="width:110px">Scénario</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>${t.lines.map(l => `<tr data-goto="${l.cid}" class="gt" title="Ouvrir le chapitre dans Rédaction"><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace(/Projet /g, "P"))}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="5" style="color:${col}">Total ${t.title.toLowerCase()}${t.dup ? ' <small class="muted">(chaque ligne comptée une seule fois, même si répétée par scénario)</small>' : ""}</td><td class="n">${euro(t.total)}</td></tr></tfoot></table></div>`; }).join("")}
+      ${b.terms.map(t => { const col = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B" }[t.key] || "#D0201A"; const nop = t.key === ""; let n = 0; return `<div class="tablewrap" style="margin-bottom:16px"><table class="ptab ${nop ? "nop" : ""}" style="border:2px solid ${col}"><thead><tr><th colspan="6" style="color:${col};background:var(--panel)">${nop ? "⚠ TRAVAUX SANS ÉCHÉANCE — à planifier" : t.title}</th></tr><tr><th style="width:44px">N°</th><th style="width:22%">Localisation</th><th>Désignation des travaux</th><th style="width:80px">Gain énerg.</th><th style="width:110px">Scénario</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>${t.lines.map(l => `<tr data-goto="${l.cid}" class="gt" title="Ouvrir le chapitre dans Rédaction"><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace(/Projet /g, "P"))}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="5" style="color:${col}">Total ${t.title.toLowerCase()}</td><td class="n">${euro(t.total)}</td></tr></tfoot></table></div>`; }).join("")}
       <div class="n" style="text-align:right;font-weight:800;margin:-4px 0 10px">Total ${esc(b.bname)} : ${euro(b.total)}</div>`).join("")}
     <h2>Scénarios d’amélioration thermique</h2>
     <p class="muted">Lignes de coûts rattachées à un scénario (colonne « Scénario » des chapitres). La classe visée et le gain se renseignent ici, d’après l’étude du BET thermique.</p>
@@ -3445,7 +3444,7 @@ function buildDocx(D, data) {
       let n = 0;
       t.groups.forEach(g => {
         rows.push(new D.TableRow({ children: [pc(g.bname, { span: 6, bold: true, fill: "EAF2FB", color: "1F4E79" })] }));
-        g.lines.forEach(l => rows.push(new D.TableRow({ cantSplit: true, children: [pc(++n), pc(l.loc), pc(l.des), pc(l.gain, { bold: true, size: 20, color: "7030A0" }), pc(l.scen, { color: "7030A0" }), pc(fmtE(l.tot), { right: true })] })));
+        g.lines.forEach(l => rows.push(new D.TableRow({ cantSplit: true, children: [pc(++n), pc(l.loc), pc(l.des), pc(l.gain, { bold: true, size: 20, color: "7030A0" }), pc(String(l.scen || "").replace(/Projet /g, "P"), { color: "7030A0" }), pc(fmtE(l.tot), { right: true })] })));
         rows.push(new D.TableRow({ children: [pc("Sous-total " + g.bname, { span: 5, bold: true }), pc(fmtE(g.sub), { right: true, bold: true })] }));
       });
       rows.push(new D.TableRow({ children: [pc("TOTAL " + t.title, { span: 5, bold: true, fill: "F2F2F2", color: TC[t.key] }), pc(fmtE(t.total), { right: true, bold: true, fill: "F2F2F2" })] }));
@@ -3981,27 +3980,22 @@ const TIMER_IDLE = 5 * 60 * 1000;
 const TM = { last: Date.now(), act: Date.now(), saved: 0, shown: "" };
 ["keydown", "pointerdown", "mousemove", "wheel", "touchstart", "input", "scroll"].forEach(ev => window.addEventListener(ev, () => { TM.act = Date.now(); }, { capture: true, passive: true }));
 const fmtDur = ms => { const m = Math.floor(ms / 60000); return Math.floor(m / 60) + " h " + String(m % 60).padStart(2, "0"); };
-/* Journal partagé avec le launcher AGOA : un créneau par minute d'activité réelle, rattaché à la référence du dossier. */
-const TJ = {
-  ref: null, ms: 0,
-  add(ref, dt) { if (this.ref !== ref) { this.flush(); this.ref = ref; } this.ms += dt; if (this.ms >= 60000) this.flush(); },
-  flush() { if (this.ref && this.ms >= 1000 && DESKTOP && window.dtgDesktop.logTime) window.dtgDesktop.logTime(this.ref, this.ms / 1000); this.ms = 0; }
-};
 function tickTimer(force) {
   const el = document.getElementById("timechip"); if (!el) return;
   const now = Date.now(), dt = Math.min(now - TM.last, 5000); TM.last = now;
   if (!S.d || !S.slug) { el.classList.add("hidden"); return; }
   const active = !document.hidden && now - TM.act <= TIMER_IDLE;
-  if (active && dt > 0) { TJ.add(S.d.ref, dt); S.d.timeMs = (S.d.timeMs || 0) + dt; if (now - TM.saved > 30000) { TM.saved = now; pending.d = true; clearTimeout(pending.t); pending.t = setTimeout(flushSave, 1200); } }
-  if (!active) TJ.flush();
+  if (active && dt > 0) { S.d.timeMs = (S.d.timeMs || 0) + dt; if (now - TM.saved > 30000) { TM.saved = now; pending.d = true; clearTimeout(pending.t); pending.t = setTimeout(flushSave, 1200); } }
   const txt = "⏱ " + fmtDur(S.d.timeMs || 0) + (active ? "" : " · en pause");
   if (force || txt !== TM.shown) { TM.shown = txt; el.textContent = txt; el.classList.remove("hidden"); el.classList.toggle("paused", !active); }
 }
 setInterval(tickTimer, 1000);
 document.addEventListener("visibilitychange", () => { TM.last = Date.now(); if (!document.hidden) TM.act = Date.now(); });
-window.addEventListener("beforeunload", () => { TJ.flush(); if (pending.c.size || pending.d) flushSave(); });
+window.addEventListener("beforeunload", () => { if (pending.c.size || pending.d) flushSave(); });
 </script>
 </body>
 </html>
+
+</body></html>
 
 </body></html>
