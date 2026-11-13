@@ -54,15 +54,11 @@ Lancer en développement : `npm start`.
 - Publier une version : monter `version` dans `app/package.json`, pousser, puis lancer la procédure « Installateur Windows »
   (onglet Actions) : elle crée la Release `v<version>` avec l'installateur et `latest.yml` (nécessaire à la mise à jour automatique).
 
-## Identification Google (0.1.6)
-Au premier démarrage, une fenêtre propose « Se connecter avec Google » : le navigateur s'ouvre, le compte doit être en
-`agence@remithollet.fr` (seule adresse autorisée, comme les autres applications AGOA : liste d'empreintes SHA-256 dans `package.json` › `agoa.google.allowed`). La session est mémorisée (jeton chiffré par Windows) ; menu **Aide › Changer de compte Google**
-pour se déconnecter. Cette connexion donne aussi accès à Google Agenda (lecture seule) pour retrouver la date de visite.
-
-Configuration : comme les autres applications AGOA, l'identifiant client OAuth est dans `package.json` › `agoa.google.clientId`,
-et le code secret doit être saisi dans **Paramètres › Google** (ou fourni dans `google-client.json`) ; sans code secret, la connexion reste désactivée.
-Il peut aussi être saisi dans **Paramètres › Google** d'un poste. Les portées demandées sont `openid`, `email`, `profile`
-et `calendar.readonly` (l'écran de consentement du client doit les autoriser).
+## Identification (0.1.59)
+Plus de fenêtre « Se connecter avec Google » au démarrage. L'application lit le compte Google connecté dans **AGOA Launcher › CONNEXIONS**
+et vérifie qu'il est autorisé (liste d'empreintes SHA-256 dans `package.json` › `agoa.google.allowed`, comme les autres applications AGOA).
+Sans compte autorisé dans le launcher, un message s'affiche et l'application se ferme. Google Agenda (lecture seule) reste utilisable
+si la connexion du launcher inclut l'autorisation Agenda.
 
 ## Écran d'accueil (0.1.7)
 Sans dossier ouvert : **Créer un DTG** (saisie de la référence), **Ouvrir un DTG** (fichier `.dtg`) et **DTG récents**.

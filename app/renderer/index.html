@@ -1682,7 +1682,6 @@ ${d ? `
   $("#btnLinkDbx", v)?.addEventListener("click", linkDropboxVisit);
   $$("[data-link]", v).forEach(b => b.onclick = () => testLink(b.dataset.link));
   $("#lnkSettings", v)?.addEventListener("click", () => window.dtgDesktop.openSettings().catch(() => {}));
-  $("#lnkGoogleSw", v)?.addEventListener("click", async () => { if (await ask("Se déconnecter de Google et redémarrer l’application pour choisir un autre compte ?", [["Changer de compte", "y"], ["Annuler", "n"]]) === "y") window.dtgDesktop.googleSwitch().catch(() => {}); });
   $("#btnRescan", v)?.addEventListener("click", () => rescan());
   $("#rvSel", v)?.addEventListener("change", e => rescan(e.target.value));
   const bindMeta = (id, k) => $(id, v)?.addEventListener("input", e => { S.d.meta[k] = e.target.value; queueSave("d"); });
@@ -2623,9 +2622,9 @@ function liaisonsCardHtml() {
       <div class="lst ${r.cls || ""}">${r.busy ? '<span class="spin"></span> Test en cours…' : esc(r.msg || "Non testé")}</div>
       <button class="btn small" data-link="${k}" ${r.busy ? "disabled" : ""}>Tester</button></div>`;
   };
-  return `<div class="card" style="margin-top:10px" id="liaisons"><div class="row" style="margin-bottom:6px"><b>Liaisons</b><span class="spacer"></span>${DESKTOP ? `<button class="btn small" id="lnkSettings">Réglages (clés, serveur, Google)…</button><button class="btn small ghost" id="lnkGoogleSw" title="Se déconnecter et choisir un autre compte Google">Changer de compte Google</button>` : ""}</div>
+  return `<div class="card" style="margin-top:10px" id="liaisons"><div class="row" style="margin-bottom:6px"><b>Liaisons</b><span class="spacer"></span>${DESKTOP ? `<button class="btn small" id="lnkSettings">Réglages (clés, serveur, Google)…</button>` : ""}</div>
     ${row("ragic", "Ragic", DESKTOP ? "Serveur eu2.ragic.com — clé API dans les réglages" : "Connecteur Ragic de claude.ai")}
-    ${row("google", "Google Agenda", DESKTOP ? "Compte Google de l’agence (identification)" : "Connecteur Google Agenda de claude.ai")}
+    ${row("google", "Google Agenda", DESKTOP ? "Compte Google de l’agence (via AGOA Launcher)" : "Connecteur Google Agenda de claude.ai")}
     ${row("ai", "Anthropic (IA)", DESKTOP ? "Clé API Anthropic — baguette magique et rédaction" : "Assistant IA de claude.ai")}
   </div>`;
 }
@@ -2640,7 +2639,7 @@ async function testLink(k) {
       done("ok", "Liaison OK — " + hits.length + " fiche(s) trouvée(s) pour « " + q + " »" + (hits.length ? "" : " (liaison valide, mais code non trouvé)"));
     } else if (k === "google") {
       const mcp = await CAP.mcp; if (!mcp) throw { code: "no_mcp" };
-      let who = ""; if (DESKTOP && window.dtgDesktop.googleInfo) { const g = await window.dtgDesktop.googleInfo().catch(() => null); if (g) { if (!g.configured) throw { message: "Connexion Google non configurée sur ce poste (identifiant ou code secret du client OAuth manquant — voir les réglages)." }; if (!g.signed) throw { message: "Non connecté à Google : utilisez « Changer de compte Google »." }; who = g.email; } }
+      let who = ""; if (DESKTOP && window.dtgDesktop.googleInfo) { const g = await window.dtgDesktop.googleInfo().catch(() => null); if (g) { if (g.authed === false) throw { message: "Non identifié : connectez le compte Google de l’agence dans AGOA Launcher › CONNEXIONS." }; if (!g.signed) throw { message: "Identifié via AGOA Launcher, mais Google Agenda n’est pas autorisé : reconnectez Google (avec l’agenda) dans AGOA Launcher › CONNEXIONS." }; who = g.email; } }
       const now = Date.now();
       const r = await mcp.callTool("Google Calendar", "list_events", { startTime: new Date(now - 30 * 864e5).toISOString(), endTime: new Date(now + 30 * 864e5).toISOString(), pageSize: 5 });
       let pl = r?.payload; if (typeof pl === "string") { try { pl = JSON.parse(pl); } catch {} }

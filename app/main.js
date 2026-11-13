@@ -22,11 +22,14 @@ let cfgReady = false;
 /* ---------- connexions partagées (AGOA Launcher > CONNEXIONS) : clé Ragic, clé Claude, compte Google ---------- */
 const { readShared } = require("./shared");
 let OVER = {};   // valeurs reprises du launcher (non recopiées dans le fichier de paramètres de ce poste)
+let launcherUser = null;   // compte Google du launcher (AGOA Launcher > CONNEXIONS), autorisé : seule source d'authentification
 function applyShared(sh) {
-  OVER = {};
+  OVER = {}; launcherUser = null;
   if (sh.ragic && sh.ragic.key && sh.ragic.host) { cfg.ragicKey = OVER.ragicKey = sh.ragic.key; cfg.ragicHost = cleanHost(sh.ragic.host); }
   if (sh.anthropic && sh.anthropic.key) cfg.anthropicKey = OVER.anthropicKey = sh.anthropic.key;
-  const g = sh.google;   // jeton utilisable seulement s'il couvre Google Agenda (portée calendar.readonly) et vient du même client
+  const g = sh.google;
+  if (g && g.email) { const c0 = googleClient(); if (G.emailAllowed(g.email, c0.allowed, c0.domain)) launcherUser = { email: String(g.email).toLowerCase(), name: g.name || g.email }; }   // authentification : compte du launcher autorisé
+  // jeton utilisable seulement s'il couvre Google Agenda (portée calendar.readonly) et vient du même client
   if (g && g.refresh_token && g.email && /calendar\.readonly/.test(g.scopes || "")) {
     const c = googleClient();
     if ((!g.client_id || g.client_id === c.clientId) && G.emailAllowed(g.email, c.allowed, c.domain) && !(cfg.google && cfg.google.refresh === g.refresh_token))
@@ -88,7 +91,7 @@ function buildMenu() {
     ] },
     { label: "Édition", submenu: [{ role: "undo", label: "Annuler" }, { role: "redo", label: "Rétablir" }, { type: "separator" }, { role: "cut", label: "Couper" }, { role: "copy", label: "Copier" }, { role: "paste", label: "Coller" }, { role: "selectAll", label: "Tout sélectionner" }] },
     { label: "Affichage", submenu: [{ role: "reload", label: "Recharger" }, { role: "zoomIn", label: "Zoom +" }, { role: "zoomOut", label: "Zoom −" }, { role: "resetZoom", label: "Taille normale" }, { type: "separator" }, { role: "toggleDevTools", label: "Outils de développement" }] },
-    { label: "Aide", submenu: [{ label: "AGOA DTG v" + app.getVersion(), enabled: false }, { label: cfg.google ? "Connecté : " + cfg.google.email : "Non connecté à Google", enabled: false }, { label: "Changer de compte Google…", click: googleSignOut }, { type: "separator" }, { label: "Dossier des données de l'application", click: () => shell.openPath(USER) }] }
+    { label: "Aide", submenu: [{ label: "AGOA DTG v" + app.getVersion(), enabled: false }, { label: launcherUser ? "Connecté (AGOA Launcher) : " + launcherUser.email : "Non identifié", enabled: false }, { type: "separator" }, { label: "Dossier des données de l'application", click: () => shell.openPath(USER) }] }
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(tpl));
 }
@@ -114,39 +117,16 @@ function googleClient() {
   return { clientId: cfg.googleClientId || f.clientId || pg.clientId || "", clientSecret: cfg.googleClientSecret || f.clientSecret || pg.clientSecret || "", domain: (cfg.googleDomain || "").replace(/^@/, ""), allowed: Array.isArray(pg.allowed) ? pg.allowed : [] };
 }
 const googleSigned = () => { const c = googleClient(); return !!(cfg.google && cfg.google.email && cfg.google.refresh && G.emailAllowed(cfg.google.email, c.allowed, c.domain)); };
-let loginWin = null, loginDone = null;
 let gSess = null;   // jeton d'accès en mémoire
-function showLogin() {
-  return new Promise(resolve => {
-    loginDone = resolve;
-    loginWin = new BrowserWindow({ width: 520, height: 400, frame: false, resizable: false, center: true, show: false, title: "Connexion — AGOA DTG", icon: path.join(__dirname, "build", "app.ico"), backgroundColor: "#ffffff", webPreferences: { nodeIntegration: true, contextIsolation: false, sandbox: false } });
-    loginWin.loadFile(path.join(__dirname, "login.html"));
-    loginWin.once("ready-to-show", () => loginWin.show());
-    loginWin.on("closed", () => { loginWin = null; if (loginDone) { const d = loginDone; loginDone = null; d(false); } });
-  });
-}
 const googleConfigured = () => { const c = googleClient(); return !!(c.clientId && c.clientSecret); };   // un client « application de bureau » exige son code secret
 ipcMain.on("temps:log", (e, ref, sec) => { try { require("./temps").logTime("dtg", ref, sec); } catch {} });   // temps de rédaction -> journal du launcher
-ipcMain.handle("google:state", () => ({ configured: googleConfigured(), version: app.getVersion() }));
-ipcMain.handle("google:settings", () => { openSettings(true); });
-ipcMain.handle("google:skip", () => { if (googleConfigured()) return; if (loginDone) { const d = loginDone; loginDone = null; d("skip"); loginWin && loginWin.close(); } });
-ipcMain.handle("google:login", async () => {
-  const c = googleClient();
-  try {
-    const s = await G.login({ ...c, openUrl: u => shell.openExternal(u) });
-    cfg.google = { email: s.email, name: s.name, refresh: s.refresh, ver: app.getVersion() }; saveCfg(cfg); gSess = { access: s.access, expiry: s.expiry, refresh: s.refresh };
-    if (loginDone) { const d = loginDone; loginDone = null; d(true); setTimeout(() => loginWin && loginWin.close(), 700); }
-    return { ok: true, email: s.email };
-  } catch (e) { return { ok: false, code: e.code, message: e.message }; }
-});
 async function googleCalendar(tool, input) {
   if (tool !== "list_events") throw { code: "tool_error", message: "Outil Google Agenda inconnu : " + tool };
-  if (!googleSigned()) throw { code: "server_not_connected", message: "Connexion Google nécessaire (menu Aide › Changer de compte Google)." };
+  if (!googleSigned()) throw { code: "server_not_connected", message: "Google Agenda non relié : autorisez Google Agenda dans AGOA Launcher › CONNEXIONS." };
   const c = googleClient(); gSess = gSess || { refresh: cfg.google.refresh };
   try { return await G.listEvents(await G.accessToken(gSess, c), input); }
-  catch (e) { if (e.code === "relogin") { gSess = null; throw { code: "server_not_connected", message: "Connexion Google expirée : menu Aide › Changer de compte Google." }; } throw { code: e.code || "tool_error", message: e.message }; }
+  catch (e) { if (e.code === "relogin") { gSess = null; throw { code: "server_not_connected", message: "Connexion Google expirée : reconnectez le compte dans AGOA Launcher › CONNEXIONS." }; } throw { code: e.code || "tool_error", message: e.message }; }
 }
-function googleSignOut() { cfg.google = null; gSess = null; saveCfg(cfg); app.relaunch(); app.quit(); }
 
 /* ---------- écran de démarrage + mise à jour automatique ---------- */
 let splash = null, splashHidden = false;
@@ -154,7 +134,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 function createSplash() {
   splash = new BrowserWindow({ width: 520, height: 330, frame: false, resizable: false, movable: true, show: false, center: true, alwaysOnTop: false, skipTaskbar: false, title: "AGOA DTG", icon: path.join(__dirname, "build", "app.ico"), backgroundColor: "#ffffff", webPreferences: { nodeIntegration: true, contextIsolation: false, sandbox: false } });
   splash.loadFile(path.join(__dirname, "splash.html"));
-  splash.on("closed", () => { if (!win && !loginWin && !loginDone) app.quit(); });
+  splash.on("closed", () => { if (!win) app.quit(); });
   splash.webContents.on("did-finish-load", () => { splashSet({ version: app.getVersion(), text: "Recherche de mise à jour…" }); if (!splashHidden) splash.show(); });
 }
 function splashSet(o) { try { if (splash && !splash.isDestroyed()) splash.webContents.send("splash", o); } catch {} }
@@ -179,16 +159,11 @@ async function startup() {
   let updating = false;
   if (app.isPackaged && !process.env.AGOA_NO_UPDATE) { try { updating = await checkAndUpdate(); } catch {} }
   if (updating) return;
-  if (googleSigned() && cfg.google.ver !== app.getVersion()) {   // nouvelle version : une seule revérification, silencieuse si possible
-    splashSet({ text: "Vérification du compte Google…" });
-    try { const c = googleClient(); gSess = { refresh: cfg.google.refresh }; await G.accessToken(gSess, c); cfg.google.ver = app.getVersion(); saveCfg(cfg); }
-    catch { cfg.google = null; gSess = null; saveCfg(cfg); }
-  }
-  if (!googleSigned()) {
-    splashSet({ text: "Identification…" }); splashHidden = true; if (splash && !splash.isDestroyed()) splash.hide();
-    const ok = await showLogin();
-    if (!ok) { closeSplash(); app.quit(); return; }
-    splashHidden = false; if (splash && !splash.isDestroyed()) splash.show();
+  splashSet({ text: "Vérification de l'identification (AGOA Launcher)…" });
+  if (!launcherUser) {   // pas de fenêtre de connexion : l'authentification vient du launcher
+    closeSplash();
+    dialog.showErrorBox("AGOA DTG — identification requise", "Aucun compte Google autorisé n'est connecté dans AGOA Launcher.\n\nOuvrez AGOA Launcher, bouton CONNEXIONS, connectez le compte Google de l'agence, puis relancez AGOA DTG.");
+    app.quit(); return;
   }
   splashSet({ text: "Démarrage…", pct: 100 });
   await wait(Math.max(0, 1800 - (Date.now() - t0)));
@@ -199,7 +174,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on("second-instance", (e, argv) => { const f = dtgArg(argv); if (win) { if (win.isMinimized()) win.restore(); win.focus(); } if (f) queueOpen(f); });
   app.whenReady().then(async () => { cfg = loadCfg(); cfgReady = true; try { applyShared(await readShared()); } catch {} const f = dtgArg(process.argv); if (f) pendingOpen.push(f); startup(); });
-  app.on("window-all-closed", () => { if (!splash && !loginWin) app.quit(); });
+  app.on("window-all-closed", () => { if (!splash) app.quit(); });
 }
 
 /* ---------- utilitaires ---------- */
@@ -228,8 +203,7 @@ ipcMain.handle("cfg:testRagic", wrap(async () => { const r = await ragic("full_t
 ipcMain.handle("cfg:testAI", wrap(async () => { const t = await aiComplete({ prompt: "Réponds simplement : OK", maxTokens: 20 }); return t; }));
 ipcMain.handle("pdf:render", wrap(async (html) => require("./pdf").renderPdf(String(html || ""))));
 ipcMain.handle("app:openSettings", wrap(async () => { openSettings(); return true; }));
-ipcMain.handle("google:info", wrap(async () => ({ configured: googleConfigured(), signed: googleSigned(), email: (cfg.google && cfg.google.email) || "" })));
-ipcMain.handle("google:switch", wrap(async () => { googleSignOut(); return true; }));
+ipcMain.handle("google:info", wrap(async () => ({ configured: true, signed: googleSigned(), authed: !!launcherUser, email: (launcherUser && launcherUser.email) || (cfg.google && cfg.google.email) || "", viaLauncher: true })));
 
 /* ---------- fichiers ---------- */
 ipcMain.handle("dtg:remember", wrap(async ({ ref, path: p }) => { if (ref && p) rememberPath(String(ref), p); return true; }));
