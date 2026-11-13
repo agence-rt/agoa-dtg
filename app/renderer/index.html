@@ -544,7 +544,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.60";
+const APP_VERSION = "0.1.61";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -3223,8 +3223,8 @@ function renderPPPT() {
     <h2>Scénarios d’amélioration thermique</h2>
     <p class="muted">Lignes de coûts rattachées à un scénario (colonne « Scénario » des chapitres). La classe visée et le gain se renseignent ici, d’après l’étude du BET thermique.</p>
     <div class="row" style="margin:6px 0 12px"><b>Performance actuelle de la copropriété :</b><select class="field-in" id="dpeGlob" style="padding:3px 6px"><option value="">—</option>${DPE.map(([l]) => `<option ${P.dpeGlobal === l ? "selected" : ""}>${l}</option>`).join("")}</select>${S.d.bet?.at ? `<span class="hint">Étude thermique analysée ${fmtWhen(S.d.bet.at)}</span>` : ""}</div>
-    <div class="tablewrap"><table class="ptab"><thead><tr><th>Scénario</th><th>Travaux préconisés (BET)</th><th class="n">Nb lignes</th><th class="n">Estimatif TTC</th><th>Classe visée</th><th>Gain énergétique</th></tr></thead><tbody>
-    ${P.scen.map(s => `<tr><td class="sc"><b>${s.name}</b></td><td style="font-size:13px">${esc(s.travaux) || '<span class="muted">—</span>'}${s.coutBet ? `<br><small class="muted">Coût BET : ${esc(s.coutBet)}</small>` : ""}</td><td class="n">${s.lines.length}</td><td class="n"><b>${euro(s.total)}</b></td>
+    <div class="tablewrap"><table class="ptab"><thead><tr><th>Scénario</th><th class="n">Estimatif TTC</th><th>Classe visée</th><th>Gain énergétique</th></tr></thead><tbody>
+    ${P.scen.map(s => `<tr><td class="sc"><b>${s.name}</b></td><td class="n"><b>${euro(s.total)}</b></td>
       <td><select class="field-in" data-scl="${s.name}" style="padding:3px 6px"><option value="">—</option>${DPE.map(([l]) => `<option ${s.classe === l ? "selected" : ""}>${l}</option>`).join("")}</select></td>
       <td><input class="field-in" data-sgn="${s.name}" value="${esc(s.gainPct)}" placeholder="ex. 36 %" style="width:110px;padding:3px 6px"></td></tr>`).join("")}</tbody></table></div>
     ${P.scen.filter(s => s.lines.length).map(s => `<h3 class="sc" style="color:var(--violet)">${s.name}${s.classe ? ` — classe visée ${s.classe}` : ""}${s.gainPct ? ` — gain ${esc(s.gainPct)}` : ""}</h3>
@@ -3452,9 +3452,9 @@ function buildDocx(D, data) {
     });
     children.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new D.TextRun("SCÉNARIOS D’AMÉLIORATION THERMIQUE")] }));
     if (P.dpeGlobal) children.push(new D.Paragraph({ spacing: { after: 160 }, children: [RUN("Performance actuelle de la copropriété : ", { bold: true }), RUN("classe " + P.dpeGlobal, { bold: true, color: "7030A0" })] }));
-    const srows = [new D.TableRow({ tableHeader: true, children: ["Scénario", "Travaux préconisés (BET)", "Nb lignes", "Estimatif TTC", "Classe visée", "Gain énergétique"].map((x, i) => pc(x, { bold: true, fill: "DCE6F1", right: i === 2 || i === 3 })) })];
-    P.scen.forEach(s => srows.push(new D.TableRow({ children: [pc(s.name, { bold: true, color: "7030A0" }), pc(s.travaux || "—"), pc(s.lines.length, { right: true }), pc(fmtE(s.total), { right: true, bold: true }), pc(s.classe || "—", { bold: true }), pc(s.gainPct || "En attente de l’étude thermique", { color: s.gainPct ? "7030A0" : "7F7F7F" })] })));
-    children.push(TBL(srows, [1300, 3300, 900, 1500, 1000, 1600]));
+    const srows = [new D.TableRow({ tableHeader: true, children: ["Scénario", "Estimatif TTC", "Classe visée", "Gain énergétique"].map((x, i) => pc(x, { bold: true, fill: "DCE6F1", right: i === 1 })) })];
+    P.scen.forEach(s => srows.push(new D.TableRow({ children: [pc(s.name, { bold: true, color: "7030A0" }), pc(fmtE(s.total), { right: true, bold: true }), pc(s.classe || "—", { bold: true }), pc(s.gainPct || "En attente de l’étude thermique", { color: s.gainPct ? "7030A0" : "7F7F7F" })] })));
+    children.push(TBL(srows, [1800, 2200, 1800, 3800]));
     P.scen.filter(s => s.lines.length).forEach(s => {
       children.push(H(s.name.toUpperCase() + (s.classe ? " — classe visée " + s.classe : "") + (s.gainPct ? " — gain " + s.gainPct : ""), "7030A0"));
       const rows = [new D.TableRow({ tableHeader: true, children: ["Localisation", "Désignation des travaux", "Échéance", "Gain énerg.", "Estimatif TTC"].map((x, i) => pc(x, { bold: true, fill: "DCE6F1", right: i === 4 })) })];
@@ -3842,8 +3842,8 @@ async function exportPDF(only, lay, opts) {
       newPage("PROJET DE PLAN PLURIANNUEL DE TRAVAUX", "SCÉNARIOS D’AMÉLIORATION", true); mark("SCÉNARIOS D’AMÉLIORATION THERMIQUE", 0);
       place(el(`<h1 class="pbt" style="color:#7030A0">SCÉNARIOS D’AMÉLIORATION THERMIQUE</h1>`));
       if (P.dpeGlobal) place(el(`<div style="margin:0 0 12px;font-weight:700">Performance actuelle de la copropriété : <span style="color:#7030A0">classe ${esc(P.dpeGlobal)}</span></div>`));
-      tableKeep(`<th style="width:13%">Scénario</th><th>Travaux préconisés (BET)</th><th class="n" style="width:9%">Nb lignes</th><th class="n" style="width:14%">Estimatif TTC</th><th style="width:10%">Classe visée</th><th style="width:16%">Gain énergétique</th>`,
-        P.scen.map(s => `<tr><td class="sc"><b>${s.name}</b></td><td>${esc(s.travaux || "—")}</td><td class="n">${s.lines.length}</td><td class="n"><b>${fmtE(s.total)}</b></td><td><b>${esc(s.classe || "—")}</b></td><td class="sc">${esc(s.gainPct || "En attente de l’étude thermique")}</td></tr>`));
+      tableKeep(`<th style="width:20%">Scénario</th><th class="n" style="width:22%">Estimatif TTC</th><th style="width:20%">Classe visée</th><th>Gain énergétique</th>`,
+        P.scen.map(s => `<tr><td class="sc"><b>${s.name}</b></td><td class="n"><b>${fmtE(s.total)}</b></td><td><b>${esc(s.classe || "—")}</b></td><td class="sc">${esc(s.gainPct || "En attente de l’étude thermique")}</td></tr>`));
       for (const s of P.scen.filter(s => s.lines.length)) {
         mark(s.name, 1, tableKeep(`<th style="width:24%">Localisation</th><th>Désignation des travaux</th><th style="width:17%">Échéance</th><th class="th" style="width:8%">Gain</th><th class="n" style="width:14%">Estimatif TTC</th>`,
           s.lines.map(l => `<tr><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td style="color:${TC[l.tkey] || "#333"}">${esc(String(l.terme || "").replace(/ \(.*\)/, ""))}</td><td class="gain">${esc(l.gain)}</td><td class="n">${fmtE(l.tot)}</td></tr>`).concat([`<tr class="tot"><td colspan="4">Total ${s.name}</td><td class="n">${fmtE(s.total)}</td></tr>`]), s.name, "", `<div class="psec" style="color:#7030A0;margin-top:18px">${esc(s.name.toUpperCase())}${s.classe ? " — classe visée " + esc(s.classe) : ""}${s.gainPct ? " — gain " + esc(s.gainPct) : ""}</div>`));
