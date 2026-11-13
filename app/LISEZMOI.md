@@ -54,7 +54,7 @@ Lancer en développement : `npm start`.
 - Publier une version : monter `version` dans `app/package.json`, pousser, puis lancer la procédure « Installateur Windows »
   (onglet Actions) : elle crée la Release `v<version>` avec l'installateur et `latest.yml` (nécessaire à la mise à jour automatique).
 
-## Identification (0.1.59)
+## Identification (0.1.59, interface mise à jour en 0.1.60)
 Plus de fenêtre « Se connecter avec Google » au démarrage. L'application lit le compte Google connecté dans **AGOA Launcher › CONNEXIONS**
 et vérifie qu'il est autorisé (liste d'empreintes SHA-256 dans `package.json` › `agoa.google.allowed`, comme les autres applications AGOA).
 Sans compte autorisé dans le launcher, un message s'affiche et l'application se ferme. Google Agenda (lecture seule) reste utilisable

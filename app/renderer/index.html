@@ -249,6 +249,8 @@ button{ cursor:pointer; }
 .cin.th{ color:var(--violet); }
 .cin[data-k="gain"]{ font-weight:800; font-size:15.5px; letter-spacing:1px; }
 .ctab .acts{ white-space:nowrap; }
+.scsel{ position:relative; } .scsel summary{ list-style:none; cursor:pointer; color:var(--violet); font-weight:800; padding:4px 5px; border:1px solid transparent; border-radius:4px; font-size:14px; min-height:27px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .scsel summary::-webkit-details-marker{ display:none; } .scsel summary:hover, .scsel[open] summary{ border-color:var(--line); background:var(--panel); }
+.scpop{ position:absolute; z-index:20; left:0; top:100%; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:7px 11px; box-shadow:0 4px 14px rgba(0,0,0,.2); display:flex; flex-direction:column; gap:5px; white-space:nowrap; } .scpop label{ display:flex; gap:7px; align-items:center; font-size:14px; cursor:pointer; }
 .photos-sec{ margin-top:30px; border-top:1px solid var(--line); padding-top:14px; }
 .photos-sec h4{ margin:0 0 10px; font-size:14.5px; color:var(--accent); }
 .pgrid{ display:grid; grid-template-columns:repeat(3, 5.8cm); gap:14px; }
@@ -541,7 +543,7 @@ function showErr(msg) { const b = document.getElementById("errbar"); if (!b) ret
 window.addEventListener("error", e => showErr((e.message || "") + (e.filename ? " @" + (e.lineno || "") : "")));
 window.addEventListener("unhandledrejection", e => { const r = e.reason; showErr(r?.message || r?.code || String(r)); });
 /* ============ version ============ */
-const APP_VERSION = "0.1.58";
+const APP_VERSION = "0.1.59";
 const PHOTO_CM = 5.5; // 3 photos par ligne sur A4 (17 cm utiles)
 /* ============ mode bureau (application Windows) ============ */
 const DESKTOP = !!(window.dtgDesktop && window.dtgDesktop.isDesktop);
@@ -1838,11 +1840,11 @@ function renderEditor() {
     <div class="costs-sec" id="costsSec">${costsHtml(c)}</div>
     <div class="photos-sec" id="photosSec"><div class="row" style="margin-bottom:10px"><h4 style="margin:0;flex:1">Photos intégrées au chapitre (${c.photos.length})</h4><button class="btn small" id="btnDrawer">${S.drawer ? "Masquer les photos du dossier" : "Afficher les photos du dossier"}</button></div>
       ${c.photos.length ? `<div class="pgrid">${c.photos.map((p, i) => `<div class="pitem" data-pk="${esc(p.key)}" data-pi="${i}" draggable="true"><span class="pnum" title="Position dans le chapitre">${i + 1}</span>
-        <div class="im" data-open="${esc(p.key)}" draggable="true" title="Cliquer pour annoter, glisser pour déplacer"><canvas data-thumb="${esc(p.key)}"></canvas></div>
+        <div class="im" data-open="${esc(p.key)}" draggable="true" title="Cliquer pour ouvrir la photo (flèches, zoom, recadrage) — glisser pour déplacer"><canvas data-thumb="${esc(p.key)}"></canvas></div>
         <textarea class="leg" data-leg="${i}" placeholder="Légende">${esc(p.legend || "")}</textarea>
-        <div class="bar"><button class="btn ghost small" data-pmv="${i}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Avancer">←</button><button class="btn ghost small" data-pmv="${i}" data-d="1" ${i === c.photos.length - 1 ? "disabled" : ""} aria-label="Reculer">→</button><span class="spacer"></span><button class="btn ghost small" data-open="${esc(p.key)}" title="Annoter : flèches, zoom et recadrage">Flèches</button><button class="btn ghost small" data-zoom="${esc(p.key)}" title="Zoomer / recadrer la photo (molette sur l’image pour zoomer)">${p.crop ? "Zoom ×" + (+p.crop.z).toFixed(1) : "Zoom"}</button><button class="btn ghost small danger" data-prm="${i}">Retirer</button></div></div>`).join("")}</div>`
+        <div class="bar"><button class="btn ghost small" data-pmv="${i}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Avancer">←</button><button class="btn ghost small" data-pmv="${i}" data-d="1" ${i === c.photos.length - 1 ? "disabled" : ""} aria-label="Reculer">→</button><span class="spacer"></span><button class="btn ghost small" data-open="${esc(p.key)}" title="Ouvrir la photo : flèches, zoom et recadrage">Ouvrir</button><button class="btn ghost small danger" data-prm="${i}">Retirer</button></div></div>`).join("")}</div>`
       : ""}
-      ${desktopBanner()}<label class="dropzone" id="dropzone">Glissez ici des photos depuis l’explorateur Windows ou depuis le panneau « Photos du dossier », ou <u>cliquez pour choisir des fichiers</u>.<br><small>Les photos sont intégrées à 5,5 cm dans leur plus grande dimension, 3 par ligne.</small><input type="file" class="dzinput" id="dzinput" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.heic" aria-label="Ajouter des photos au chapitre"></label>
+      <p class="hint">Pour ajouter des photos : glissez-les depuis le panneau « Photos du dossier » (bouton ci-dessus). Elles sont intégrées à 5,5 cm dans leur plus grande dimension, 3 par ligne.</p>
     </div></div>`;
   // events
   $("#chTitle").addEventListener("input", e => { c.title = e.target.value.toUpperCase(); queueSave(c.id); clearTimeout(renderEditor._t); renderEditor._t = setTimeout(renderTree, 400); });
@@ -1873,17 +1875,9 @@ function renderEditor() {
   $$("[data-pmv]", ed).forEach(bt => bt.onclick = () => { const i = +bt.dataset.pmv, j = i + (+bt.dataset.d); [c.photos[i], c.photos[j]] = [c.photos[j], c.photos[i]]; queueSave(c.id); renderEditor(); });
   $$("[data-prm]", ed).forEach(bt => bt.onclick = async () => { const i = +bt.dataset.prm, p = c.photos[i]; if (!(await toTrash("photo", (S.photos.get(p.key)?.name || p.key.split("/").pop()) + (p.legend ? " — " + p.legend : ""), p, { cid: c.id, ctitle: c.title, index: i, where: c.title }))) return; c.photos.splice(c.photos.indexOf(p), 1); queueSave(c.id); renderEditor(); renderTree(); });
   $$("[data-open]", ed).forEach(x => x.onclick = () => openAnnotator(x.dataset.open));
-  $$("[data-zoom]", ed).forEach(bt => bt.onclick = () => openAnnotator(bt.dataset.zoom, "zoom"));
-  $$(".pitem .im", ed).forEach(im => im.addEventListener("wheel", e => {
-    const cv = $("canvas[data-thumb]", im); if (!cv) return; const ent = c.photos.find(x => x.key === cv.dataset.thumb); if (!ent) return;
-    e.preventDefault(); const r = cv.getBoundingClientRect(); const cr = cropOf(ent);
-    const n = cropZoomAt(cr, cr.z * (e.deltaY < 0 ? 1.15 : 1 / 1.15), (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
-    ent.crop = cropSave(n); drawThumbCanvas(cv, ent.key, ent); const zb = $(`[data-zoom="${CSS.escape(ent.key)}"]`, im.closest(".pitem")); if (zb) zb.textContent = ent.crop ? "Zoom ×" + ent.crop.z.toFixed(1) : "Zoom"; queueSave(c.id);
-  }, { passive: false }));
   $$("canvas[data-thumb]", ed).forEach(cv => drawThumbCanvas(cv, cv.dataset.thumb, c.photos.find(p => p.key === cv.dataset.thumb)));
   $("#btnDrawer").onclick = () => { S.drawer = !S.drawer; renderDrawer(); renderEditor(); };
   $$(".pitem[draggable]", ed).forEach(it => { it.addEventListener("dragstart", e => { if (e.target.closest?.("textarea")) { e.preventDefault(); return; } e.dataTransfer.setData("text/x-dtg-move", it.dataset.pi); e.dataTransfer.effectAllowed = "move"; }); });
-  $("#dzinput").addEventListener("change", e => { const files = [...e.target.files]; e.target.value = ""; if (files.length) addPhotosToChapter(c, filesToKeys(files)); });
   bindChapterDrop(c);
   bindCosts(c);
   bindCover(c);
@@ -1923,8 +1917,8 @@ function costsHtml(c) {
       <td><select class="cin" data-k="terme"><option value="">—</option>${Object.entries(TERMES).map(([k, v]) => `<option value="${k}" ${l.terme === k ? "selected" : ""} title="${v}">${v.split(" ")[0]}</option>`).join("")}</select></td>
       <td><textarea class="cin des" data-k="des" rows="1" placeholder="Désignation">${esc(l.des || "")}</textarea></td>
       <td><select class="cin th" data-k="gain"><option value="">—</option>${["+", "++", "+++"].map(g => `<option ${l.gain === g ? "selected" : ""}>${g}</option>`).join("")}</select></td>
-      <td><select class="cin th" data-k="scen"><option value="">—</option>${["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"].map(s => `<option value="${s}" ${l.scen === s ? "selected" : ""}>${s.replace("Projet ", "P")}</option>`).join("")}</select></td>
-      <td><input class="cin num cost ${isManual(l) ? "man" : ""} ${l.gain || l.scen ? "vio" : ""}" data-k="manual" type="text" inputmode="decimal" autocomplete="off" value="${fmtAcc(isManual(l) ? l.manual : (calcTotal(l) || ""))}" placeholder="0" title="${isManual(l) ? "Montant saisi manuellement" : "Montant calculé (Qté × PU) — modifiable"}"></td>
+      <td><details class="scsel"><summary class="scsum" title="Un ou plusieurs scénarios : la ligne apparaîtra une fois par scénario dans le PPPT">${scLabel(l)}</summary><div class="scpop">${scAll().map(s => `<label><input type="checkbox" data-sc="${s}" ${scList(l).includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></details></td>
+      <td><input class="cin num cost ${isManual(l) ? "man" : ""} ${l.gain || scList(l).length ? "vio" : ""}" data-k="manual" type="text" inputmode="decimal" autocomplete="off" value="${fmtAcc(isManual(l) ? l.manual : (calcTotal(l) || ""))}" placeholder="0" title="${isManual(l) ? "Montant saisi manuellement" : "Montant calculé (Qté × PU) — modifiable"}"></td>
       <td class="calc"><input class="cin num" data-k="qte" type="number" min="0" step="any" value="${l.qte ?? ""}"></td>
       <td class="calc"><select class="cin" data-k="unite">${UNITES.map(u => `<option ${l.unite === u ? "selected" : ""}>${u}</option>`).join("")}</select></td>
       <td class="calc"><select class="cin" data-k="base">${baseOpts(l.base ?? "")}</select></td>
@@ -1947,6 +1941,12 @@ function bindCosts(c) {
   $$("tr[data-ci]", sec).forEach(tr => {
     const l = c.costs[+tr.dataset.ci]; const costIn = $('[data-k="manual"]', tr);
     const syncCost = () => { if (!isManual(l)) costIn.value = fmtAcc(calcTotal(l) || ""); costIn.classList.toggle("man", isManual(l)); };
+    $$("input[data-sc]", tr).forEach(cb => cb.addEventListener("change", () => {
+      const cur = new Set(scList(l)); if (cb.checked) cur.add(cb.dataset.sc); else cur.delete(cb.dataset.sc);
+      l.scens = scAll().filter(x => cur.has(x)); l.scen = l.scens[0] || "";
+      const sm = $(".scsum", tr); if (sm) sm.textContent = scLabel(l);
+      costIn.classList.toggle("vio", !!(l.gain || l.scens.length)); queueSave(c.id);
+    }));
     $$(".cin", tr).forEach(inp => {
       const k = inp.dataset.k;
       const upd = ev => {
@@ -1954,7 +1954,7 @@ function bindCosts(c) {
         else if (k === "manual") { const raw = inp.value, pos = inp.selectionStart ?? raw.length; const digitsBefore = raw.slice(0, pos).replace(/[^0-9,.]/g, "").length; l.manual = parseAcc(raw); const [ip, dp] = String(l.manual).split("."); const shown = fmtAcc(ip || 0).replace(/^0$/, ip === "" ? "" : "0") + (dp !== undefined ? "," + dp : ""); inp.value = ip === "" && dp === undefined ? "" : shown; let d = 0, np = 0; while (np < inp.value.length && d < digitsBefore) { if (/[0-9,]/.test(inp.value[np])) d++; np++; } try { inp.setSelectionRange(np, np); } catch {} }
         else { l[k] = inp.value; if (k === "qte" || k === "pu") { l.manual = ""; if (k === "pu") { l.base = ""; $('[data-k="base"]', tr).value = ""; } } if (k === "unite" && inp.value === "forfait" && !l.qte) { l.qte = "1"; $('[data-k="qte"]', tr).value = "1"; l.manual = ""; } }
         if (k !== "manual") syncCost(); else costIn.classList.toggle("man", isManual(l));
-        costIn.classList.toggle("vio", !!(l.gain || l.scen));
+        costIn.classList.toggle("vio", !!(l.gain || scList(l).length));
         refreshTotals(); queueSave(c.id);
         if (k === "terme" && ev.type === "change") redraw();
       };
@@ -2866,7 +2866,7 @@ function dtgPpptChunks(tail) {
   for (const p of pg) { const t = "[page " + p.n + "]\n" + pageText(p) + "\n"; if (cur && (cur + t).length > 30000) { out.push(cur); cur = ""; } cur += t; }
   if (cur) out.push(cur); return out.slice(0, 6);
 }
-const mkCost = l => { const q = +l.qte || "", p = +l.pu || ""; return { id: "k" + uid(), des: String(l.des || ""), qte: q, unite: UNITES.includes(l.unite) ? l.unite : "m²", pu: p, base: "", manual: (q && p) ? "" : (+l.total || ""), terme: ({ court: "court", moyen: "moyen", long: "long" })[String(l.terme || "").toLowerCase().replace(/[^a-z]/g, "").replace(/terme.*/, "")] || "", gain: String(l.gain || ""), scen: ["Projet 1", "Projet 2", "Projet 3"].includes(l.scen) ? l.scen : "" }; };
+const mkCost = l => { const q = +l.qte || "", p = +l.pu || ""; return { id: "k" + uid(), des: String(l.des || ""), qte: q, unite: UNITES.includes(l.unite) ? l.unite : "m²", pu: p, base: "", manual: (q && p) ? "" : (+l.total || ""), terme: ({ court: "court", moyen: "moyen", long: "long" })[String(l.terme || "").toLowerCase().replace(/[^a-z]/g, "").replace(/terme.*/, "")] || "", gain: String(l.gain || ""), scen: ["Projet 1", "Projet 2", "Projet 3"].includes(l.scen) ? l.scen : "", scens: ["Projet 1", "Projet 2", "Projet 3"].includes(l.scen) ? [l.scen] : [] }; };
 const costKey = l => norm(l.des).slice(0, 40) + "|" + lineTotal(l);
 async function importDtgPdf(file) {
   if (!S.d) return toast("Ouvrez d’abord un dossier (étape 1).");
@@ -3184,18 +3184,25 @@ function costRows() {
   return out;
 }
 const TERM_CLS = { court: "tc", moyen: "tm", long: "tl" };
+function scAll() { return ["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"]; }
+function scList(l) { return Array.isArray(l.scens) ? l.scens.filter(x => scAll().includes(x)) : (l.scen ? [l.scen] : []); }
+function scLabel(l) { return scList(l).map(x => x.replace("Projet ", "P")).join(" · ") || "—"; }
+function scTxt(l) { return scList(l).join(", "); }
+document.addEventListener("click", e => { document.querySelectorAll("details.scsel[open]").forEach(d => { if (!d.contains(e.target)) d.removeAttribute("open"); }); });
 const PTITLES = { court: "TRAVAUX À COURT TERME (1-3 ans)", moyen: "TRAVAUX À MOYEN TERME (3-6 ans)", long: "TRAVAUX À LONG TERME (6-10 ans)", "": "TRAVAUX NON PLANIFIÉS" };
+// une ligne de coût rattachée à plusieurs scénarios apparaît une fois par scénario (dup = répétition) ; sans scénario : une seule ligne
+function expandSc(rs, mk) { const out = []; rs.forEach(r => { const sc = scList(r.l); const base = mk(r); if (!sc.length) out.push({ ...base, scen: "" }); else sc.forEach((x, i) => out.push({ ...base, scen: x, dup: i > 0 })); }); return out; }
 function ppptData() {
   const rows = costRows(); const blds = S.d.buildings;
   const terms = ["court", "moyen", "long", ""].map(t => {
-    const groups = blds.map(b => { const lines = rows.filter(r => r.b === b && (r.l.terme || "") === t).map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: r.l.scen || "", tot: lineTotal(r.l) })); return { bname: b.name, lines, sub: lines.reduce((s, x) => s + x.tot, 0) }; }).filter(g => g.lines.length);
+    const groups = blds.map(b => { const rs = rows.filter(r => r.b === b && (r.l.terme || "") === t); const lines = expandSc(rs, r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); return { bname: b.name, lines, sub: rs.reduce((s, r) => s + lineTotal(r.l), 0) }; }).filter(g => g.lines.length);
     return { key: t, title: PTITLES[t], groups, total: groups.reduce((s, g) => s + g.sub, 0) };
   }).filter(t => t.groups.length || t.key);
   const matrix = blds.map(b => { const v = {}; let tot = 0; for (const t of ["court", "moyen", "long", ""]) { v[t] = rows.filter(r => r.b === b && (r.l.terme || "") === t).reduce((s, r) => s + lineTotal(r.l), 0); tot += v[t]; } return { bname: b.name, v, tot, dpe: b.dpe || "" }; });
   S.d.scen = S.d.scen || {};
-  const scen = ["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"].map(n => { const lines = rows.filter(r => r.l.scen === n).map(r => ({ cid: r.c.id, loc: r.b.name + " › " + r.c.title, des: r.l.des || "", terme: TERMES[r.l.terme] || "", tkey: r.l.terme || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); const m = S.d.scen[n] || {}; return { name: n, lines, total: lines.reduce((s, x) => s + x.tot, 0), classe: m.classe || "", gainPct: m.gain || "", travaux: (m.travaux || []).join(" ; "), coutBet: m.cout || "" }; });
+  const scen = ["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"].map(n => { const lines = rows.filter(r => scList(r.l).includes(n)).map(r => ({ cid: r.c.id, loc: r.b.name + " › " + r.c.title, des: r.l.des || "", terme: TERMES[r.l.terme] || "", tkey: r.l.terme || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); const m = S.d.scen[n] || {}; return { name: n, lines, total: lines.reduce((s, x) => s + x.tot, 0), classe: m.classe || "", gainPct: m.gain || "", travaux: (m.travaux || []).join(" ; "), coutBet: m.cout || "" }; });
   const hasNP = rows.some(r => !r.l.terme);
-  const byB = blds.map(b => { const ts = ["court", "moyen", "long", ""].map(t => { const lines = rows.filter(r => r.b === b && (r.l.terme || "") === t).map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: r.l.scen || "", tot: lineTotal(r.l) })); return { key: t, title: PTITLES[t], lines, total: lines.reduce((x, l) => x + l.tot, 0) }; }).filter(t => t.lines.length); return { bname: b.name, dpe: b.dpe || "", terms: ts, total: ts.reduce((x, t) => x + t.total, 0) }; }).filter(b => b.terms.length);
+  const byB = blds.map(b => { const ts = ["court", "moyen", "long", ""].map(t => { const rs = rows.filter(r => r.b === b && (r.l.terme || "") === t); const lines = expandSc(rs, r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); return { key: t, title: PTITLES[t], lines, total: rs.reduce((x, r) => x + lineTotal(r.l), 0), dup: lines.some(l => l.dup) }; }).filter(t => t.lines.length); return { bname: b.name, dpe: b.dpe || "", terms: ts, total: ts.reduce((x, t) => x + t.total, 0) }; }).filter(b => b.terms.length);
   return { byB, dpeGlobal: S.d.meta?.dpeGlobal || "", terms: terms.filter(t => t.key !== "" || hasNP), matrix, scen, grand: rows.reduce((s, r) => s + lineTotal(r.l), 0), hasNP };
 }
 function renderPPPT() {
@@ -3212,7 +3219,7 @@ function renderPPPT() {
     <tbody>${P.matrix.map(m => `<tr><td><b>${esc(m.bname)}</b>${m.dpe ? ` <small class="muted">· DPE ${m.dpe}</small>` : ""}</td>${cols.map(t => `<td class="n ${TERM_CLS[t] || ""}">${m.v[t] ? euro(m.v[t]) : "—"}</td>`).join("")}<td class="n"><b>${euro(m.tot)}</b></td></tr>`).join("")}</tbody>
     <tfoot><tr><td>Total</td>${cols.map(t => `<td class="n ${TERM_CLS[t] || ""}">${euro(P.matrix.reduce((s, m) => s + m.v[t], 0))}</td>`).join("")}<td class="n">${euro(P.grand)}</td></tr></tfoot></table></div>
     ${P.byB.map(b => `<h3 style="margin-top:26px">${esc(b.bname)}${b.dpe ? ` <small class="muted">· DPE ${b.dpe}</small>` : ""}</h3>
-      ${b.terms.map(t => { const col = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B" }[t.key] || "#D0201A"; const nop = t.key === ""; let n = 0; return `<div class="tablewrap" style="margin-bottom:16px"><table class="ptab ${nop ? "nop" : ""}" style="border:2px solid ${col}"><thead><tr><th colspan="6" style="color:${col};background:var(--panel)">${nop ? "⚠ TRAVAUX SANS ÉCHÉANCE — à planifier" : t.title}</th></tr><tr><th style="width:44px">N°</th><th style="width:22%">Localisation</th><th>Désignation des travaux</th><th style="width:80px">Gain énerg.</th><th style="width:110px">Scénario</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>${t.lines.map(l => `<tr data-goto="${l.cid}" class="gt" title="Ouvrir le chapitre dans Rédaction"><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="5" style="color:${col}">Total ${t.title.toLowerCase()}</td><td class="n">${euro(t.total)}</td></tr></tfoot></table></div>`; }).join("")}
+      ${b.terms.map(t => { const col = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B" }[t.key] || "#D0201A"; const nop = t.key === ""; let n = 0; return `<div class="tablewrap" style="margin-bottom:16px"><table class="ptab ${nop ? "nop" : ""}" style="border:2px solid ${col}"><thead><tr><th colspan="6" style="color:${col};background:var(--panel)">${nop ? "⚠ TRAVAUX SANS ÉCHÉANCE — à planifier" : t.title}</th></tr><tr><th style="width:44px">N°</th><th style="width:22%">Localisation</th><th>Désignation des travaux</th><th style="width:80px">Gain énerg.</th><th style="width:110px">Scénario</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>${t.lines.map(l => `<tr data-goto="${l.cid}" class="gt" title="Ouvrir le chapitre dans Rédaction"><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace(/Projet /g, "P"))}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="5" style="color:${col}">Total ${t.title.toLowerCase()}${t.dup ? ' <small class="muted">(chaque ligne comptée une seule fois, même si répétée par scénario)</small>' : ""}</td><td class="n">${euro(t.total)}</td></tr></tfoot></table></div>`; }).join("")}
       <div class="n" style="text-align:right;font-weight:800;margin:-4px 0 10px">Total ${esc(b.bname)} : ${euro(b.total)}</div>`).join("")}
     <h2>Scénarios d’amélioration thermique</h2>
     <p class="muted">Lignes de coûts rattachées à un scénario (colonne « Scénario » des chapitres). La classe visée et le gain se renseignent ici, d’après l’étude du BET thermique.</p>
@@ -3276,12 +3283,13 @@ async function addPhotosToChapter(c, keys, at) {
 function bindChapterDrop(c) {
   const ed = $("#editor"); const sec = $("#photosSec"); if (!ed || !sec) return;
   let depth = 0;
-  ed.ondragenter = e => { if (!isOurDrag(e.dataTransfer)) return; depth++; sec.classList.add("drag"); };
+  const inner = dt => dt && [...dt.types].some(t => t === "text/x-dtg-photo" || t === "text/x-dtg-move");
+  ed.ondragenter = e => { if (!inner(e.dataTransfer)) return; depth++; sec.classList.add("drag"); };
   ed.ondragleave = () => { depth = Math.max(0, depth - 1); if (!depth) sec.classList.remove("drag"); };
-  ed.ondragover = e => { if (!isOurDrag(e.dataTransfer)) return; e.preventDefault(); e.dataTransfer.dropEffect = [...e.dataTransfer.types].includes("Files") ? "copy" : "move";
+  ed.ondragover = e => { if (!inner(e.dataTransfer)) return; e.preventDefault(); e.dataTransfer.dropEffect = "move";
     $$(".pitem.over", ed).forEach(x => x.classList.remove("over")); e.target.closest?.(".pitem")?.classList.add("over"); };
   ed.ondrop = async e => {
-    if (!isOurDrag(e.dataTransfer)) return;
+    if (!inner(e.dataTransfer)) return;
     if (e.target && e.target.type === "file" && [...e.dataTransfer.types].includes("Files")) { depth = 0; sec.classList.remove("drag"); return; }
     if (e.target.closest && e.target.closest("#coverBox")) { depth = 0; sec.classList.remove("drag"); return; }
     e.preventDefault(); e.stopPropagation(); depth = 0; sec.classList.remove("drag");
@@ -3292,7 +3300,6 @@ function bindChapterDrop(c) {
     if (mv !== "") { const from = +mv; const to = at == null ? c.photos.length - 1 : at; if (from !== to) { const [it] = c.photos.splice(from, 1); c.photos.splice(to, 0, it); queueSave(c.id); renderEditor(); } return; }
     const key = dt.getData("text/x-dtg-photo");
     if (key) return addPhotosToChapter(c, key.split("\n").filter(Boolean), at);
-    if (dt.files && dt.files.length) return addPhotosToChapter(c, filesToKeys([...dt.files]), at);
   };
 }
 function renderDrawer() {
@@ -3504,7 +3511,7 @@ async function collectExport(opt, only) {
         for (const p of c.photos) { try { const r = await renderPhotoForExport(p.key, p.arrows, p.crop); if (r) photos.push({ ...r, url: u8ToDataUrl(r.data, "image/jpeg"), legend: p.legend }); else missing++; } catch { missing++; } }
         let coverPng = null;
         if (c.cover) { try { const [, b64] = c.cover.split(","); const bin = atob(b64); const u8 = new Uint8Array(bin.length); for (let q = 0; q < bin.length; q++) u8[q] = bin.charCodeAt(q); const bmp = await createImageBitmap(new Blob([u8], { type: "image/jpeg" })); const cv = document.createElement("canvas"); cv.width = cv.height = 300; const ctx = cv.getContext("2d"); ctx.beginPath(); ctx.roundRect(0, 0, 300, 300, 42); ctx.clip(); ctx.drawImage(bmp, 0, 0, 300, 300); const pb = await new Promise(r => cv.toBlob(r, "image/png")); coverPng = new Uint8Array(await pb.arrayBuffer()); } catch {} }
-        nb.chapters.push({ id: c.id, etat: (ETATS.find(e => e[0] === c.etatGen) || [])[1] || "", etatCol: (ETATS.find(e => e[0] === c.etatGen) || [])[2] || "", cover: coverPng, coverUrl: c.cover || null, type: c.type, costs: sortedIdx(c.costs || []).map(i => c.costs[i]).filter(l => l.des || lineTotal(l)).map(l => ({ des: l.des || "", qte: !isManual(l) && l.qte ? (+l.qte).toLocaleString("fr-FR") + " " + (l.unite || "") : "", pu: !isManual(l) && l.pu ? euro(+l.pu) : "", tot: lineTotal(l), terme: TERMES[l.terme] || "", gain: l.gain || "", scen: l.scen || "" })), title: c.title, cot: T.cot.map(k => ({ k, label: COT_LBL[k], v: c.cot[k] || 0, th: k !== "a" })).filter(x => x.v), fields, photos });
+        nb.chapters.push({ id: c.id, etat: (ETATS.find(e => e[0] === c.etatGen) || [])[1] || "", etatCol: (ETATS.find(e => e[0] === c.etatGen) || [])[2] || "", cover: coverPng, coverUrl: c.cover || null, type: c.type, costs: sortedIdx(c.costs || []).map(i => c.costs[i]).filter(l => l.des || lineTotal(l)).map(l => ({ des: l.des || "", qte: !isManual(l) && l.qte ? (+l.qte).toLocaleString("fr-FR") + " " + (l.unite || "") : "", pu: !isManual(l) && l.pu ? euro(+l.pu) : "", tot: lineTotal(l), terme: TERMES[l.terme] || "", gain: l.gain || "", scen: scTxt(l) })), title: c.title, cot: T.cot.map(k => ({ k, label: COT_LBL[k], v: c.cot[k] || 0, th: k !== "a" })).filter(x => x.v), fields, photos });
       }
       (nb.chapters.length || nb.images.length || nb.dpe || nb.photo || nb.info.some(x => x[1])) && data.buildings.push(nb);
     }
@@ -3792,7 +3799,7 @@ async function exportPDF(only, lay, opts) {
           const groups = []; c.costs.forEach(l => { let g = groups.find(x => x.t === (l.terme || "")); if (!g) groups.push(g = { t: l.terme || "", ls: [] }); g.ls.push(l); });
           const head = `<th>Désignation des travaux</th><th class="n" style="width:14%">Coût TTC</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th>`;
           groups.forEach(g => {
-            const rows = g.ls.map(l => `<tr><td>${esc(l.des)}</td><td class="n">${fmtE(l.tot)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td></tr>`);
+            const rows = g.ls.map(l => `<tr><td>${esc(l.des)}</td><td class="n">${fmtE(l.tot)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace(/Projet /g, "P"))}</td></tr>`);
             rows.push(`<tr class="tot"><td style="color:${TCOL[g.t] || "#333"}">Total ${esc(SHORT(g.t).toLowerCase() || "sans échéance")}</td><td class="n">${fmtE(g.ls.reduce((s, l) => s + l.tot, 0))}</td><td colspan="2"></td></tr>`);
             const ttl = titleDone ? "" : costTitle; titleDone = true;
             const node = el(`<div>${ttl}<table class="ptbl ${CLS[g.t] || ""}"><thead><tr>${head}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`);
@@ -3820,7 +3827,7 @@ async function exportPDF(only, lay, opts) {
         const bTitle = `<div class="psec" style="margin-top:18px">${esc(b.bname)}${b.dpe ? ` <span style="font-weight:400;font-size:9pt">· DPE ${esc(b.dpe)}</span>` : ""}</div>`;
         if (!b.terms.length) { place(el(bTitle)); mark(b.bname, 1); }
         for (const [ti, t] of b.terms.entries()) {
-          let n = 0; const rows = t.lines.map(l => `<tr><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace("Projet ", "P"))}</td><td class="n">${fmtE(l.tot)}</td><td class="ppt"><span class="pbx" data-amt="${Math.round(l.tot || 0)}" data-g="${bi}" data-t="${bi}_${ti}"></span></td></tr>`);
+          let n = 0; const rows = t.lines.map(l => `<tr><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace(/Projet /g, "P"))}</td><td class="n">${fmtE(l.tot)}</td><td class="ppt"><span class="pbx" data-amt="${Math.round(l.tot || 0)}" data-g="${bi}" data-t="${bi}_${ti}"></span></td></tr>`);
           rows.push(`<tr class="tot"><td colspan="5" style="color:${TT[t.key]}">Total ${esc(t.title.toLowerCase())}</td><td class="n">${fmtE(t.total)}</td><td></td></tr>`);
           rows.push(`<tr class="ret"><td colspan="5">Montant retenu TTC (lignes cochées)</td><td class="n"><span class="pfield" data-tot="t_${bi}_${ti}"></span></td><td></td></tr>`);
           const kpg = tableKeep(`<th colspan="7" class="ttl" style="color:${TT[t.key]}">${esc(t.title)}</th></tr><tr><th style="width:6%">N°</th><th style="width:20%">Localisation</th><th>Désignation des travaux</th><th class="th" style="width:8%">Gain</th><th class="th" style="width:11%">Scénario</th><th class="n" style="width:14%">Estimatif TTC</th><th class="ppt" style="width:6%">PPT</th>`, rows, t.title, TCL[t.key] + " pgap", ti === 0 ? bTitle : "");
@@ -3996,3 +4003,5 @@ window.addEventListener("beforeunload", () => { TJ.flush(); if (pending.c.size |
 </script>
 </body>
 </html>
+
+</body></html>
