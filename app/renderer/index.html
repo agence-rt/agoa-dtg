@@ -631,13 +631,13 @@ const ETATS = [["bon", "Bon", "#2C7A4B"], ["moyen", "Moyen", "#6B7F99"], ["mauva
 const COT_LBL = { a: "Qualité architecturale", t: "Qualité thermique", e: "Confort d’été" };
 const COT_ICON = { a: "star", t: "flame", e: "sun" };
 const COUTS = [["Toiture tuiles", "m²", 500], ["Toiture zinc", "m²", 700], ["Toiture terrasse", "m²", 600], ["Toiture terrasse isolation", "m²", 500], ["Isolation entre chevrons", "m²", 180], ["Isolation combles", "m²", 120], ["Brisis ardoise", "m²", 550], ["Brisis zinc", "m²", 700], ["Façade plâtre et chaux", "m²", 600], ["Façade micro-mortier", "m²", 400], ["Façade pan de bois", "m²", 800], ["Façade pierre", "m²", 500], ["Façade béton", "m²", 300], ["Façade brique", "m²", 400], ["ITE pignon", "m²", 500], ["ITE façade cour", "m²", 700], ["Thermotilia", "m²", 700], ["Pignon chaux sable", "m²", 300], ["Échafaudages", "m²", 100], ["Déplombage enduit", "m²", 300], ["Balcon plomb", "m²", 800], ["Remplacement baie", "u", 2200], ["Sol cour sur terre-plein", "m²", 250], ["Sol cour sur caves (étanchéité)", "m²", 400], ["Sous-plancher caves", "m²", 500], ["Isolation plancher haut caves", "m²", 200], ["Cage escalier mauvais état", "niveau", 15000], ["Cage escalier état correct", "niveau", 10000], ["Réseaux aériens", "ml", 600], ["Réseaux enterrés", "ml", 1500]];
-const TERMES = { court: "Court terme (1-3 ans)", moyen: "Moyen terme (3-6 ans)", long: "Long terme (6-10 ans)" };
+const TERMES = { court: "Court terme (1-3 ans)", moyen: "Moyen terme (3-6 ans)", long: "Long terme (6-10 ans)", priv: "Charge privative" };
 const UNITES = ["m²", "ml", "u", "niveau", "forfait"];
 const euro = n => (Math.round(n || 0)).toLocaleString("fr-FR") + " €";
 const calcTotal = l => (+l.qte || 0) * (+l.pu || 0);
 const isManual = l => l.manual !== undefined && l.manual !== null && l.manual !== "";
 const lineTotal = l => isManual(l) ? (+l.manual || 0) : calcTotal(l);
-const TORD = { court: 0, moyen: 1, long: 2 };
+const TORD = { court: 0, moyen: 1, long: 2, "": 3, priv: 4 };
 const sortedIdx = L => L.map((l, i) => i).sort((a, b) => ((TORD[L[a].terme] ?? 3) - (TORD[L[b].terme] ?? 3)) || a - b);
 const ICON_COLOR = { star: "#F2B705", flame: "#7030A0", sun: "#F7931E" };
 const ICON_PATH = {
@@ -1935,7 +1935,7 @@ function costsHtml(c) {
     ${L.length ? `<table class="ctab"><colgroup><col style="width:88px"><col><col style="width:76px"><col style="width:66px"><col style="width:128px"><col style="width:48px"><col style="width:54px"><col style="width:84px"><col style="width:62px"><col style="width:30px"></colgroup>
     <thead><tr><th>Échéance</th><th>Désignation des travaux</th><th class="th">Gain</th><th class="th">Scénario</th><th class="n">Coût TTC</th><th class="calc">Qté</th><th class="calc">Unité</th><th class="calc">Prix de la base</th><th class="calc n">PU TTC</th><th></th></tr></thead><tbody>
     ${sortedIdx(L).map((i, n, arr) => { const l = L[i]; const prev = n ? (L[arr[n - 1]].terme || "") : null; return `${prev !== null && prev !== (l.terme || "") ? `<tr class="gap" aria-hidden="true"><td colspan="10"></td></tr>` : ""}<tr data-ci="${i}" class="t-${l.terme || "none"}">
-      <td><select class="cin" data-k="terme"><option value="">—</option>${Object.entries(TERMES).map(([k, v]) => `<option value="${k}" ${l.terme === k ? "selected" : ""} title="${v}">${v.split(" ")[0]}</option>`).join("")}</select></td>
+      <td><select class="cin" data-k="terme"><option value="">—</option>${Object.entries(TERMES).map(([k, v]) => `<option value="${k}" ${l.terme === k ? "selected" : ""} title="${v}">${k === "priv" ? "Charge privative" : v.split(" ")[0]}</option>`).join("")}</select></td>
       <td><textarea class="cin des" data-k="des" rows="1" placeholder="Désignation">${esc(l.des || "")}</textarea></td>
       <td><select class="cin th" data-k="gain"><option value="">—</option>${["+", "++", "+++"].map(g => `<option ${l.gain === g ? "selected" : ""}>${g}</option>`).join("")}</select></td>
       <td><details class="scsel"><summary class="scsum" title="Un ou plusieurs scénarios : la ligne apparaîtra une fois par scénario dans le PPPT">${scLabel(l)}</summary><div class="scpop">${scAll().map(s => `<label><input type="checkbox" data-sc="${s}" ${scList(l).includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></details></td>
@@ -3293,7 +3293,9 @@ function scTxt(l) { return scList(l).join(", "); }
 document.addEventListener("click", e => { document.querySelectorAll("details.scsel[open]").forEach(d => { if (!d.contains(e.target)) d.removeAttribute("open"); }); });
 const PTITLES = { court: "TRAVAUX À COURT TERME (1-3 ans)", moyen: "TRAVAUX À MOYEN TERME (3-6 ans)", long: "TRAVAUX À LONG TERME (6-10 ans)", "": "TRAVAUX NON PLANIFIÉS" };
 function ppptData() {
-  const rows = costRows(); const blds = S.d.buildings;
+  const allRows = costRows(); const rows = allRows.filter(r => r.l.terme !== "priv"); const blds = S.d.buildings;
+  const privG = blds.map(b => { const lines = allRows.filter(r => r.b === b && r.l.terme === "priv").map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", tot: lineTotal(r.l) })); return { bname: b.name, lines, sub: lines.reduce((s, x) => s + x.tot, 0) }; }).filter(g => g.lines.length);
+  const priv = { groups: privG, total: privG.reduce((s, g) => s + g.sub, 0) };
   const terms = ["court", "moyen", "long", ""].map(t => {
     const groups = blds.map(b => { const rs = rows.filter(r => r.b === b && (r.l.terme || "") === t); const lines = rs.map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: scTxt(r.l), tot: lineTotal(r.l) })); return { bname: b.name, lines, sub: lines.reduce((s, x) => s + x.tot, 0) }; }).filter(g => g.lines.length);
     return { key: t, title: PTITLES[t], groups, total: groups.reduce((s, g) => s + g.sub, 0) };
@@ -3303,7 +3305,7 @@ function ppptData() {
   const scen = ["Projet 1", "Projet 2", "Projet 3", "Projet 4", "Projet 5"].map(n => { const lines = rows.filter(r => scList(r.l).includes(n)).map(r => ({ cid: r.c.id, loc: r.b.name + " › " + r.c.title, des: r.l.des || "", terme: TERMES[r.l.terme] || "", tkey: r.l.terme || "", gain: r.l.gain || "", tot: lineTotal(r.l) })); const m = S.d.scen[n] || {}; return { name: n, lines, total: lines.reduce((s, x) => s + x.tot, 0), classe: m.classe || "", gainPct: m.gain || "", travaux: (m.travaux || []).join(" ; "), coutBet: m.cout || "" }; });
   const hasNP = rows.some(r => !r.l.terme);
   const byB = blds.map(b => { const ts = ["court", "moyen", "long", ""].map(t => { const rs = rows.filter(r => r.b === b && (r.l.terme || "") === t); const lines = rs.map(r => ({ cid: r.c.id, loc: r.c.title, des: r.l.des || "", gain: r.l.gain || "", scen: scTxt(r.l), tot: lineTotal(r.l) })); return { key: t, title: PTITLES[t], lines, total: lines.reduce((x, l) => x + l.tot, 0) }; }).filter(t => t.lines.length); return { bname: b.name, dpe: b.dpe || "", terms: ts, total: ts.reduce((x, t) => x + t.total, 0) }; }).filter(b => b.terms.length);
-  return { byB, dpeGlobal: S.d.meta?.dpeGlobal || "", terms: terms.filter(t => t.key !== "" || hasNP), matrix, scen, grand: rows.reduce((s, r) => s + lineTotal(r.l), 0), hasNP };
+  return { byB, dpeGlobal: S.d.meta?.dpeGlobal || "", terms: terms.filter(t => t.key !== "" || hasNP), matrix, scen, priv, grand: rows.reduce((s, r) => s + lineTotal(r.l), 0), hasNP };
 }
 function renderPPPT() {
   const v = $("#v-pppt");
@@ -3321,6 +3323,9 @@ function renderPPPT() {
     ${P.byB.map(b => `<h3 style="margin-top:26px">${esc(b.bname)}${b.dpe ? ` <small class="muted">· DPE ${b.dpe}</small>` : ""}</h3>
       ${b.terms.map(t => { const col = { court: "#D0201A", moyen: "#1F6FC5", long: "#2C7A4B" }[t.key] || "#D0201A"; const nop = t.key === ""; let n = 0; return `<div class="tablewrap" style="margin-bottom:16px"><table class="ptab ${nop ? "nop" : ""}" style="border:2px solid ${col}"><thead><tr><th colspan="6" style="color:${col};background:var(--panel)">${nop ? "⚠ TRAVAUX SANS ÉCHÉANCE — à planifier" : t.title}</th></tr><tr><th style="width:44px">N°</th><th style="width:22%">Localisation</th><th>Désignation des travaux</th><th style="width:80px">Gain énerg.</th><th style="width:110px">Scénario</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>${t.lines.map(l => `<tr data-goto="${l.cid}" class="gt" title="Ouvrir le chapitre dans Rédaction"><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="gain">${esc(l.gain)}</td><td class="sc">${esc(String(l.scen || "").replace(/Projet /g, "P"))}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="5" style="color:${col}">Total ${t.title.toLowerCase()}</td><td class="n">${euro(t.total)}</td></tr></tfoot></table></div>`; }).join("")}
       <div class="n" style="text-align:right;font-weight:800;margin:-4px 0 10px">Total ${esc(b.bname)} : ${euro(b.total)}</div>`).join("")}
+    ${P.priv.groups.length ? `<h3 style="margin-top:26px">Charges privatives</h3><p class="muted">Travaux à la charge des copropriétaires concernés — hors totaux de la copropriété.</p>
+      <div class="tablewrap" style="margin-bottom:16px"><table class="ptab" style="border:2px solid #7F7F7F"><thead><tr><th style="width:44px">N°</th><th style="width:26%">Localisation</th><th>Désignation des travaux</th><th class="n" style="width:130px">Estimatif TTC</th></tr></thead><tbody>${(() => { let n = 0; return P.priv.groups.map(g => `<tr><td colspan="4" style="background:var(--panel);font-weight:700">${esc(g.bname)}</td></tr>` + g.lines.map(l => `<tr data-goto="${l.cid}" class="gt" title="Ouvrir le chapitre dans Rédaction"><td>${++n}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="n">${euro(l.tot)}</td></tr>`).join("")).join(""); })()}</tbody>
+      <tfoot><tr><td colspan="3">Total charges privatives</td><td class="n">${euro(P.priv.total)}</td></tr></tfoot></table></div>` : ""}
     <h2>Scénarios d’amélioration thermique</h2>
     <p class="muted">Lignes de coûts rattachées à un scénario (colonne « Scénario » des chapitres). La classe visée et le gain se renseignent ici, d’après l’étude du BET thermique.</p>
     <div class="row" style="margin:6px 0 12px"><b>Performance actuelle de la copropriété :</b><select class="field-in" id="dpeGlob" style="padding:3px 6px"><option value="">—</option>${DPE.map(([l]) => `<option ${P.dpeGlobal === l ? "selected" : ""}>${l}</option>`).join("")}</select>${S.d.bet?.at ? `<span class="hint">Étude thermique analysée ${fmtWhen(S.d.bet.at)}</span>` : ""}</div>
@@ -3554,6 +3559,13 @@ function buildDocx(D, data) {
       rows.push(new D.TableRow({ children: [pc("TOTAL " + t.title, { span: 5, bold: true, fill: "F2F2F2", color: TC[t.key] }), pc(fmtE(t.total), { right: true, bold: true, fill: "F2F2F2" })] }));
       children.push(TBL(rows, [500, 2100, 3900, 800, 1000, 1300]));
     });
+    if (P.priv && P.priv.groups.length) {
+      children.push(H("CHARGES PRIVATIVES", "595959"), new D.Paragraph({ spacing: { after: 80 }, children: [RUN("Travaux à la charge des copropriétaires concernés, hors totaux de la copropriété.", { it: true, size: 16, color: "595959" })] }));
+      const prow = [new D.TableRow({ tableHeader: true, children: ["N°", "Localisation", "Désignation des travaux", "Estimatif TTC"].map((x, i) => pc(x, { bold: true, fill: "DCE6F1", right: i === 3 })) })]; let pn = 0;
+      P.priv.groups.forEach(g => { prow.push(new D.TableRow({ children: [pc(g.bname, { span: 4, bold: true, fill: "EAF2FB", color: "1F4E79" })] })); g.lines.forEach(l => prow.push(new D.TableRow({ cantSplit: true, children: [pc(++pn), pc(l.loc), pc(l.des), pc(fmtE(l.tot), { right: true })] }))); });
+      prow.push(new D.TableRow({ children: [pc("TOTAL CHARGES PRIVATIVES", { span: 3, bold: true, fill: "F2F2F2" }), pc(fmtE(P.priv.total), { right: true, bold: true, fill: "F2F2F2" })] }));
+      children.push(TBL(prow, [500, 2600, 5000, 1500]));
+    }
     children.push(new D.Paragraph({ heading: D.HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new D.TextRun("SCÉNARIOS D’AMÉLIORATION THERMIQUE")] }));
     if (P.dpeGlobal) children.push(new D.Paragraph({ spacing: { after: 160 }, children: [RUN("Performance actuelle de la copropriété : ", { bold: true }), RUN("classe " + P.dpeGlobal, { bold: true, color: "7030A0" })] }));
     const srows = [new D.TableRow({ tableHeader: true, children: ["Scénario", "Estimatif TTC", "Classe visée", "Gain énergétique"].map((x, i) => pc(x, { bold: true, fill: "DCE6F1", right: i === 1 })) })];
@@ -3621,7 +3633,7 @@ async function collectExport(opt, only) {
       (nb.chapters.length || nb.images.length || nb.dpe || nb.photo || nb.info.some(x => x[1])) && data.buildings.push(nb);
     }
     data.oblig = OBLIG.filter(([k]) => S.d.oblig?.[k]?.s).map(([k, l, ref]) => ({ l, ref, s: S.d.oblig[k].s, d: S.d.oblig[k].d || "", c: S.d.oblig[k].c || "" }));
-    if (!only || only === "pppt") { const P = ppptData(); if (P.grand || P.scen.some(s => s.lines.length)) data.pppt = { ...P, cols: ["court", "moyen", "long"].concat(P.hasNP ? [""] : []) }; }
+    if (!only || only === "pppt") { const P = ppptData(); if (P.grand || P.priv.total || P.scen.some(s => s.lines.length)) data.pppt = { ...P, cols: ["court", "moyen", "long"].concat(P.hasNP ? [""] : []) }; }
     try { data.icons = {}; for (const k of ["a", "t", "e"]) data.icons[k] = { on: await iconPng(COT_ICON[k], true), off: await iconPng(COT_ICON[k], false) }; } catch { data.icons = null; }
   return { data, missing };
 }
@@ -3939,6 +3951,11 @@ async function exportPDF(only, lay, opts) {
           if (ti === 0) mark(b.bname, 1, kpg);
         }
         place(el(`<div class="ptotch">Total ${esc(b.bname)} : ${fmtE(b.total)}</div>`));
+      }
+      if (P.priv && P.priv.groups.length) {
+        let pn = 0; const prows = []; P.priv.groups.forEach(g => { prows.push(`<tr><td colspan="4" style="font-weight:700">${esc(g.bname)}</td></tr>`); g.lines.forEach(l => prows.push(`<tr><td>${++pn}</td><td>${esc(l.loc)}</td><td>${esc(l.des)}</td><td class="n">${fmtE(l.tot)}</td></tr>`)); });
+        prows.push(`<tr class="tot"><td colspan="3">Total charges privatives</td><td class="n">${fmtE(P.priv.total)}</td></tr>`);
+        mark("Charges privatives", 1, tableKeep(`<th colspan="4" class="ttl" style="color:#595959">CHARGES PRIVATIVES — hors totaux de la copropriété</th></tr><tr><th style="width:6%">N°</th><th style="width:26%">Localisation</th><th>Désignation des travaux</th><th class="n" style="width:16%">Estimatif TTC</th>`, prows, "Charges privatives", "pgap", `<div class="psec" style="margin-top:18px">CHARGES PRIVATIVES</div>`));
       }
       if (P.byB.length) {
         const selRows = P.byB.map((b, bi) => `<tr><td>${esc(b.bname)}</td><td class="n"><span class="pfield" data-tot="${bi}"></span></td></tr>`);
