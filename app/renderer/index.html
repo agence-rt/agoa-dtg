@@ -3206,6 +3206,7 @@ function renderBuilding(b) {
     <div class="bimgs">${slot("plan", "Plan")}${slot("loc", "Localisation")}</div>
   </div>`;
   $$("[data-bi]", ed).forEach(i => i.oninput = () => { b.info[i.dataset.bi] = i.value; queueSave("d"); });
+  bindBetBuilding(ed, b);
   $$("[data-dpe]", ed).forEach(x => x.onclick = () => { b.dpe = b.dpe === x.dataset.dpe ? null : x.dataset.dpe; queueSave("d"); renderBuilding(b); });
   $$("[data-imgin]", ed).forEach(inp => inp.addEventListener("change", async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return; try { await setImg(inp.dataset.imgin, await fitImage(f)); } catch { toast("Format d’image non lisible (JPG, PNG ou WebP)."); } renderBuilding(b); }));
   $$("[data-imgslot]", ed).forEach(sl => { sl.addEventListener("dragenter", () => sl.classList.add("drag")); sl.addEventListener("dragleave", () => sl.classList.remove("drag")); sl.addEventListener("drop", () => sl.classList.remove("drag")); });
@@ -3213,17 +3214,60 @@ function renderBuilding(b) {
   for (const k of ["photo", "plan", "loc"]) { const key = b.id + "_" + k; if (!(key in S.imgs)) { S.imgs[key] = undefined; delete S.imgs[key]; getImg(key).then(() => { if (S.sel === "B:" + b.id) renderBuilding(b); }); } }
 }
 
+function betAutoLine(b) {
+  const bt = b.bet || {}, g = S.d.bet?.result?.dpeGlobal || S.d.meta?.dpeGlobal || "";
+  return [bt.dpe ? "DPE du bâtiment : " + bt.dpe : "", bt.ges ? "GES : " + bt.ges : "", bt.conso || "", g ? "copropriété : classe " + g : ""].filter(Boolean).join(" · ");
+}
 function betBuildingHtml(b) {
-  const r = S.d.bet?.result; if (!r && !b.bet) return "";
-  const chip = c => c ? `<b class="dpechip" style="background:${DPE.find(x => x[0] === c)?.[1] || "#888"}">${esc(c)}</b>` : "—";
-  const own = b.bet || null; const sc = (r?.scenarios || []).slice(0, 3);
-  return `<div class="betbox"><div class="row" style="justify-content:space-between"><b style="color:var(--violet)">Étude thermique (BET)</b>${S.d.bet?.at ? `<span class="hint">analysée ${fmtWhen(S.d.bet.at)}</span>` : ""}</div>
-    <div class="row" style="gap:18px;margin-top:6px">
-      ${own ? `<span>DPE du bâtiment ${chip(own.dpe)}</span>${own.ges ? `<span>GES ${chip(own.ges)}</span>` : ""}${own.conso ? `<span>${esc(own.conso)}</span>` : ""}` : `<span class="muted">Pas de donnée propre à ce bâtiment dans l’étude.</span>`}
-      ${r?.dpeGlobal ? `<span>Copropriété ${chip(r.dpeGlobal)}${r.consoGlobal ? " " + esc(r.consoGlobal) : ""}</span>` : ""}
+  const r = S.d.bet?.result || {}; const own = b.bet || {}; const sc = (r.scenarios || []).slice(0, 3);
+  const gl = r.dpeGlobal || S.d.meta?.dpeGlobal || "";
+  const opts = v => `<option value="">—</option>` + DPE.map(([l]) => `<option ${v === l ? "selected" : ""}>${l}</option>`).join("");
+  const chip = c => c ? `<b class="dpechip" style="background:${DPE.find(x => x[0] === c)?.[1] || "#888"}">${esc(c)}</b>` : "";
+  const line = b.betText != null ? b.betText : betAutoLine(b);
+  return `<div class="betbox"><div class="row" style="justify-content:space-between"><b style="color:var(--violet)">Étude thermique (BET)</b>${S.d.bet?.at ? `<span class="hint">analysée ${fmtWhen(S.d.bet.at)} — champs modifiables</span>` : `<span class="hint">saisie manuelle — champs modifiables</span>`}</div>
+    <div class="row" style="gap:12px;margin-top:8px;flex-wrap:wrap;align-items:center">
+      <label>DPE bâtiment <select class="field-in" data-betf="dpe" style="padding:3px 6px">${opts(own.dpe || "")}</select> ${chip(own.dpe)}</label>
+      <label>GES <select class="field-in" data-betf="ges" style="padding:3px 6px">${opts(own.ges || "")}</select></label>
+      <label>Consommation <input class="field-in" data-betf="conso" value="${esc(own.conso || "")}" placeholder="ex. 215 kWh/m².an" style="padding:3px 6px;width:170px"></label>
+      <label>Copropriété <select class="field-in" data-betf="glob" style="padding:3px 6px">${opts(gl)}</select> <input class="field-in" data-betf="consoGlob" value="${esc(r.consoGlobal || "")}" placeholder="conso copropriété" style="padding:3px 6px;width:150px"></label>
     </div>
-    ${sc.length ? `<div style="margin-top:8px;font-size:14px">${sc.map((s, i) => `<div><b>Projet ${i + 1}</b> : ${esc((s.travaux || []).join(", ") || s.nom || "")}${s.classe ? ` → ${chip(s.classe)}` : ""}${s.gain ? ` <span style="color:var(--violet)">${esc(s.gain)}</span>` : ""}</div>`).join("")}</div>` : ""}
-    ${r?.constats ? `<p style="margin:8px 0 0;font-size:14px">${esc(r.constats)}</p>` : ""}</div>`;
+    ${sc.length ? `<div style="margin-top:10px;font-size:14px">${sc.map((s, i) => `<div class="row" style="gap:8px;margin-bottom:4px;flex-wrap:wrap;align-items:center"><b>Projet ${i + 1}</b>
+      <input class="field-in" data-betsc="${i}:travaux" value="${esc((s.travaux || []).join(", ") || s.nom || "")}" placeholder="travaux (séparés par des virgules)" style="padding:3px 6px;flex:1;min-width:220px">
+      → <select class="field-in" data-betsc="${i}:classe" style="padding:3px 6px">${opts(s.classe || "")}</select>
+      <input class="field-in" data-betsc="${i}:gain" value="${esc(s.gain || "")}" placeholder="gain" style="padding:3px 6px;width:110px"></div>`).join("")}</div>` : ""}
+    <div style="margin-top:8px"><div class="hint" style="margin-bottom:2px">Constats du BET (fournis à l’IA pour les caractéristiques thermiques)</div>
+      <textarea class="field-in" data-betf="constats" rows="3" style="width:100%;font-size:14px">${esc(r.constats || "")}</textarea></div>
+    <div style="margin-top:8px"><div class="row" style="justify-content:space-between"><span class="hint">Texte repris dans le DTG exporté pour ce bâtiment</span>${b.betText != null ? `<button class="btn small ghost" data-betf="reset">Rétablir le texte automatique</button>` : ""}</div>
+      <textarea class="field-in" data-betf="text" rows="2" style="width:100%;font-size:14px" placeholder="Aucun texte">${esc(line)}</textarea></div></div>`;
+}
+function bindBetBuilding(ed, b) {
+  const ensure = () => { b.bet = b.bet || { dpe: "", ges: "", conso: "", nom: "" }; return b.bet; };
+  const ensureRes = () => { S.d.bet = S.d.bet || { at: 0, result: {}, sources: [] }; S.d.bet.result = S.d.bet.result || {}; return S.d.bet.result; };
+  const textSync = () => { if (b.betText == null) { const t = $('[data-betf="text"]', ed); if (t) t.value = betAutoLine(b); } };
+  $$("[data-betf]", ed).forEach(el => {
+    const k = el.dataset.betf;
+    if (k === "reset") { el.onclick = () => { delete b.betText; queueSave("d"); renderBuilding(b); }; return; }
+    const apply = () => {
+      const v = el.value;
+      if (k === "dpe") { ensure().dpe = v; b.dpe = v || null; }
+      else if (k === "ges") ensure().ges = v;
+      else if (k === "conso") ensure().conso = v;
+      else if (k === "glob") { ensureRes().dpeGlobal = v; S.d.meta.dpeGlobal = v; }
+      else if (k === "consoGlob") ensureRes().consoGlobal = v;
+      else if (k === "constats") ensureRes().constats = v;
+      else if (k === "text") { b.betText = v; }
+      queueSave("d"); if (k !== "text" && k !== "constats") textSync();
+    };
+    el.addEventListener("input", apply);
+    if (el.tagName === "SELECT" && (k === "dpe" || k === "glob")) el.addEventListener("change", () => renderBuilding(b));
+  });
+  $$("[data-betsc]", ed).forEach(el => el.addEventListener("input", () => {
+    const [i, f] = el.dataset.betsc.split(":"); const res = ensureRes(); res.scenarios = res.scenarios || []; const s = res.scenarios[+i]; if (!s) return;
+    if (f === "travaux") s.travaux = el.value.split(",").map(x => x.trim()).filter(Boolean); else s[f] = el.value;
+    S.d.scen = S.d.scen || {}; const k = "Projet " + (+i + 1);
+    S.d.scen[k] = { ...(S.d.scen[k] || {}), classe: s.classe || "", gain: s.gain || "", travaux: s.travaux || [] };
+    queueSave("d");
+  }));
 }
 /* ============ PPPT ============ */
 function costRows() {
@@ -3545,7 +3589,7 @@ async function collectExport(opt, only) {
     for (const b of S.d.buildings) {
       const nb = { name: b.name, chapters: [], info: BINFO.map(([k, l]) => [l, (b.info || {})[k] || ""]).concat([["Observations générales", (b.info || {}).remarques || ""]]), images: [] };
       for (const [k, lbl] of [["plan", "Plan"], ["loc", "Localisation"]]) { const u = await getImg(b.id + "_" + k); if (u) { try { const bmp = await createImageBitmap(new Blob([dataUrlToU8(u)], { type: "image/jpeg" })); const MAX = 300; let w = MAX, hh = Math.round(MAX * bmp.height / bmp.width); if (hh > 340) { w = Math.round(w * 340 / hh); hh = 340; } bmp.close?.(); nb.images.push({ data: dataUrlToU8(u), url: u, w, h: hh, label: lbl }); } catch {} } }
-      if (b.bet || S.d.bet?.result?.dpeGlobal) nb.betLine = [b.bet?.dpe ? "DPE du bâtiment : " + b.bet.dpe : "", b.bet?.ges ? "GES : " + b.bet.ges : "", b.bet?.conso || "", S.d.bet?.result?.dpeGlobal ? "copropriété : classe " + S.d.bet.result.dpeGlobal : ""].filter(Boolean).join(" · ");
+      { const bl = b.betText != null ? b.betText.trim() : betAutoLine(b); if (bl) nb.betLine = bl; }
       { const pu = await getImg(b.id + "_photo"); if (pu) { try { const bmp = await createImageBitmap(new Blob([dataUrlToU8(pu)], { type: "image/jpeg" })); let w = 200, hh = Math.round(200 * bmp.height / bmp.width); if (hh > 230) { w = Math.round(w * 230 / hh); hh = 230; } bmp.close?.(); nb.photo = { url: pu, data: dataUrlToU8(pu), w, h: hh }; } catch {} } }
       if (b.dpe) { try { const png = await dpePng(b.dpe); nb.dpe = { cls: b.dpe, png, url: u8ToDataUrl(png, "image/png") }; } catch {} }
       for (const id of b.chapters) {
