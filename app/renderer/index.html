@@ -347,6 +347,7 @@ label.btn{ display:inline-flex; align-items:center; cursor:pointer; user-select:
 .dropzone{ position:relative; display:block; }
 .dzinput{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .errbar{ position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom,0px)); background:var(--red-soft); border:1px solid var(--red); color:var(--ink); padding:10px 14px; border-radius:var(--r); z-index:70; font-size:14px; white-space:pre-wrap; }
+.frontwrap{ display:flex; align-items:center; gap:4px; padding-left:6px; } .frontwrap .frontrow{ flex:1; min-width:0; } .frontwrap input{ flex:none; margin:0; }
 .frontlist{ display:flex; flex-direction:column; margin:0 0 10px; } .frontrow{ padding:5px 8px 5px 14px; } .frsec{ margin:0 0 18px; } .georow{ display:flex; align-items:center; gap:10px; margin:6px 0; } .georow .gl{ flex:1; min-width:0; } .geosel{ width:132px; min-width:0; flex:none; font-weight:600; border-width:2px; padding:3px 6px; } .frta{ width:100%; font:10.5pt/1.55 Arial, sans-serif; } .frchk{ display:flex; gap:8px; align-items:center; margin:5px 0; } .frlist{ margin:6px 0 0; padding-left:20px; line-height:1.7; }
 .bsheet h2{ margin:0 0 4px; font-size:26px; }
 .binfo{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px 18px; margin:16px 0 8px; }
@@ -1755,7 +1756,7 @@ function renderTree() {
   const allIds = S.d.buildings.flatMap(b => b.chapters); const g = progressOf(allIds);
   { const v = Math.round(g * 100); if (S.d.meta && S.d.meta.progress !== v) { S.d.meta.progress = v; queueSave("d"); } }
   const keepTop = t.scrollTop;
-  t.innerHTML = `<div class="prog"><div class="row"><b>Avancement de la rédaction</b><span>${pct(g)}</span></div>${bar(g, true)}<div class="hint" style="margin-top:6px">${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.filter(fieldFilled).length || 0), 0)} rubriques renseignées sur ${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.length || 0), 0)}</div></div><h3>Pages d’ouverture</h3><div class="frontlist">${FRONT_PAGES.map(([k, l]) => `<button class="chap frontrow" data-front="${k}" aria-current="${S.sel === "P:" + k}"><span class="ct">${esc(l)}</span></button>`).join("")}</div><h3>Bâtiments et chapitres</h3>` + S.d.buildings.map((b, bi) => `
+  t.innerHTML = `<div class="prog"><div class="row"><b>Avancement de la rédaction</b><span>${pct(g)}</span></div>${bar(g, true)}<div class="hint" style="margin-top:6px">${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.filter(fieldFilled).length || 0), 0)} rubriques renseignées sur ${allIds.reduce((s, id) => s + (S.chaps[id]?.fields.length || 0), 0)}</div></div><h3>Pages d’ouverture</h3><div class="frontlist">${FRONT_PAGES.map(([k, l]) => `<div class="frontwrap"><input type="checkbox" data-frprint="${k}" ${frontPrint(k) ? "checked" : ""} title="Imprimer cette page" aria-label="Imprimer : ${esc(l)}"><button class="chap frontrow" data-front="${k}" aria-current="${S.sel === "P:" + k}"><span class="ct">${esc(l)}</span></button></div>`).join("")}</div><h3>Bâtiments et chapitres</h3>` + S.d.buildings.map((b, bi) => `
     <div class="bld"><div class="bld-h"><b class="bname" data-bsel="${b.id}" role="button" tabindex="0" aria-current="${S.sel === "B:" + b.id}" title="Informations du bâtiment">${esc(b.name)}</b>
       <button class="btn ghost small" data-act="addch" data-b="${b.id}" title="Ajouter un chapitre" aria-label="Ajouter un chapitre">+</button>
       <button class="btn ghost small" data-act="renb" data-b="${b.id}" title="Renommer" aria-label="Renommer le bâtiment">✎</button>
@@ -1767,6 +1768,7 @@ function renderTree() {
     </div>`).join("") + `<div class="row" style="margin:4px 6px;gap:6px"><button class="btn small" data-act="addb">Ajouter un bâtiment</button><button class="btn small ghost" id="trashBtn">Corbeille (${S.trashN || 0})</button></div>
     <p class="hint" style="margin:14px 6px 0"><span class="dot" style="display:inline-block"></span> vide &nbsp; <span class="dot st-ai" style="display:inline-block"></span> rédigé par l’IA &nbsp; <span class="dot st-ed" style="display:inline-block"></span> relu / modifié</p>`;
   $$("[data-ch]", t).forEach(b => b.onclick = () => { S.sel = b.dataset.ch; renderTree(); renderEditor(); });
+  $$("[data-frprint]", t).forEach(cb => cb.onchange = () => { const d = S.d; d.front = d.front || {}; d.front.print = d.front.print || {}; d.front.print[cb.dataset.frprint] = cb.checked; queueSave("d"); });
   $$("[data-front]", t).forEach(b => b.onclick = () => { S.sel = "P:" + b.dataset.front; renderTree(); renderEditor(); });
   $$("[data-act]", t).forEach(b => b.onclick = () => treeAction(b.dataset.act, b.dataset.b));
   $("#trashBtn", t)?.addEventListener("click", openTrash);
@@ -3126,6 +3128,7 @@ async function dpePng(cls) {
 }
 
 /* ============ pages d'ouverture (préambule, sommaire, cadre réglementaire, fiche, localisation) ============ */
+const frontPrint = k => S.d?.front?.print?.[k] !== false;   // toutes imprimées par défaut
 const FRONT_PAGES = [["preambule", "Préambule"], ["sommaire", "Sommaire"], ["cadre", "Cadre réglementaire"], ["fiche", "Fiche d’identification"], ["localisation", "Localisation des ouvrages"]];
 const FRONT_TEXT = {
   preambule: [
@@ -3823,14 +3826,19 @@ async function exportPDF(only, lay, opts) {
       const M = S.d.meta || {}; const FI = {};
       for (const k of ["cadastre", "aerien", "plan", "vue"]) { try { FI[k] = await getImg("front_" + k) || null; } catch { FI[k] = null; } }
       const frontSecs = key => FRONT_TEXT[key].forEach(([t], i) => sec(t, mdItems(frontText(key, i))));
+      if (frontPrint("sommaire")) {
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "SOMMAIRE"); mark("SOMMAIRE", 0);
       headPut(el(`<h1 class="pbt">SOMMAIRE</h1>`));
       tocBox = el(`<div class="ptoc"></div>`); headPut(tocBox);
+      }
 
+      if (frontPrint("preambule")) {
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "PRÉAMBULE"); mark("PRÉAMBULE", 0);
       headPut(el(`<h1 class="pbt">PRÉAMBULE</h1>`)); frontSecs("preambule");
+      }
 
-      if (!L2) {   // le cadre réglementaire enchaîne directement après le préambule (pas de saut de page forcé)
+      if (!frontPrint("cadre")) {
+      } else if (!L2) {   // le cadre réglementaire enchaîne directement après le préambule (pas de saut de page forcé)
         const h1 = el(`<h1 class="pbt" style="margin-top:20px">CADRE RÉGLEMENTAIRE DU DTG</h1>`);
         FRONT_TEXT.cadre.forEach(([t], i) => sec(t, mdItems(frontText("cadre", i)), i === 0 ? h1 : null));
         mark("CADRE RÉGLEMENTAIRE DU DTG", 0, pages.find(pg => pg.contains(h1)));
@@ -3845,7 +3853,7 @@ async function exportPDF(only, lay, opts) {
       const nbB = M.batiments || S.d.buildings.length || "";
       const val = v => v ? esc(String(v)) : `<span class="pnone">—</span>`;
       const ph = (img, lbl) => `<div class="pph ${img ? "has" : ""}">${img ? `<img src="${img}" alt="">` : esc(lbl)}</div>`;
-      onePage(h => {
+      if (frontPrint("fiche")) onePage(h => {
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "FICHE D’IDENTIFICATION", true); mark("FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ", 0);
       place(el(`<h1 class="pbt">FICHE D’IDENTIFICATION DE LA COPROPRIÉTÉ</h1>`));
       place(el(`<div class="pfld"><div class="lb">Localisation de l’immeuble</div><table class="pkv"><tr><td class="k">Adresse</td><td>${val(M.adresse || data.adresse)}</td></tr><tr><td class="k">Référence cadastrale</td><td>${val(M.parcelle)}</td></tr></table></div>`));
@@ -3857,7 +3865,7 @@ async function exportPDF(only, lay, opts) {
 
       }, 250, 70);
 
-      onePage(h => {
+      if (frontPrint("localisation")) onePage(h => {
       newPage("ANALYSE ARCHITECTURALE & TECHNIQUE", "LOCALISATION DES OUVRAGES", true); mark("LOCALISATION DES OUVRAGES", 0);
       place(el(`<h1 class="pbt">LOCALISATION DES OUVRAGES</h1>`));
       place(el(`<div class="pduo" style="--ph:${h}px">${ph(FI.plan, "Plan")}${ph(FI.vue, "Vue aérienne")}</div>`));
