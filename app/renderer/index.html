@@ -3219,7 +3219,7 @@ function betAutoLine(b) {
   return [bt.dpe ? "DPE du bâtiment : " + bt.dpe : "", bt.ges ? "GES : " + bt.ges : "", bt.conso || "", g ? "copropriété : classe " + g : ""].filter(Boolean).join(" · ");
 }
 function betBuildingHtml(b) {
-  const r = S.d.bet?.result || {}; const own = b.bet || {}; const sc = (r.scenarios || []).slice(0, 3);
+  const r = S.d.bet?.result || {}; const own = b.bet || {}; const sc = r.scenarios || [];
   const gl = r.dpeGlobal || S.d.meta?.dpeGlobal || "";
   const opts = v => `<option value="">—</option>` + DPE.map(([l]) => `<option ${v === l ? "selected" : ""}>${l}</option>`).join("");
   const chip = c => c ? `<b class="dpechip" style="background:${DPE.find(x => x[0] === c)?.[1] || "#888"}">${esc(c)}</b>` : "";
@@ -3234,9 +3234,11 @@ function betBuildingHtml(b) {
     ${sc.length ? `<div style="margin-top:10px;font-size:14px">${sc.map((s, i) => `<div class="row" style="gap:8px;margin-bottom:4px;flex-wrap:wrap;align-items:center"><b>Projet ${i + 1}</b>
       <input class="field-in" data-betsc="${i}:travaux" value="${esc((s.travaux || []).join(", ") || s.nom || "")}" placeholder="travaux (séparés par des virgules)" style="padding:3px 6px;flex:1;min-width:220px">
       → <select class="field-in" data-betsc="${i}:classe" style="padding:3px 6px">${opts(s.classe || "")}</select>
-      <input class="field-in" data-betsc="${i}:gain" value="${esc(s.gain || "")}" placeholder="gain" style="padding:3px 6px;width:110px"></div>`).join("")}</div>` : ""}
+      <input class="field-in" data-betsc="${i}:gain" value="${esc(s.gain || "")}" placeholder="gain" style="padding:3px 6px;width:110px"><button class="btn small ghost" data-betscrm="${i}" title="Supprimer ce projet">✕</button></div>`).join("")}</div>` : ""}
+    <div style="margin-top:6px"><button class="btn small" data-betf="addsc">+ Ajouter une ligne de projet</button></div>
     <div style="margin-top:8px"><div class="hint" style="margin-bottom:2px">Constats du BET (fournis à l’IA pour les caractéristiques thermiques)</div>
       <textarea class="field-in" data-betf="constats" rows="3" style="width:100%;font-size:14px">${esc(r.constats || "")}</textarea></div>
+    <label class="row" style="margin-top:10px;gap:8px;align-items:center;font-weight:600"><input type="checkbox" data-betf="print" ${b.betPrint ? "checked" : ""}> Afficher à l’impression (volet thermique repris dans l’export)</label>
     <div style="margin-top:8px"><div class="row" style="justify-content:space-between"><span class="hint">Texte repris dans le DTG exporté pour ce bâtiment</span>${b.betText != null ? `<button class="btn small ghost" data-betf="reset">Rétablir le texte automatique</button>` : ""}</div>
       <textarea class="field-in" data-betf="text" rows="2" style="width:100%;font-size:14px" placeholder="Aucun texte">${esc(line)}</textarea></div></div>`;
 }
@@ -3246,6 +3248,8 @@ function bindBetBuilding(ed, b) {
   const textSync = () => { if (b.betText == null) { const t = $('[data-betf="text"]', ed); if (t) t.value = betAutoLine(b); } };
   $$("[data-betf]", ed).forEach(el => {
     const k = el.dataset.betf;
+    if (k === "addsc") { el.onclick = () => { const res = ensureRes(); res.scenarios = res.scenarios || []; res.scenarios.push({ nom: "", travaux: [], classe: "", gain: "" }); queueSave("d"); renderBuilding(b); }; return; }
+    if (k === "print") { el.onchange = () => { b.betPrint = el.checked; queueSave("d"); }; return; }
     if (k === "reset") { el.onclick = () => { delete b.betText; queueSave("d"); renderBuilding(b); }; return; }
     const apply = () => {
       const v = el.value;
@@ -3261,12 +3265,17 @@ function bindBetBuilding(ed, b) {
     el.addEventListener("input", apply);
     if (el.tagName === "SELECT" && (k === "dpe" || k === "glob")) el.addEventListener("change", () => renderBuilding(b));
   });
+  const syncScen = () => {
+    const res = ensureRes(); S.d.scen = S.d.scen || {};
+    for (let i = 0; i < 5; i++) { const k = "Projet " + (i + 1), s = (res.scenarios || [])[i];
+      if (s) S.d.scen[k] = { ...(S.d.scen[k] || {}), classe: s.classe || "", gain: s.gain || "", travaux: s.travaux || [] };
+      else if (S.d.scen[k] && S.d.scen[k].nom !== undefined) S.d.scen[k] = { ...S.d.scen[k], classe: "", gain: "", travaux: [], cout: "", nom: "" }; }
+  };
+  $$("[data-betscrm]", ed).forEach(el => el.onclick = () => { const res = ensureRes(); (res.scenarios || []).splice(+el.dataset.betscrm, 1); syncScen(); queueSave("d"); renderBuilding(b); });
   $$("[data-betsc]", ed).forEach(el => el.addEventListener("input", () => {
     const [i, f] = el.dataset.betsc.split(":"); const res = ensureRes(); res.scenarios = res.scenarios || []; const s = res.scenarios[+i]; if (!s) return;
     if (f === "travaux") s.travaux = el.value.split(",").map(x => x.trim()).filter(Boolean); else s[f] = el.value;
-    S.d.scen = S.d.scen || {}; const k = "Projet " + (+i + 1);
-    S.d.scen[k] = { ...(S.d.scen[k] || {}), classe: s.classe || "", gain: s.gain || "", travaux: s.travaux || [] };
-    queueSave("d");
+    syncScen(); queueSave("d");
   }));
 }
 /* ============ PPPT ============ */
@@ -3459,7 +3468,10 @@ function buildDocx(D, data) {
       if (imgs.length) children.push(new D.Paragraph({ spacing: { before: 200 }, children: [] }), new D.Table({ width: { size: 100, type: D.WidthType.PERCENTAGE }, borders: nbs, rows: [new D.TableRow({ children: imgs.map(im => new D.TableCell({ borders: nbs, width: { size: Math.floor(100 / imgs.length), type: D.WidthType.PERCENTAGE }, children: [
         new D.Paragraph({ alignment: D.AlignmentType.CENTER, children: [new D.ImageRun({ type: "jpg", data: im.data, transformation: { width: im.w, height: im.h } })] }),
         new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { after: 120 }, children: [RUN(im.label, { it: true, size: 16, color: "404040" })] })] })) })] }));
-      if (b.betLine) children.push(new D.Paragraph({ spacing: { before: 200, after: 60 }, children: [RUN("Étude thermique (BET) : ", { bold: true, color: "7030A0" }), RUN(b.betLine, { color: "7030A0" })] }));
+      if (b.bet) { const B = b.bet;
+        children.push(new D.Paragraph({ spacing: { before: 200, after: 60 }, children: [RUN("Étude thermique (BET)" + (B.line ? " : " : ""), { bold: true, color: "7030A0" }), ...(B.line ? [RUN(B.line, { color: "7030A0" })] : [])] }));
+        B.projets.forEach(t => children.push(new D.Paragraph({ spacing: { after: 40 }, children: [RUN(t, { color: "7030A0" })] })));
+        if (B.constats) children.push(new D.Paragraph({ spacing: { after: 60 }, children: [RUN(B.constats, { color: "7030A0" })] })); }
     }
     b.chapters.forEach((c, ci) => {
       if (c.cover) {
@@ -3589,7 +3601,9 @@ async function collectExport(opt, only) {
     for (const b of S.d.buildings) {
       const nb = { name: b.name, chapters: [], info: BINFO.map(([k, l]) => [l, (b.info || {})[k] || ""]).concat([["Observations générales", (b.info || {}).remarques || ""]]), images: [] };
       for (const [k, lbl] of [["plan", "Plan"], ["loc", "Localisation"]]) { const u = await getImg(b.id + "_" + k); if (u) { try { const bmp = await createImageBitmap(new Blob([dataUrlToU8(u)], { type: "image/jpeg" })); const MAX = 300; let w = MAX, hh = Math.round(MAX * bmp.height / bmp.width); if (hh > 340) { w = Math.round(w * 340 / hh); hh = 340; } bmp.close?.(); nb.images.push({ data: dataUrlToU8(u), url: u, w, h: hh, label: lbl }); } catch {} } }
-      { const bl = b.betText != null ? b.betText.trim() : betAutoLine(b); if (bl) nb.betLine = bl; }
+      if (b.betPrint) { const bl = b.betText != null ? b.betText.trim() : betAutoLine(b); const rr = S.d.bet?.result || {};
+        const pj = (rr.scenarios || []).map((x, i) => "Projet " + (i + 1) + " : " + ((x.travaux || []).join(", ") || x.nom || "") + (x.classe ? " → classe " + x.classe : "") + (x.gain ? " (" + x.gain + ")" : "")).filter(t => t.replace(/Projet \d+ : /, "").trim());
+        if (bl || pj.length || rr.constats) nb.bet = { line: bl, projets: pj, constats: rr.constats || "" }; }
       { const pu = await getImg(b.id + "_photo"); if (pu) { try { const bmp = await createImageBitmap(new Blob([dataUrlToU8(pu)], { type: "image/jpeg" })); let w = 200, hh = Math.round(200 * bmp.height / bmp.width); if (hh > 230) { w = Math.round(w * 230 / hh); hh = 230; } bmp.close?.(); nb.photo = { url: pu, data: dataUrlToU8(pu), w, h: hh }; } catch {} } }
       if (b.dpe) { try { const png = await dpePng(b.dpe); nb.dpe = { cls: b.dpe, png, url: u8ToDataUrl(png, "image/png") }; } catch {} }
       for (const id of b.chapters) {
@@ -3856,7 +3870,7 @@ async function exportPDF(only, lay, opts) {
       if (kv.length || b.photo || b.dpe) place(el(`<div class="pbid">${b.photo ? `<div class="bph"><img src="${b.photo.url}" alt=""></div>` : ""}${b.dpe ? `<div class="bdpe"><img src="${b.dpe.url}" alt=""></div>` : ""}<div class="bkv"><table class="pkv">${kv.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v).replace(/\n/g, "<br>")}</td></tr>`).join("")}</table></div></div>`));
       if (obs) place(el(`<div class="pfld"><div class="lb">Observations générales</div><p>${esc(obs[1]).replace(/\n/g, "<br>")}</p></div>`));
       if (b.images.length) place(el(`<div class="pimgs">${b.images.map(im => `<figure><img src="${im.url}" width="${Math.round(im.w * 1.05)}" height="${Math.round(im.h * 1.05)}" alt=""><figcaption>${esc(im.label)}</figcaption></figure>`).join("")}</div>`));
-      if (b.betLine) place(el(`<div class="pfld th"><div class="lb">Étude thermique (BET)</div><p>${esc(b.betLine)}</p></div>`));
+      if (b.bet) place(el(`<div class="pfld th"><div class="lb">Étude thermique (BET)</div>${b.bet.line ? `<p>${esc(b.bet.line)}</p>` : ""}${b.bet.projets.map(t => `<p>${esc(t)}</p>`).join("")}${b.bet.constats ? `<p>${esc(b.bet.constats)}</p>` : ""}</div>`));
       }
       for (const c of b.chapters) {
         newPage(b.name, c.title); mark(c.title, 1);
