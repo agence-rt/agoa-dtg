@@ -199,7 +199,7 @@ ipcMain.handle("cfg:get", wrap(async () => ({ ...cfg, anthropicKey: cfg.anthropi
 ipcMain.handle("cfg:set", wrap(async (c) => { if (c.googleClientSecret && !c.googleClientSecret.startsWith("••••")) cfg.googleClientSecret = c.googleClientSecret.trim(); for (const k of ["dropboxRoot", "model", "ragicHost", "ragicAp", "ragicSheet", "googleClientId", "googleDomain"]) if (c[k] !== undefined) cfg[k] = k === "ragicHost" ? cleanHost(c[k]) : k === "ragicSheet" ? cleanSheet(c[k]) : (typeof c[k] === "string" ? c[k].trim() : c[k]); if (c.anthropicKey && !c.anthropicKey.startsWith("••••")) cfg.anthropicKey = cleanKey(c.anthropicKey); if (c.ragicKey && !c.ragicKey.startsWith("••••")) cfg.ragicKey = cleanKey(c.ragicKey); saveCfg(cfg); return true; }));
 ipcMain.handle("cfg:pickDropbox", wrap(async () => { const r = await dialog.showOpenDialog(settingsWin || win, { properties: ["openDirectory"], defaultPath: cfg.dropboxRoot, title: "Dossier racine de la Dropbox (celui qui contient « Agence T&K »)" }); return r.canceled ? null : r.filePaths[0]; }));
 const cleanKey = k => String(k || "").replace(/[\s"'`]+/g, "");
-ipcMain.handle("cfg:testRagic", wrap(async () => { const r = await ragic("full_text_search", { query: "a" }); const n = (r.hits || r.results || []).length; return { host: cfg.ragicHost, ap: cfg.ragicAp, n }; }));
+ipcMain.handle("cfg:testRagic", wrap(async () => { const r = await ragic("get_records", { sheet_id: "/operations/10", filters: { 1000278: { op: "like", value: "a" } }, count: 5 }); return { host: cfg.ragicHost, ap: cfg.ragicAp, n: (r.records || []).length }; }));
 ipcMain.handle("cfg:testAI", wrap(async () => { const t = await aiComplete({ prompt: "Réponds simplement : OK", maxTokens: 20 }); return t; }));
 ipcMain.handle("pdf:render", wrap(async (html) => require("./pdf").renderPdf(String(html || ""))));
 ipcMain.handle("app:openSettings", wrap(async () => { openSettings(); return true; }));
@@ -268,6 +268,10 @@ async function dbx(tool, input) {
   }
   throw { code: "tool_error", message: "Outil Dropbox inconnu : " + tool };
 }
+const RAGIC_OPS = { "=": "eq", like: "like", ">=": "gte", "<=": "lte", ">": "gt", "<": "lt", regex: "regex" };
+function ragicWhere(filters) {   // { "1000295": {op:"=", value:"X"} } → &where=1000295,eq,X (syntaxe de l'API HTTP Ragic)
+  return Object.entries(filters || {}).map(([fid, f]) => { const o = typeof f === "string" ? { op: "like", value: f } : f; return "&where=" + encodeURIComponent(fid) + "," + (RAGIC_OPS[o.op] || "like") + "," + encodeURIComponent(String(o.value ?? "")); }).join("");
+}
 async function ragic(tool, input) {
   if (!cfg.ragicKey) throw { code: "server_not_connected", message: "Clé API Ragic absente (menu Fichier > Paramètres)" };
   const KEY = encodeURIComponent(String(cfg.ragicKey).replace(/[^A-Za-z0-9+\/=_-]/g, ""));   // clé dans l'adresse : méthode documentée par Ragic pour une clé API seule
@@ -277,6 +281,12 @@ async function ragic(tool, input) {
     const url = `https://${cfg.ragicHost}/${ap}${cfg.ragicSheet}?api&v=3&limit=20&fts=${encodeURIComponent(input.query || "")}`;
     const j = await rf(url);
     return { hits: Object.entries(j || {}).filter(([k]) => /^\d+$/.test(k)).map(([id, rec]) => ({ apname: ap, sheet_id: cfg.ragicSheet, record_id: +id, sheet_display_name: "Immeubles", entry_name: rec.code || rec._index_title_ || "", record_url: `/${ap}${cfg.ragicSheet}/${id}` })) };
+  }
+  if (tool === "get_records" && (input.record_id === undefined || input.record_id === null)) {   // recherche par filtres (ex. feuille OPERATIONS : « Code travaux », « Immeuble »)
+    const sheet = cleanSheet(input.sheet_id || cfg.ragicSheet);
+    const url = `https://${cfg.ragicHost}/${ap}${sheet}?api&v=3&limit=${Math.min(+input.count || 50, 200)}${ragicWhere(input.filters)}`;
+    const j = await rf(url);
+    return { records: Object.entries(j || {}).filter(([k]) => /^\d+$/.test(k)).map(([id, rec]) => ({ record_id: +id, record: rec })) };
   }
   if (tool === "get_records") {
     const url = `https://${cfg.ragicHost}/${ap}${input.sheet_id}/${input.record_id}?api&v=3`;

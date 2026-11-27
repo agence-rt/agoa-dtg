@@ -11,7 +11,7 @@ publiée sur claude.ai, en local sur chaque poste.
    - **Dossier Dropbox** : le dossier racine synchronisé qui contient « Agence T&K »
      (par défaut `C:\Users\<nom>\T&K Dropbox`) ;
    - **Clé API Anthropic** (rédaction IA, baguette magique, étude thermique) et modèle ;
-   - **Clé API Ragic** (import de la fiche immeuble). Serveur `eu2.ragic.com`, espace `agoa`, feuille `/agoa/3`.
+   - **Clé API Ragic** (import de la fiche immeuble). Serveur `eu2.ragic.com`, espace `agoa`. La recherche du « Nouveau DTG » interroge la feuille OPERATIONS (`/operations/10` : « Code travaux », « Immeuble »).
    Les clés sont chiffrées par Windows (stockage protégé de l'utilisateur).
 
 ## Fichiers .dtg

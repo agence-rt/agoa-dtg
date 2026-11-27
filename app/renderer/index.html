@@ -1404,6 +1404,13 @@ async function openDossier(ref) {
 function newDtgDialog() {
   const m = document.createElement("div"); m.className = "modal";
   m.innerHTML = `<div class="dlg small" role="dialog" aria-modal="true" style="max-width:560px"><h3>Nouveau DTG</h3>
+    <div class="card" style="margin:0 0 12px"><b>Recherche Ragic <span class="muted" style="font-weight:400">(base OPERATIONS — facultatif)</span></b>
+      <p class="path" style="margin:4px 0 8px">Pré-remplit la référence, l’adresse, le syndic, le nombre de lots, etc. d’après la fiche de la feuille « OPERATIONS ».</p>
+      <div class="row" style="gap:8px"><input id="nRagic" class="field-in" style="flex:1;min-width:0" placeholder="Code immeuble ou référence (ex. GRACIEUSE11/13-B) ou lien de la fiche" autocomplete="off"><button class="btn" id="nSearch" type="button">Rechercher</button></div>
+      <p class="path" id="nRagicSt" style="min-height:18px;margin:6px 0 0"></p>
+      <label class="row" style="gap:6px;margin-top:4px"><input type="checkbox" id="nUseRagic" checked> Rechercher dans Ragic à la création</label>
+      <label class="row" style="gap:6px;margin-top:4px"><input type="checkbox" id="nUseDbx" checked> Retrouver aussi le dossier de visite (RV1) dans la Dropbox</label>
+    </div>
     <div class="kv" style="grid-template-columns:150px 1fr">
       <label for="nRef">Référence *</label><input id="nRef" class="field-in" placeholder="CODE-INDICE (ex. GRACIEUSE11-13-B)" autocomplete="off">
       <label for="nAdr">Adresse</label><input id="nAdr" class="field-in" placeholder="Adresse de l’immeuble">
@@ -1411,26 +1418,39 @@ function newDtgDialog() {
       <label for="nDate">Date de visite</label><input id="nDate" class="field-in" type="date" style="max-width:200px">
       <label for="nVer">Version</label><input id="nVer" class="field-in" value="1" style="max-width:80px">
     </div>
-    <div class="card" style="margin:12px 0 6px"><b>Recherche Ragic <span class="muted" style="font-weight:400">(facultatif)</span></b>
-      <p class="path" style="margin:4px 0 8px">Pré-remplit l’adresse, le syndic, le nombre de lots, etc. d’après la fiche « Immeubles ».</p>
-      <input id="nRagic" class="field-in" style="width:100%" placeholder="Code immeuble (ex. GRACIEUSE11/13) ou lien de la fiche — vide : déduit de la référence">
-      <label class="row" style="gap:6px;margin-top:8px"><input type="checkbox" id="nUseRagic" checked> Rechercher dans Ragic à la création</label>
-      <label class="row" style="gap:6px;margin-top:4px"><input type="checkbox" id="nUseDbx"> Retrouver aussi le dossier de visite (RV1) dans la Dropbox</label>
-    </div>
     <p class="path" id="nErr" style="color:var(--red,#c0392b);min-height:18px;margin:4px 0"></p>
     <div class="row" style="justify-content:flex-end"><button class="btn" id="nCancel">Annuler</button><button class="btn primary" id="nGo">Créer et enregistrer le .dtg</button></div></div>`;
   document.body.append(m);
-  const $m = q => m.querySelector(q); $m("#nRef").focus();
+  const $m = q => m.querySelector(q); $m("#nRagic").focus();
+  let found = null;   // fiche OPERATIONS déjà trouvée dans la fenêtre (évite une seconde recherche à la création)
   $m("#nCancel").onclick = () => m.remove();
+  $m("#nRagic").addEventListener("input", () => { found = null; });
+  const stat = (t, ok) => { const e = $m("#nRagicSt"); e.textContent = t; e.style.color = ok ? "var(--green,#1e8449)" : "var(--red,#c0392b)"; };
+  $m("#nSearch").onclick = async () => {
+    const input = $m("#nRagic").value.trim() || $m("#nRef").value.trim();
+    if (!input) { stat("Saisissez un code immeuble, une référence ou un lien de fiche Ragic.", false); return; }
+    const btn = $m("#nSearch"); btn.disabled = true; stat("Recherche dans Ragic…", true); found = null;
+    try {
+      const hit = await ragicResolve(input, $m("#nRef").value.trim().toUpperCase());
+      found = { input, hit };
+      const meta = ragicMeta(hit.rec), g = k => String(hit.rec[k] ?? "").trim();
+      if (!$m("#nRef").value.trim() && g("Code travaux")) $m("#nRef").value = g("Code travaux").toUpperCase().replace(/\//g, "-");
+      if (!$m("#nAdr").value.trim() && meta.adresse) $m("#nAdr").value = meta.adresse;
+      const nb = parseInt(meta.batiments, 10);
+      if (!$m("#nBat").value.trim() && nb > 1 && nb <= 8) $m("#nBat").value = "ABCDEFGH".slice(0, nb).split("").join(", ");
+      stat("✓ Fiche trouvée : " + (g("Code travaux") || g("_index_title_") || input) + (g("Objet") ? " — " + g("Objet") : "") + (meta.syndic ? " · " + meta.syndic : "") + ". Champs pré-remplis (modifiables).", true);
+    } catch (e) { stat(e?.code === "nf" ? e.message : ragicMsg(e), false); }
+    btn.disabled = false;
+  };
   m.addEventListener("click", e => { if (e.target === m) m.remove(); });
   $m("#nGo").onclick = async () => {
     const ref = $m("#nRef").value.trim().toUpperCase();
     if (!ref) { $m("#nErr").textContent = "La référence du dossier est obligatoire."; return; }
-    const f = { ref, adresse: $m("#nAdr").value.trim(), bats: $m("#nBat").value.trim(), date: $m("#nDate").value, version: $m("#nVer").value.trim() || "1", ragic: $m("#nRagic").value.trim(), useRagic: $m("#nUseRagic").checked, useDbx: $m("#nUseDbx").checked };
+    const f = { ref, adresse: $m("#nAdr").value.trim(), bats: $m("#nBat").value.trim(), date: $m("#nDate").value, version: $m("#nVer").value.trim() || "1", ragic: $m("#nRagic").value.trim(), ragicHit: found ? found.hit : null, useRagic: $m("#nUseRagic").checked, useDbx: $m("#nUseDbx").checked };
     try { if (await Store.load(slugOf(ref)).then(g => g?.d).catch(() => null)) { if (await ask("Un dossier « " + ref + " » existe déjà. L’ouvrir à la place ?", [["Ouvrir", "y"], ["Annuler", "n"]]) === "y") { m.remove(); openDossier(ref); } return; } } catch {}
     m.remove(); createDtg(f);
   };
-  m.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "checkbox") $m("#nGo").click(); if (e.key === "Escape") m.remove(); });
+  m.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "checkbox") (e.target.id === "nRagic" ? $m("#nSearch") : $m("#nGo")).click(); if (e.key === "Escape") m.remove(); });
 }
 async function createDtg(f) {
   S.busy = "open"; S.log = []; renderSources();
@@ -1457,7 +1477,7 @@ async function createDtg(f) {
     S.sel = S.d.buildings[0]?.chapters[0] || null;
     S.lastSaved = null; migrateTx();
     S.busy = null; recentCache = null; renderAll();
-    if (f.useRagic) await importRagic(f.ragic || ragicCodeOf(f.ref));
+    if (f.useRagic || f.ragicHit) await importRagic(f.ragic || ragicCodeOf(f.ref), f.ragicHit);
     loadStyleRefs(false).then(renderSources); refreshTrashCount();
     await saveDtgFile();
   } catch (e) { logLine(e?.code === "nf" ? e.message : (e?.message || String(e)), "er"); }
@@ -2575,44 +2595,72 @@ async function ragicCall(tool, input) {
 function ragicMsg(e) { const m = mcpMessage(e); return m.replace(/Dropbox/g, "Ragic"); }
 const RAGIC_HOST = "https://eu2.ragic.com";
 function ragicHostOf(u) { const m = String(u || "").match(/^https?:\/\/([\w.-]*ragic\.com)/i); return m ? "https://" + m[1].toLowerCase().replace(/^www\./, "eu2.") : RAGIC_HOST; }
-async function importRagic(input) {
-  input = String(input || "").trim(); if (!input) return toast("Saisissez le code de l’immeuble ou le lien de la fiche Ragic.");
-  S.busy = "ragic"; S.ragicErr = ""; renderSources();
-  try {
-    let ap = RAGIC_AP, sheet = null, rid = null, host = RAGIC_HOST;
-    const u = input.match(/ragic\.com\/([\w-]+)\/([\w-]+)\/(\d+)\/(\d+)/) || input.match(/^\/?([\w-]+)\/([\w-]+)\/(\d+)\/(\d+)$/);
-    if (u) { ap = u[1]; sheet = "/" + u[2] + "/" + u[3]; rid = +u[4]; host = ragicHostOf(input); }
-    else {
-      const code = ragicCodeOf(S.d.ref);
-      const variants = [...new Set([input, input.replace(/-/g, "/"), input.replace(/\s+/g, ""), code].map(x => String(x || "").trim()).filter(Boolean))];
-      let hit = null, any = 0;
-      for (const q of variants) {
-        const res = await ragicCall("full_text_search", { apname: ap, query: q, limit: 20 });
-        const hits = res?.hits || res?.results || []; any += hits.length;
-        const imm = hits.filter(x => /immeuble/i.test(x.sheet_display_name || "") || x.sheet_id === "/agoa/3");
-        hit = imm.find(x => [input, q].some(t => (x.entry_name || "").toUpperCase().replace(/\s/g, "") === t.toUpperCase().replace(/\s/g, ""))) || imm[0];
-        if (hit) break;
-      }
-      if (!hit) throw { code: "nf", message: any ? "Des fiches Ragic correspondent à « " + input + " » mais aucune dans la feuille « Immeubles »." : "Aucune fiche « Immeubles » trouvée dans Ragic pour « " + input + " » (essayé : " + variants.join(" · ") + ")." };
-      sheet = hit.sheet_id; rid = hit.record_id; ap = hit.apname || ap;
-    }
+const OPS_SHEET = "/operations/10", OPS_CODE = 1000295, OPS_IMM = 1000278;   // feuille OPERATIONS (base agoa) : « Code travaux » (ex. GRACIEUSE11/13-B) et « Immeuble » (ex. GRACIEUSE11/13)
+const ragicSlash = c => String(c || "").replace(/(\d)-(\d)/g, "$1/$2");
+/* Fiche OPERATIONS à retenir parmi plusieurs indices d'un même immeuble : indice demandé, puis objet « DTG », puis la plus récente. */
+function pickOperation(list, ind) {
+  const up = x => String(x || "").trim().toUpperCase();
+  const score = x => (ind && up(x.rec["Indice"]) === up(ind) ? 4 : 0) + (/DTG/i.test(x.rec["Objet"] || "") ? 2 : 0);
+  return [...list].sort((a, b) => score(b) - score(a) || b.id - a.id)[0] || null;
+}
+function opsQueries(input, ref) {
+  const typed = String(input || "").trim().toUpperCase().replace(/\s+/g, "");
+  const p = parseRef(typed || ref || ""), pr = parseRef(ref || "");
+  const code = ragicSlash(p.code), dash = code.replace(/\//g, "-");
+  const ind = p.ind || (!typed || ragicSlash(pr.code) === code ? pr.ind : null);
+  const q = [];
+  if (ind) q.push({ f: { [OPS_CODE]: { op: "=", value: code + "-" + ind } }, why: "Code travaux " + code + "-" + ind });
+  for (const c of new Set([code, dash])) q.push({ f: { [OPS_IMM]: { op: "=", value: c } }, why: "Immeuble " + c });
+  q.push({ f: { [OPS_CODE]: { op: "like", value: code } }, why: "Code travaux ~ " + code });
+  return { q, ind, code };
+}
+async function ragicResolve(input, ref) {
+  input = String(input || "").trim();
+  const u = input.match(/ragic\.com\/([\w-]+)\/([\w-]+)\/(\d+)\/(\d+)/) || input.match(/^\/?([\w-]+)\/([\w-]+)\/(\d+)\/(\d+)$/);
+  if (u) {   // lien direct vers une fiche
+    const ap = u[1], sheet = "/" + u[2] + "/" + u[3], rid = +u[4];
     const rec = (await ragicCall("get_records", { apname: ap, sheet_id: sheet, record_id: rid }))?.records?.[0]?.record;
     if (!rec) throw { code: "nf", message: "Fiche Ragic introuvable." };
-    const g = (...keys) => { for (const k of keys) { const v = rec[k]; if (Array.isArray(v) ? v.length : (v !== undefined && v !== null && String(v).trim() !== "")) return Array.isArray(v) ? v.join(", ") : String(v).trim(); } return ""; };
+    return { ap, sheet, rid, host: ragicHostOf(input), rec };
+  }
+  const { q, ind, code } = opsQueries(input, ref);
+  if (!code) throw { code: "nf", message: "Saisissez le code de l’immeuble (ex. GRACIEUSE11/13) ou la référence (ex. GRACIEUSE11-13-B)." };
+  for (const x of q) {
+    const res = await ragicCall("get_records", { apname: RAGIC_AP, sheet_id: OPS_SHEET, filters: x.f, count: 50 });
+    const list = (res?.records || []).map(r => ({ id: r.record_id, rec: r.record || {} })).filter(r => r.rec && Object.keys(r.rec).length);
+    const hit = pickOperation(list, ind);
+    if (hit) return { ap: RAGIC_AP, sheet: OPS_SHEET, rid: hit.id, host: RAGIC_HOST, rec: hit.rec, nb: list.length };
+  }
+  throw { code: "nf", message: "Aucune fiche trouvée dans la feuille OPERATIONS de Ragic pour « " + (input || ref) + " » (essayé : " + q.map(x => x.why).join(" · ") + ")." };
+}
+/* Champs de la fiche Ragic → informations de l'immeuble du DTG (mêmes libellés dans OPERATIONS et Immeubles). */
+function ragicMeta(rec) {
+  const g = (...keys) => { for (const k of keys) { const v = rec[k]; if (Array.isArray(v) ? v.length : (v !== undefined && v !== null && String(v).trim() !== "")) return Array.isArray(v) ? v.join(", ") : String(v).trim(); } return ""; };
+  const o = {
+    adresse: g("adresse", "Adresse"), parcelle: g("parcelle"), syndic: g("syndic"), gestionnaire: g("gestionnaire"), gestionnaireEmail: g("E-mail gestionnaire"),
+    lots: g("Nbr Lots", "Nbr lots ?"), batiments: g("Nbr Batiments", "Nbr batiments ?"), niveaux: g("niveaux"), annee: g("Année de construction", "Période de construction ?"), surface: g("surface"),
+    chauffage: g("Chauffage ?"), typologie: g("Type d'immeuble"), siret: g("siret immeuble", "siret", "Siret"), toiture: g("Type de toiture")
+  };
+  Object.keys(o).forEach(k => { if (!o[k]) delete o[k]; });
+  return o;
+}
+async function importRagic(input, pre) {
+  input = String(input || "").trim();
+  if (!input && !pre) return toast("Saisissez le code de l’immeuble ou le lien de la fiche Ragic.");
+  S.busy = "ragic"; S.ragicErr = ""; renderSources();
+  try {
+    const hit = pre || await ragicResolve(input, S.d.ref);
+    const { rec, ap, sheet, rid, host } = hit;
     const m = S.d.meta;
-    const set = (k, v) => { if (v) m[k] = v; };
-    set("adresse", g("adresse")); set("parcelle", g("parcelle")); set("syndic", g("syndic")); set("gestionnaire", g("gestionnaire")); set("gestionnaireEmail", g("E-mail gestionnaire"));
-    set("lots", g("Nbr Lots")); set("batiments", g("Nbr Batiments")); set("niveaux", g("niveaux")); set("annee", g("Année de construction")); set("surface", g("surface"));
-    set("chauffage", g("Chauffage ?")); set("typologie", g("Type d'immeuble")); set("siret", g("siret immeuble")); set("toiture", g("Type de toiture"));
-    if (!m.insee) set("insee", inseeGuess(m.adresse));
-    m.ragicRef = input; m.ragicUrl = host + "/" + ap + sheet + "/" + rid; m.ragicAt = Date.now();
+    Object.entries(ragicMeta(rec)).forEach(([k, v]) => { m[k] = v; });
+    if (!m.insee) { const i = inseeGuess(m.adresse); if (i) m.insee = i; }
+    m.ragicRef = input || String(rec["Code travaux"] || rec["_index_title_"] || ""); m.ragicUrl = host + "/" + ap + sheet + "/" + rid; m.ragicAt = Date.now();
     const b0 = S.d.buildings[0];
     if (b0) { b0.info = b0.info || {}; const bi = b0.info; if (!bi.periode && m.annee) bi.periode = m.annee; if (!bi.niveaux && m.niveaux) bi.niveaux = m.niveaux; if (!bi.lots && m.lots) bi.lots = m.lots; if (!bi.typologie && m.typologie) bi.typologie = m.typologie; if (!bi.chauffage && m.chauffage) bi.chauffage = m.chauffage; }
-    queueSave("d"); logLine("Fiche Ragic importée : " + (rec._index_title_ || input) + " — " + (m.adresse || ""), "ok"); toast("Informations récupérées depuis Ragic.");
+    queueSave("d"); logLine("Fiche Ragic importée : " + (rec["Code travaux"] || rec._index_title_ || input) + " — " + (m.adresse || ""), "ok"); toast("Informations récupérées depuis Ragic.");
   } catch (e) { const msg = e?.code === "nf" ? e.message : ragicMsg(e); S.ragicErr = msg; logLine(msg, "er"); toast(msg, 6000); }
   S.busy = null; renderSources();
 }
-
 
 /* ============ liaisons : test Ragic / Google / Anthropic ============ */
 S.link = S.link || {};
@@ -2634,10 +2682,9 @@ async function testLink(k) {
   const done = (cls, msg) => { S.link[k] = { cls, msg }; renderSources(); };
   try {
     if (k === "ragic") {
-      const q = ragicCodeOf(S.d.ref) || S.d.ref;
-      const res = await ragicCall("full_text_search", { apname: RAGIC_AP, query: q, limit: 5 });
-      const hits = res?.hits || res?.results || [];
-      done("ok", "Liaison OK — " + hits.length + " fiche(s) trouvée(s) pour « " + q + " »" + (hits.length ? "" : " (liaison valide, mais code non trouvé)"));
+      const q = S.d.ref;
+      const h = await ragicResolve("", q);
+      done("ok", "Liaison OK — feuille OPERATIONS : fiche « " + (h.rec["Code travaux"] || h.rec._index_title_ || q) + " » trouvée pour « " + q + " »");
     } else if (k === "google") {
       const mcp = await CAP.mcp; if (!mcp) throw { code: "no_mcp" };
       let who = ""; if (DESKTOP && window.dtgDesktop.googleInfo) { const g = await window.dtgDesktop.googleInfo().catch(() => null); if (g) { if (g.authed === false) throw { message: "Non identifié : connectez le compte Google de l’agence dans AGOA Launcher › CONNEXIONS." }; if (!g.signed) throw { message: "Identifié via AGOA Launcher, mais Google Agenda n’est pas autorisé : reconnectez Google (avec l’agenda) dans AGOA Launcher › CONNEXIONS." }; who = g.email; } }
